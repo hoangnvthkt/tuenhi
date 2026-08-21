@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Tuệ Nhi</title>
+  <rect width="512" height="512" rx="112" fill="#0f766e"/>
+  <circle cx="256" cy="256" r="144" fill="#f0fdfa"/>
+  <path d="M228 156h56v72h72v56h-72v72h-56v-72h-72v-56h72z" fill="#0f766e"/>
+</svg>
