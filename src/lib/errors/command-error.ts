@@ -42,7 +42,7 @@ const genericBusinessErrorMessage =
   'Không thể hoàn tất thao tác. Vui lòng thử lại.';
 
 export function getBusinessErrorMessage(code: string): string {
-  if (code in businessErrorMessages) {
+  if (Object.hasOwn(businessErrorMessages, code)) {
     return businessErrorMessages[code as BusinessErrorCode];
   }
 
