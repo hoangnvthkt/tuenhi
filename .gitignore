@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+.DS_Store
+.vercel/
+.worktrees/
+.superpowers/
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.local
+*.log
