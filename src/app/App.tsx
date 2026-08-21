@@ -1,7 +1,13 @@
+import { createBrowserRouter, RouterProvider } from 'react-router';
+import { appRoutes } from './app-routes';
+import { AppProviders } from './AppProviders';
+
+const router = createBrowserRouter(appRoutes);
+
 export function App() {
   return (
-    <main>
-      <p>Tuệ Nhi</p>
-    </main>
+    <AppProviders>
+      <RouterProvider router={router} />
+    </AppProviders>
   );
 }
