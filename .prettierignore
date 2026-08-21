@@ -1,0 +1,7 @@
+docs/superpowers/
+.superpowers/
+dist/
+coverage/
+playwright-report/
+test-results/
+node_modules/
