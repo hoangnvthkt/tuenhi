@@ -14,8 +14,10 @@ Cần Node.js 24.13.1 và pnpm 11.19.0.
 pnpm install
 pnpm dev
 pnpm check
-pnpm test:e2e
+pnpm check:full
 ```
+
+`pnpm check:full` là quality gate đầy đủ trong một lệnh. `pnpm test:e2e` chạy trên bản production đã build; nếu chỉ chạy browser smoke test, dùng `pnpm build && pnpm test:e2e`.
 
 ## Biến môi trường
 
