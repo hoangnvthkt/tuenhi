@@ -1,4 +1,4 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
 import type {
   ClientImportError,
   ValidatedClientRow,
@@ -34,7 +34,8 @@ export async function buildErrorWorkbook({
   errors,
 }: ErrorWorkbookInput): Promise<Blob> {
   const contract = getTemplateContract(target, version);
-  const workbook = new ExcelJS.Workbook();
+  const { default: ExcelJSRuntime } = await import('exceljs');
+  const workbook = new ExcelJSRuntime.Workbook();
   workbook.creator = 'Tuệ Nhi POS';
   workbook.created = new Date(0);
   workbook.modified = new Date(0);

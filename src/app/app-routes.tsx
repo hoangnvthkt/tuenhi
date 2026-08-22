@@ -7,6 +7,8 @@ import { ProductDetailPage } from '../features/catalog/ProductDetailPage';
 import { ProductListPage } from '../features/catalog/ProductListPage';
 import { CustomerPage } from '../features/directories/CustomerPage';
 import { SupplierPage } from '../features/directories/SupplierPage';
+import { ImportHistoryPage } from '../features/imports/ImportHistoryPage';
+import { ImportPage } from '../features/imports/ImportPage';
 import { SalesChannelPage } from '../features/settings/SalesChannelPage';
 import { StaffPage } from '../features/staff/StaffPage';
 import { AppShell } from './layout/AppShell';
@@ -66,6 +68,25 @@ export const appRoutes: RouteObject[] = [
           { path: 'pos', element: foundationPage('Bán hàng') },
           { path: 'sales', element: foundationPage('Hóa đơn') },
           { path: 'more', element: <MorePage /> },
+          {
+            element: (
+              <RequireSession
+                permission={[
+                  'catalog.basic.manage',
+                  'supplier.manage',
+                  'customer.manage',
+                ]}
+              />
+            ),
+            children: [
+              { path: 'imports', element: <ImportPage /> },
+              { path: 'imports/history', element: <ImportHistoryPage /> },
+              {
+                path: 'imports/:importRunId',
+                element: <ImportHistoryPage />,
+              },
+            ],
+          },
           {
             element: (
               <RequireSession

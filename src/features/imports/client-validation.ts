@@ -6,7 +6,7 @@ import { getTemplateContract } from './template-contracts';
 
 export type ClientImportError = {
   rowNumber: number;
-  sourceColumn: null;
+  sourceColumn: string | null;
   targetField: string | null;
   code: string;
   message: string;

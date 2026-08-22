@@ -3,6 +3,12 @@ import { useSession } from '../../features/auth/use-session';
 
 const destinations = [
   {
+    to: '/imports',
+    title: 'Nhập dữ liệu',
+    description: 'Nhập danh mục từ mẫu Excel và xem lịch sử kết quả.',
+    permissions: ['catalog.basic.manage', 'supplier.manage', 'customer.manage'],
+  },
+  {
     to: '/more/suppliers',
     title: 'Nhà cung cấp',
     description: 'Thông tin liên hệ và trạng thái nhà cung cấp.',

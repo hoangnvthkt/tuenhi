@@ -65,6 +65,14 @@ function ToastItem({
               </code>
             </details>
           ) : null}
+          {toast.actionRoute ? (
+            <a
+              href={toast.actionRoute}
+              className="mt-3 inline-flex min-h-11 items-center rounded-lg text-sm font-semibold text-teal-800 hover:underline"
+            >
+              {toast.actionLabel ?? 'Xem chi tiết'}
+            </a>
+          ) : null}
         </div>
         <button
           type="button"

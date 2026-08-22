@@ -24,6 +24,7 @@ function ToastHarness() {
             kind: 'error',
             title: 'Không thể lưu',
             correlationId: '00000000-0000-4000-8000-000000000099',
+            actionRoute: '/imports/00000000-0000-4000-8000-000000000099',
           })
         }
       >
@@ -76,6 +77,10 @@ describe('ToastProvider', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Đã lưu dữ liệu');
     expect(screen.getByRole('alert')).toHaveTextContent('Không thể lưu');
     expect(screen.getByText('Mã tra cứu')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Xem chi tiết' })).toHaveAttribute(
+      'href',
+      '/imports/00000000-0000-4000-8000-000000000099',
+    );
   });
 
   it('updates a duplicate event instead of stacking it', async () => {

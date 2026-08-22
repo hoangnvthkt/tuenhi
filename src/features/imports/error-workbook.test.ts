@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import * as XLSX from 'xlsx';
 import type {
   ClientImportError,
   ValidatedClientRow,
 } from './client-validation';
-import { buildErrorWorkbook } from './error-workbook';
+import { buildErrorWorkbook, downloadErrorWorkbook } from './error-workbook';
 
 describe('buildErrorWorkbook', () => {
   it('exports allowed values, Vietnamese errors and a code summary without formulas', async () => {
@@ -77,5 +77,26 @@ describe('buildErrorWorkbook', () => {
         ),
       ).toBe(false);
     }
+  });
+
+  it('revokes the temporary object URL immediately after download', () => {
+    const createObjectURL = vi
+      .spyOn(URL, 'createObjectURL')
+      .mockReturnValue('blob:import-errors');
+    const revokeObjectURL = vi
+      .spyOn(URL, 'revokeObjectURL')
+      .mockImplementation(() => undefined);
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+
+    downloadErrorWorkbook(new Blob(['safe']), 'loi-nhap.xlsx');
+
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:import-errors');
+    createObjectURL.mockRestore();
+    revokeObjectURL.mockRestore();
+    click.mockRestore();
   });
 });

@@ -47,6 +47,10 @@ describe('MorePage', () => {
       'href',
       '/more/sales-channels',
     );
+    expect(screen.getByRole('link', { name: /Nhập dữ liệu/ })).toHaveAttribute(
+      'href',
+      '/imports',
+    );
   });
 
   it('does not leak inaccessible destinations', () => {
@@ -59,6 +63,9 @@ describe('MorePage', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: /Kênh bán/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /Nhập dữ liệu/ }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByText('Bạn chưa có quyền sử dụng chức năng bổ sung nào.'),

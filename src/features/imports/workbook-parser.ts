@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import type * as XLSX from 'xlsx';
 import type { ImportTarget } from './contracts';
 import { normalizeImportHeader } from './header-normalization';
 import { getTemplateContract } from './template-contracts';
@@ -42,24 +42,24 @@ type ExtendedWorkbook = XLSX.WorkBook & {
   files?: Record<string, unknown>;
 };
 
-function allCells(sheet: XLSX.WorkSheet) {
+function allCells(sheet: XLSX.WorkSheet, runtime: typeof import('xlsx')) {
   const dense = (sheet as XLSX.WorkSheet & { '!data'?: unknown[][] })['!data'];
   if (Array.isArray(dense))
     return dense.flat().filter(Boolean) as XLSX.CellObject[];
   if (!sheet['!ref']) return [];
-  const range = XLSX.utils.decode_range(sheet['!ref']);
+  const range = runtime.utils.decode_range(sheet['!ref']);
   const cells: XLSX.CellObject[] = [];
   for (let row = range.s.r; row <= range.e.r; row += 1) {
     for (let column = range.s.c; column <= range.e.c; column += 1) {
-      const cell = sheet[XLSX.utils.encode_cell({ r: row, c: column })];
+      const cell = sheet[runtime.utils.encode_cell({ r: row, c: column })];
       if (cell) cells.push(cell);
     }
   }
   return cells;
 }
 
-function metadata(sheet: XLSX.WorkSheet) {
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+function metadata(sheet: XLSX.WorkSheet, runtime: typeof import('xlsx')) {
+  const rows = runtime.utils.sheet_to_json<unknown[]>(sheet, {
     header: 1,
     raw: false,
     blankrows: false,
@@ -105,8 +105,9 @@ export async function inspectWorkbook(
   }
 
   let workbook: ExtendedWorkbook;
+  const runtime = await import('xlsx');
   try {
-    workbook = XLSX.read(bytes, {
+    workbook = runtime.read(bytes, {
       type: 'array',
       dense: true,
       cellFormula: true,
@@ -136,7 +137,11 @@ export async function inspectWorkbook(
     throw new WorkbookInspectionError('WORKBOOK_FORMAT_INVALID');
   }
   for (const name of workbook.SheetNames) {
-    if (allCells(workbook.Sheets[name]!).some((cell) => cell.f !== undefined)) {
+    if (
+      allCells(workbook.Sheets[name]!, runtime).some(
+        (cell) => cell.f !== undefined,
+      )
+    ) {
       throw new WorkbookInspectionError('FORMULA_NOT_ALLOWED');
     }
   }
@@ -153,7 +158,7 @@ export async function inspectWorkbook(
   if (!metaSheet || metadataSheetState?.Hidden !== 2) {
     throw new WorkbookInspectionError('TEMPLATE_VERSION_UNSUPPORTED');
   }
-  const meta = metadata(metaSheet);
+  const meta = metadata(metaSheet, runtime);
   if (
     meta.template_type !== expected.target ||
     meta.template_version !== String(expected.version)
@@ -161,7 +166,7 @@ export async function inspectWorkbook(
     throw new WorkbookInspectionError('TEMPLATE_VERSION_UNSUPPORTED');
   }
 
-  const matrix = XLSX.utils.sheet_to_json<unknown[]>(dataSheet, {
+  const matrix = runtime.utils.sheet_to_json<unknown[]>(dataSheet, {
     header: 1,
     raw: true,
     blankrows: true,
