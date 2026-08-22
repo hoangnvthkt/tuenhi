@@ -89,12 +89,21 @@ begin
   into permission_count, owner_only_count
   from app_private.permission_definitions;
 
-  if permission_count <> 31 then
-    raise exception 'expected 31 permissions, got %', permission_count;
+  if permission_count <> 33 then
+    raise exception 'expected 33 permissions, got %', permission_count;
   end if;
 
   if owner_only_count <> 11 then
     raise exception 'expected 11 owner-only permissions, got %', owner_only_count;
+  end if;
+
+  if (
+    select count(*)
+    from app_private.permission_definitions
+    where code in ('supplier.read', 'customer.read')
+      and not owner_only
+  ) <> 2 then
+    raise exception 'phase 1b directory read permissions missing';
   end if;
 
   if not exists (
