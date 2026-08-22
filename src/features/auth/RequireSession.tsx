@@ -1,7 +1,11 @@
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { useSession } from './use-session';
 
-export function RequireSession({ permission }: { permission?: string }) {
+export function RequireSession({
+  permission,
+}: {
+  permission?: string | readonly string[];
+}) {
   const location = useLocation();
   const { status, session, errorMessage } = useSession();
 
@@ -37,7 +41,12 @@ export function RequireSession({ permission }: { permission?: string }) {
     return <Navigate replace to="/change-password" />;
   }
 
-  if (permission && !session.permissions.includes(permission)) {
+  const requiredPermissions =
+    typeof permission === 'string' ? [permission] : (permission ?? []);
+  if (
+    requiredPermissions.length > 0 &&
+    !requiredPermissions.some((item) => session.permissions.includes(item))
+  ) {
     return (
       <main className="grid min-h-[50vh] place-items-center px-4">
         <p role="alert" className="text-sm text-slate-700">

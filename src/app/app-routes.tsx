@@ -5,10 +5,14 @@ import { RequireSession } from '../features/auth/RequireSession';
 import { CategoryManagerPage } from '../features/catalog/CategoryManagerPage';
 import { ProductDetailPage } from '../features/catalog/ProductDetailPage';
 import { ProductListPage } from '../features/catalog/ProductListPage';
+import { CustomerPage } from '../features/directories/CustomerPage';
+import { SupplierPage } from '../features/directories/SupplierPage';
+import { SalesChannelPage } from '../features/settings/SalesChannelPage';
 import { StaffPage } from '../features/staff/StaffPage';
 import { AppShell } from './layout/AppShell';
 import { DashboardPage } from './pages/DashboardPage';
 import { FoundationSectionPage } from './pages/FoundationSectionPage';
+import { MorePage } from './pages/MorePage';
 
 function foundationPage(title: string) {
   return (
@@ -61,7 +65,32 @@ export const appRoutes: RouteObject[] = [
           },
           { path: 'pos', element: foundationPage('Bán hàng') },
           { path: 'sales', element: foundationPage('Hóa đơn') },
-          { path: 'more', element: foundationPage('Nhiều hơn') },
+          { path: 'more', element: <MorePage /> },
+          {
+            element: (
+              <RequireSession
+                permission={['supplier.read', 'supplier.manage']}
+              />
+            ),
+            children: [{ path: 'more/suppliers', element: <SupplierPage /> }],
+          },
+          {
+            element: (
+              <RequireSession
+                permission={['customer.read', 'customer.manage']}
+              />
+            ),
+            children: [{ path: 'more/customers', element: <CustomerPage /> }],
+          },
+          {
+            element: <RequireSession permission="settings.manage" />,
+            children: [
+              {
+                path: 'more/sales-channels',
+                element: <SalesChannelPage />,
+              },
+            ],
+          },
           {
             element: <RequireSession permission="staff.manage" />,
             children: [{ path: 'staff', element: <StaffPage /> }],

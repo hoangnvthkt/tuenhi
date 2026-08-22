@@ -32,7 +32,7 @@ function createApi(
 
 async function renderGuard(
   api: SessionApi,
-  permission?: string,
+  permission?: string | string[],
   initialEntry = '/',
 ) {
   const router = createMemoryRouter(
@@ -94,5 +94,14 @@ describe('RequireSession', () => {
     expect(
       await screen.findByText('Bạn không có quyền truy cập chức năng này.'),
     ).toBeInTheDocument();
+  });
+
+  it('accepts any one permission from an allowed list', async () => {
+    await renderGuard(createApi({ userId: session.userId }), [
+      'supplier.read',
+      'settings.manage',
+    ]);
+
+    expect(await screen.findByText('Nội dung bảo vệ')).toBeInTheDocument();
   });
 });
