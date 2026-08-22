@@ -1,6 +1,24 @@
 begin;
 
 do $$
+begin
+  if to_regprocedure('api.cleanup_phase1b_test_users(uuid[])') is null then
+    raise exception 'api.cleanup_phase1b_test_users missing';
+  end if;
+  if has_function_privilege(
+    'authenticated', 'api.cleanup_phase1b_test_users(uuid[])', 'execute'
+  ) then
+    raise exception 'authenticated must not execute Phase 1B cleanup';
+  end if;
+  if not has_function_privilege(
+    'service_role', 'api.cleanup_phase1b_test_users(uuid[])', 'execute'
+  ) then
+    raise exception 'service_role must execute Phase 1B cleanup';
+  end if;
+end;
+$$;
+
+do $$
 declare
   v_table text;
   v_function text;

@@ -34,6 +34,7 @@ export function AuthProvider({
   const mounted = useRef(true);
   const refreshSequence = useRef(0);
   const ignoredAuthChanges = useRef(0);
+  const authenticatedSession = useRef<SessionContext | null>(null);
   const [status, setStatus] = useState<SessionStatus>('loading');
   const [session, setSession] = useState<SessionContext | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -46,6 +47,7 @@ export function AuthProvider({
       if (!mounted.current || sequence !== refreshSequence.current) return;
 
       if (!authSession) {
+        authenticatedSession.current = null;
         setSession(null);
         setErrorMessage(null);
         setStatus('anonymous');
@@ -57,7 +59,12 @@ export function AuthProvider({
 
       if (!nextSession.isActive) {
         ignoredAuthChanges.current += 1;
-        await api.signOut();
+        authenticatedSession.current = null;
+        try {
+          await api.signOut();
+        } catch {
+          // The authoritative profile still makes the local session unusable.
+        }
         queryClient.clear();
         if (!mounted.current || sequence !== refreshSequence.current) return;
         setSession(null);
@@ -66,6 +73,7 @@ export function AuthProvider({
         return;
       }
 
+      authenticatedSession.current = nextSession;
       setSession(nextSession);
       setErrorMessage(null);
       setStatus('authenticated');
@@ -80,8 +88,17 @@ export function AuthProvider({
           // The local session is still treated as unusable.
         }
         queryClient.clear();
+        authenticatedSession.current = null;
       }
       if (!mounted.current || sequence !== refreshSequence.current) return;
+
+      if (authenticatedSession.current) {
+        setSession(authenticatedSession.current);
+        setErrorMessage(null);
+        setStatus('authenticated');
+        return;
+      }
+
       setSession(null);
       setErrorMessage(message);
       setStatus('error');
@@ -124,6 +141,7 @@ export function AuthProvider({
       signOut: async () => {
         await api.signOut();
         queryClient.clear();
+        authenticatedSession.current = null;
         setSession(null);
         setErrorMessage(null);
         setStatus('anonymous');

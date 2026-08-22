@@ -103,4 +103,22 @@ describe('AuthProvider', () => {
     expect(result.current.errorMessage).toBe('Tài khoản đã bị khóa.');
     expect(signOut).toHaveBeenCalledOnce();
   });
+
+  it('keeps the last authenticated session on a transient offline refresh failure', async () => {
+    const getSessionContext = vi
+      .fn()
+      .mockResolvedValueOnce(ownerSession)
+      .mockRejectedValueOnce(
+        new Error('Không thể tải thông tin tài khoản. Vui lòng thử lại.'),
+      );
+    const api = createApi({ getSessionContext });
+    const { result } = renderHook(useSession, { wrapper: wrapper(api) });
+
+    await waitFor(() => expect(result.current.status).toBe('authenticated'));
+    act(() => api.emitAuthChange());
+    await waitFor(() => expect(getSessionContext).toHaveBeenCalledTimes(2));
+    expect(result.current.status).toBe('authenticated');
+    expect(result.current.session).toEqual(ownerSession);
+    expect(api.signOut).not.toHaveBeenCalled();
+  });
 });

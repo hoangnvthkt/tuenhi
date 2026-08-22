@@ -2,6 +2,19 @@ begin;
 
 do $$
 declare
+  v_definition text;
+begin
+  select pg_get_functiondef(
+    'app_private.get_product_detail_impl(uuid)'::regprocedure
+  ) into v_definition;
+  if position('''primaryImagePath''' in v_definition) = 0 then
+    raise exception 'product detail must include primaryImagePath DTO field';
+  end if;
+end;
+$$;
+
+do $$
+declare
   v_relation text;
   v_table text;
   v_function text;
@@ -464,5 +477,56 @@ end
 $$;
 
 reset role;
+
+rollback;
+
+begin;
+
+do $$
+declare
+  v_signature text;
+  v_expected_volatility "char";
+begin
+  for v_signature, v_expected_volatility in
+    select * from (values
+      ('app_private.get_import_validation_result_impl(uuid,integer,integer)', 'v'::"char"),
+      ('app_private.get_import_result_impl(uuid)', 'v'::"char"),
+      ('app_private.list_import_runs_impl(text,text,timestamp with time zone,uuid,integer)', 'v'::"char"),
+      ('app_private.get_legacy_sales_impl(jsonb,date,uuid,integer)', 'v'::"char"),
+      ('app_private.get_legacy_sale_impl(uuid)', 'v'::"char"),
+      ('app_private.get_product_catalog_impl(text,uuid,text,boolean,text,uuid,integer)', 'v'::"char"),
+      ('app_private.get_product_detail_impl(uuid)', 'v'::"char"),
+      ('app_private.get_product_sale_price_history_impl(uuid,timestamp with time zone,uuid,integer)', 'v'::"char"),
+      ('app_private.list_categories_impl(boolean)', 'v'::"char"),
+      ('app_private.list_suppliers_impl(text,text,uuid,integer)', 'v'::"char"),
+      ('app_private.list_customers_impl(text,text,uuid,integer)', 'v'::"char"),
+      ('app_private.list_sales_channels_impl(boolean)', 'v'::"char"),
+      ('api.get_import_validation_result(uuid,integer,integer)', 'v'::"char"),
+      ('api.get_import_result(uuid)', 'v'::"char"),
+      ('api.list_import_runs(text,text,timestamp with time zone,uuid,integer)', 'v'::"char"),
+      ('api.get_legacy_sales(jsonb,date,uuid,integer)', 'v'::"char"),
+      ('api.get_legacy_sale(uuid)', 'v'::"char"),
+      ('api.get_product_catalog(text,uuid,text,boolean,text,uuid,integer)', 'v'::"char"),
+      ('api.get_product_detail(uuid)', 'v'::"char"),
+      ('api.get_product_sale_price_history(uuid,timestamp with time zone,uuid,integer)', 'v'::"char"),
+      ('api.list_categories(boolean)', 'v'::"char"),
+      ('api.list_suppliers(text,text,uuid,integer)', 'v'::"char"),
+      ('api.list_customers(text,text,uuid,integer)', 'v'::"char"),
+      ('api.list_sales_channels(boolean)', 'v'::"char"),
+      ('app_private.stringify_legacy_list_decimals(jsonb)', 's'::"char"),
+      ('app_private.stringify_legacy_detail_decimals(jsonb)', 's'::"char")
+    ) expected(signature, volatility)
+  loop
+    if not exists (
+      select 1
+      from pg_proc
+      where oid = to_regprocedure(v_signature)
+        and provolatile = v_expected_volatility
+    ) then
+      raise exception 'function volatility mismatch: %', v_signature;
+    end if;
+  end loop;
+end;
+$$;
 
 rollback;

@@ -882,6 +882,10 @@ export type Database = {
         Args: { p_user_ids: string[] };
         Returns: Json;
       };
+      cleanup_phase1b_test_users: {
+        Args: { p_user_ids: string[] };
+        Returns: Json;
+      };
       commit_import: {
         Args: { p_idempotency_key: string; p_import_run_id: string };
         Returns: Json;

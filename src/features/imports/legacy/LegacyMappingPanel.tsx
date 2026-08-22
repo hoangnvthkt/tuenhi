@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from 'react';
 import type { LegacyResolution } from './legacy-q237-contract';
 import {
   legacyResolutionsReady,
@@ -34,7 +35,7 @@ export function LegacyMappingPanel({
   customerCandidateCount: number;
   openingSuggestionCount: number;
   isBusy?: boolean;
-  onChange: (resolutions: LegacyResolutions) => void;
+  onChange: Dispatch<SetStateAction<LegacyResolutions>>;
   onContinue: () => void;
 }) {
   const ready = legacyResolutionsReady(labels, resolutions);
@@ -44,10 +45,10 @@ export function LegacyMappingPanel({
     label: string,
     resolution: LegacyResolution | null,
   ) {
-    onChange({
-      ...resolutions,
-      [kind]: { ...resolutions[kind], [label]: resolution },
-    });
+    onChange((current) => ({
+      ...current,
+      [kind]: { ...current[kind], [label]: resolution },
+    }));
   }
 
   return (
