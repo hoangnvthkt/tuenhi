@@ -34,7 +34,12 @@ function renderPage(permissions: string[]) {
 
 describe('MorePage', () => {
   it('renders only destinations allowed by read or manage permissions', () => {
-    renderPage(['supplier.read', 'customer.manage', 'settings.manage']);
+    renderPage([
+      'supplier.read',
+      'customer.manage',
+      'settings.manage',
+      'legacy.sale.read',
+    ]);
     expect(screen.getByRole('link', { name: /Nhà cung cấp/ })).toHaveAttribute(
       'href',
       '/more/suppliers',
@@ -50,6 +55,10 @@ describe('MorePage', () => {
     expect(screen.getByRole('link', { name: /Nhập dữ liệu/ })).toHaveAttribute(
       'href',
       '/imports',
+    );
+    expect(screen.getByRole('link', { name: /Dữ liệu cũ/ })).toHaveAttribute(
+      'href',
+      '/legacy-sales',
     );
   });
 
@@ -68,7 +77,21 @@ describe('MorePage', () => {
       screen.queryByRole('link', { name: /Nhập dữ liệu/ }),
     ).not.toBeInTheDocument();
     expect(
+      screen.queryByRole('link', { name: /Dữ liệu cũ/ }),
+    ).not.toBeInTheDocument();
+    expect(
       screen.getByText('Bạn chưa có quyền sử dụng chức năng bổ sung nào.'),
     ).toBeInTheDocument();
+  });
+
+  it('shows the import entry for an owner with only legacy import permission', () => {
+    renderPage(['legacy.sale.import']);
+    expect(screen.getByRole('link', { name: /Nhập dữ liệu/ })).toHaveAttribute(
+      'href',
+      '/imports',
+    );
+    expect(
+      screen.queryByRole('link', { name: /Dữ liệu cũ/ }),
+    ).not.toBeInTheDocument();
   });
 });

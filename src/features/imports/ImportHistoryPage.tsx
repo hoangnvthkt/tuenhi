@@ -12,6 +12,7 @@ const targetLabels = {
   PRODUCTS: 'Sản phẩm',
   SUPPLIERS: 'Nhà cung cấp',
   CUSTOMERS: 'Khách hàng',
+  LEGACY_SALES_ARCHIVE: 'Dữ liệu bán hàng cũ',
 } as const;
 const statusLabels = {
   UPLOADED: 'Đã chọn tệp',
@@ -171,7 +172,11 @@ export function ImportHistoryPage({ api: apiProp }: { api?: ImportApi }) {
               {page.items.map((item) => (
                 <li key={item.importRunId}>
                   <Link
-                    to={`/imports/${item.importRunId}`}
+                    to={
+                      item.targetType === 'LEGACY_SALES_ARCHIVE'
+                        ? `/legacy-sales?importRunId=${item.importRunId}`
+                        : `/imports/${item.importRunId}`
+                    }
                     className="grid gap-2 p-4 hover:bg-slate-50 md:grid-cols-[minmax(12rem,1fr)_9rem_8rem_10rem] md:items-center"
                   >
                     <div>

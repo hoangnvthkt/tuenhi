@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ToastContext } from '../../components/feedback/toast-context';
 import { SessionContextValue } from '../auth/session-store';
 import type { ImportApi } from './import-api';
+import type { LegacySalesApi } from '../legacy-sales/legacy-sales-api';
 import { ImportPage } from './ImportPage';
 import type { InspectedWorkbook } from './workbook-parser';
 
@@ -79,14 +80,25 @@ function renderPage({
   inspected = workbook(),
   online = true,
   role = 'OWNER',
+  permissions = ['catalog.basic.manage'],
 }: {
   api?: ImportApi;
   inspected?: InspectedWorkbook;
   online?: boolean;
   role?: 'OWNER' | 'BUSINESS';
+  permissions?: string[];
 } = {}) {
   const show = vi.fn();
   const inspect = vi.fn().mockResolvedValue(inspected);
+  const legacyApi: LegacySalesApi = {
+    list: vi.fn(),
+    detail: vi.fn(),
+    createImport: vi.fn(),
+    saveMapping: vi.fn(),
+    uploadChunk: vi.fn(),
+    validateImport: vi.fn(),
+    commitImport: vi.fn(),
+  };
   render(
     <SessionContextValue.Provider
       value={{
@@ -98,7 +110,7 @@ function renderPage({
           roleTemplate: role,
           isActive: true,
           mustChangePassword: false,
-          permissions: ['catalog.basic.manage'],
+          permissions,
         },
         errorMessage: null,
         refresh: vi.fn(),
@@ -109,7 +121,12 @@ function renderPage({
     >
       <ToastContext.Provider value={{ show, dismiss: vi.fn() }}>
         <MemoryRouter>
-          <ImportPage api={api} inspect={inspect} online={online} />
+          <ImportPage
+            api={api}
+            legacyApi={legacyApi}
+            inspect={inspect}
+            online={online}
+          />
         </MemoryRouter>
       </ToastContext.Provider>
     </SessionContextValue.Provider>,
@@ -126,6 +143,17 @@ async function uploadWorkbook() {
 }
 
 describe('ImportPage', () => {
+  it('offers the owner-only legacy workflow to an authorized user', async () => {
+    renderPage({ permissions: ['legacy.sale.import'] });
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Nhập dữ liệu bán hàng cũ' }),
+    );
+    expect(
+      screen.getByRole('heading', { name: 'Nhập dữ liệu bán hàng cũ' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Chỉ để tra cứu')).toBeInTheDocument();
+  });
+
   it('completes the exact-template workflow and commits atomically', async () => {
     const api = apiMock();
     renderPage({ api });

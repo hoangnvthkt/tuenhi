@@ -3,10 +3,21 @@ import { useSession } from '../../features/auth/use-session';
 
 const destinations = [
   {
+    to: '/legacy-sales',
+    title: 'Dữ liệu cũ',
+    description: 'Tra cứu hóa đơn lưu trữ, tách khỏi vận hành chính thức.',
+    permissions: ['legacy.sale.read'],
+  },
+  {
     to: '/imports',
     title: 'Nhập dữ liệu',
     description: 'Nhập danh mục từ mẫu Excel và xem lịch sử kết quả.',
-    permissions: ['catalog.basic.manage', 'supplier.manage', 'customer.manage'],
+    permissions: [
+      'catalog.basic.manage',
+      'supplier.manage',
+      'customer.manage',
+      'legacy.sale.import',
+    ],
   },
   {
     to: '/more/suppliers',

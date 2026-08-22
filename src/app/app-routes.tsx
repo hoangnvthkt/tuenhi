@@ -9,6 +9,8 @@ import { CustomerPage } from '../features/directories/CustomerPage';
 import { SupplierPage } from '../features/directories/SupplierPage';
 import { ImportHistoryPage } from '../features/imports/ImportHistoryPage';
 import { ImportPage } from '../features/imports/ImportPage';
+import { LegacySaleDetailPage } from '../features/legacy-sales/LegacySaleDetailPage';
+import { LegacySalesPage } from '../features/legacy-sales/LegacySalesPage';
 import { SalesChannelPage } from '../features/settings/SalesChannelPage';
 import { StaffPage } from '../features/staff/StaffPage';
 import { AppShell } from './layout/AppShell';
@@ -75,6 +77,7 @@ export const appRoutes: RouteObject[] = [
                   'catalog.basic.manage',
                   'supplier.manage',
                   'customer.manage',
+                  'legacy.sale.import',
                 ]}
               />
             ),
@@ -84,6 +87,16 @@ export const appRoutes: RouteObject[] = [
               {
                 path: 'imports/:importRunId',
                 element: <ImportHistoryPage />,
+              },
+            ],
+          },
+          {
+            element: <RequireSession permission="legacy.sale.read" />,
+            children: [
+              { path: 'legacy-sales', element: <LegacySalesPage /> },
+              {
+                path: 'legacy-sales/:legacySaleId',
+                element: <LegacySaleDetailPage />,
               },
             ],
           },

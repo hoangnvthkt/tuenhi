@@ -18,6 +18,10 @@ const importTargetSchema = z.enum([
   'SUPPLIERS',
   'CUSTOMERS',
 ]);
+const importHistoryTargetSchema = z.union([
+  importTargetSchema,
+  z.literal('LEGACY_SALES_ARCHIVE'),
+]);
 const importModeSchema = z.enum(['CREATE_ONLY', 'UPDATE_EXISTING']);
 const dateTimeSchema = z.iso.datetime({ offset: true });
 const commandErrorSchema = z
@@ -144,18 +148,19 @@ const runResultSchema = z
   .strict();
 const runResultEnvelopeSchema = envelopeSchema(runResultSchema);
 
-const historyItemSchema = runResultSchema.pick({
-  importRunId: true,
-  targetType: true,
-  fileName: true,
-  mode: true,
-  status: true,
-  totalRows: true,
-  validRows: true,
-  invalidRows: true,
-  createdAt: true,
-  committedAt: true,
-});
+const historyItemSchema = runResultSchema
+  .pick({
+    importRunId: true,
+    fileName: true,
+    mode: true,
+    status: true,
+    totalRows: true,
+    validRows: true,
+    invalidRows: true,
+    createdAt: true,
+    committedAt: true,
+  })
+  .extend({ targetType: importHistoryTargetSchema });
 const historyPageSchema = z
   .object({
     items: z.array(historyItemSchema),

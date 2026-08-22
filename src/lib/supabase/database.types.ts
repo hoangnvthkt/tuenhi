@@ -256,6 +256,208 @@ export type Database = {
           },
         ];
       };
+      legacy_sale_lines: {
+        Row: {
+          created_at: string;
+          id: string;
+          legacy_sale_id: string;
+          line_discount: number | null;
+          line_number: number;
+          line_total: number | null;
+          line_total_provenance: string | null;
+          product_code: string;
+          product_id: string | null;
+          product_label: string;
+          quantity: number | null;
+          source_row_number: number;
+          unit_price: number | null;
+          unit_price_provenance: string | null;
+          warning_codes: string[];
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          legacy_sale_id: string;
+          line_discount?: number | null;
+          line_number: number;
+          line_total?: number | null;
+          line_total_provenance?: string | null;
+          product_code?: string;
+          product_id?: string | null;
+          product_label: string;
+          quantity?: number | null;
+          source_row_number: number;
+          unit_price?: number | null;
+          unit_price_provenance?: string | null;
+          warning_codes?: string[];
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          legacy_sale_id?: string;
+          line_discount?: number | null;
+          line_number?: number;
+          line_total?: number | null;
+          line_total_provenance?: string | null;
+          product_code?: string;
+          product_id?: string | null;
+          product_label?: string;
+          quantity?: number | null;
+          source_row_number?: number;
+          unit_price?: number | null;
+          unit_price_provenance?: string | null;
+          warning_codes?: string[];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'legacy_sale_lines_legacy_sale_id_fkey';
+            columns: ['legacy_sale_id'];
+            isOneToOne: false;
+            referencedRelation: 'legacy_sales';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'legacy_sale_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_catalog_read';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'legacy_sale_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      legacy_sales: {
+        Row: {
+          adapter_id: string;
+          channel_label: string;
+          correlation_id: string;
+          created_at: string;
+          created_by: string;
+          customer_id: string | null;
+          customer_label: string;
+          customer_phone: string;
+          data_quality_status: string;
+          id: string;
+          mapping_version: number;
+          payment_label: string;
+          payment_method: string | null;
+          profile_id: string | null;
+          reported_discount_total: number | null;
+          reported_net_total: number | null;
+          reported_subtotal: number | null;
+          sales_channel_id: string | null;
+          sold_on: string | null;
+          source_file_sha256: string;
+          source_import_run_id: string;
+          source_note: string;
+          source_row_start: number;
+          source_sale_number: string;
+          source_status_label: string;
+          staff_label: string;
+          warning_codes: string[];
+        };
+        Insert: {
+          adapter_id?: string;
+          channel_label?: string;
+          correlation_id: string;
+          created_at?: string;
+          created_by: string;
+          customer_id?: string | null;
+          customer_label?: string;
+          customer_phone?: string;
+          data_quality_status: string;
+          id?: string;
+          mapping_version?: number;
+          payment_label?: string;
+          payment_method?: string | null;
+          profile_id?: string | null;
+          reported_discount_total?: number | null;
+          reported_net_total?: number | null;
+          reported_subtotal?: number | null;
+          sales_channel_id?: string | null;
+          sold_on?: string | null;
+          source_file_sha256: string;
+          source_import_run_id: string;
+          source_note?: string;
+          source_row_start: number;
+          source_sale_number: string;
+          source_status_label?: string;
+          staff_label?: string;
+          warning_codes?: string[];
+        };
+        Update: {
+          adapter_id?: string;
+          channel_label?: string;
+          correlation_id?: string;
+          created_at?: string;
+          created_by?: string;
+          customer_id?: string | null;
+          customer_label?: string;
+          customer_phone?: string;
+          data_quality_status?: string;
+          id?: string;
+          mapping_version?: number;
+          payment_label?: string;
+          payment_method?: string | null;
+          profile_id?: string | null;
+          reported_discount_total?: number | null;
+          reported_net_total?: number | null;
+          reported_subtotal?: number | null;
+          sales_channel_id?: string | null;
+          sold_on?: string | null;
+          source_file_sha256?: string;
+          source_import_run_id?: string;
+          source_note?: string;
+          source_row_start?: number;
+          source_sale_number?: string;
+          source_status_label?: string;
+          staff_label?: string;
+          warning_codes?: string[];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'legacy_sales_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'legacy_sales_customer_id_fkey';
+            columns: ['customer_id'];
+            isOneToOne: false;
+            referencedRelation: 'customers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'legacy_sales_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'legacy_sales_sales_channel_id_fkey';
+            columns: ['sales_channel_id'];
+            isOneToOne: false;
+            referencedRelation: 'sales_channels';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'legacy_sales_source_import_run_id_fkey';
+            columns: ['source_import_run_id'];
+            isOneToOne: false;
+            referencedRelation: 'import_runs';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       product_images: {
         Row: {
           created_at: string;
@@ -684,6 +886,10 @@ export type Database = {
         Args: { p_idempotency_key: string; p_import_run_id: string };
         Returns: Json;
       };
+      commit_legacy_sales_import: {
+        Args: { p_idempotency_key: string; p_import_run_id: string };
+        Returns: Json;
+      };
       complete_initial_password_change: {
         Args: { p_user_id: string };
         Returns: Json;
@@ -716,6 +922,16 @@ export type Database = {
         Args: {
           p_cursor_row_number?: number;
           p_import_run_id: string;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
+      get_legacy_sale: { Args: { p_legacy_sale_id: string }; Returns: Json };
+      get_legacy_sales: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_sold_on?: string;
+          p_filters?: Json;
           p_limit?: number;
         };
         Returns: Json;
@@ -835,6 +1051,10 @@ export type Database = {
         Args: { p_import_run_id: string; p_mapping: Json };
         Returns: Json;
       };
+      save_legacy_import_mapping: {
+        Args: { p_import_run_id: string; p_mapping: Json };
+        Returns: Json;
+      };
       save_product: {
         Args: {
           p_expected_version: number;
@@ -908,6 +1128,10 @@ export type Database = {
           p_is_last_chunk: boolean;
           p_rows: Json;
         };
+        Returns: Json;
+      };
+      validate_legacy_sales_import: {
+        Args: { p_import_run_id: string };
         Returns: Json;
       };
     };

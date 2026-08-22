@@ -34,6 +34,8 @@ import {
 } from './client-validation';
 import { MappingStage } from './MappingStage';
 import { ValidationStage, type ValidationDisplayRow } from './ValidationStage';
+import { LegacyImportFlow } from './legacy/LegacyImportFlow';
+import type { LegacySalesApi } from '../legacy-sales/legacy-sales-api';
 
 const stages = [
   'Chọn tệp',
@@ -108,10 +110,12 @@ export function ImportPage({
   api: apiProp,
   inspect = inspectWorkbook,
   online,
+  legacyApi,
 }: {
   api?: ImportApi;
   inspect?: typeof inspectWorkbook;
   online?: boolean;
+  legacyApi?: LegacySalesApi;
 }) {
   const [api] = useState(() => apiProp ?? createImportApi());
   const detectedOnline = useOnlineStatus();
@@ -122,6 +126,10 @@ export function ImportPage({
     () => allowedTargets(session?.permissions ?? []),
     [session?.permissions],
   );
+  const canImportLegacy =
+    session?.roleTemplate === 'OWNER' &&
+    session.permissions.includes('legacy.sale.import');
+  const [legacyMode, setLegacyMode] = useState(false);
   const [target, setTarget] = useState<ImportTarget>(
     targets[0] ?? 'CATEGORIES',
   );
@@ -425,17 +433,37 @@ export function ImportPage({
     }
   }
 
+  if (legacyMode && canImportLegacy) {
+    return (
+      <LegacyImportFlow
+        isOnline={isOnline}
+        api={legacyApi}
+        onBack={() => setLegacyMode(false)}
+      />
+    );
+  }
+
   if (targets.length === 0) {
     return (
-      <section>
+      <section className="space-y-4">
         <h1 className="text-2xl font-bold text-slate-950">Nhập dữ liệu</h1>
-        <p
-          role="alert"
-          className="mt-4 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-700"
-        >
-          Bạn chưa có quyền nhập nhóm hàng, sản phẩm, nhà cung cấp hoặc khách
-          hàng.
-        </p>
+        {canImportLegacy ? (
+          <button
+            type="button"
+            onClick={() => setLegacyMode(true)}
+            className="min-h-11 rounded-lg bg-amber-900 px-4 text-sm font-semibold text-white"
+          >
+            Nhập dữ liệu bán hàng cũ
+          </button>
+        ) : (
+          <p
+            role="alert"
+            className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-700"
+          >
+            Bạn chưa có quyền nhập nhóm hàng, sản phẩm, nhà cung cấp, khách hàng
+            hoặc dữ liệu bán hàng cũ.
+          </p>
+        )}
       </section>
     );
   }
@@ -458,6 +486,16 @@ export function ImportPage({
           Lịch sử nhập
         </Link>
       </div>
+
+      {canImportLegacy && stage === 'Chọn tệp' ? (
+        <button
+          type="button"
+          onClick={() => setLegacyMode(true)}
+          className="min-h-11 rounded-lg border border-amber-800 bg-amber-50 px-4 text-sm font-semibold text-amber-950"
+        >
+          Nhập dữ liệu bán hàng cũ
+        </button>
+      ) : null}
 
       <ol
         aria-label="Tiến trình nhập dữ liệu"

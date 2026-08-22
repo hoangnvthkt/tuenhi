@@ -91,4 +91,38 @@ describe('ImportHistoryPage', () => {
     expect(screen.getByText('Đã nhập')).toBeInTheDocument();
     expect(api.getResult).toHaveBeenCalledWith(runId);
   });
+
+  it('routes a legacy archive run to the read-only archive', async () => {
+    const api = apiMock();
+    vi.mocked(api.listHistory).mockResolvedValueOnce({
+      items: [
+        {
+          importRunId: runId,
+          targetType: 'LEGACY_SALES_ARCHIVE',
+          fileName: 'du-lieu-cu.xlsx',
+          mode: 'CREATE_ONLY',
+          status: 'COMMITTED',
+          totalRows: 9,
+          validRows: 9,
+          invalidRows: 0,
+          createdAt: '2026-08-22T08:00:00Z',
+          committedAt: '2026-08-22T08:02:00Z',
+        },
+      ],
+      nextCursor: null,
+    });
+    render(
+      <MemoryRouter initialEntries={['/imports/history']}>
+        <Routes>
+          <Route
+            path="/imports/history"
+            element={<ImportHistoryPage api={api} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const link = await screen.findByRole('link', { name: /du-lieu-cu.xlsx/ });
+    expect(link).toHaveAttribute('href', `/legacy-sales?importRunId=${runId}`);
+    expect(screen.getByText(/Dữ liệu bán hàng cũ/)).toBeInTheDocument();
+  });
 });
