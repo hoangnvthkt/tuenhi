@@ -25,6 +25,12 @@ export const businessErrorMessages = {
   OWNER_ONLY_PERMISSION: 'Quyền này chỉ dành cho chủ cửa hàng.',
   OWNER_PERMISSION_OVERRIDE_NOT_ALLOWED:
     'Tài khoản chủ cửa hàng không sử dụng quyền tùy chỉnh.',
+  DUPLICATE_IN_DATABASE: 'Dữ liệu đã tồn tại trong hệ thống.',
+  VERSION_CONFLICT:
+    'Dữ liệu đã được người khác cập nhật. Vui lòng tải lại dữ liệu.',
+  REFERENCE_NOT_FOUND: 'Không tìm thấy dữ liệu liên quan.',
+  CATEGORY_IN_USE: 'Không thể tắt nhóm hàng đang có sản phẩm hoạt động.',
+  IMMUTABLE_FIELD: 'Thông tin này không thể thay đổi sau khi tạo.',
 } as const;
 
 export type BusinessErrorCode = keyof typeof businessErrorMessages;
