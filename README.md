@@ -25,7 +25,22 @@ Chỉ hai biến an toàn cho browser bundle là `VITE_SUPABASE_URL` và `VITE_S
 
 ## Quy trình cloud
 
-Không dùng Supabase local hoặc Docker. Các migration sẽ được đẩy tới môi trường staging chuyên dụng kể từ Phase 1.
+Không dùng Supabase local hoặc Docker. Mọi lệnh migration chạy trên project Cloud đã link và phải nạp `.env` từ vị trí an toàn mà không in giá trị ra terminal:
+
+```bash
+set -a
+source "$TUENHI_ENV_FILE"
+set +a
+
+pnpm exec supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
+pnpm exec supabase db advisors --linked --type security --level error --fail-on error
+pnpm exec supabase db push --linked --dry-run --password "$SUPABASE_DB_PASSWORD"
+pnpm exec supabase db push --linked --password "$SUPABASE_DB_PASSWORD"
+pnpm cloud:verify:phase1a
+pnpm supabase:types
+```
+
+Migration phải được tạo bằng `pnpm exec supabase migration new <tên>` và review trước khi push. Data API của ứng dụng chỉ expose schema `api`; `app_private` không được expose và không cấp direct table privilege cho browser roles.
 
 ## Ranh giới PWA cache
 
@@ -38,4 +53,6 @@ Vercel được chủ động hoãn lại; Phase 0 không tạo hoặc liên k�
 ## Tài liệu đã phê duyệt
 
 - [Đặc tả thiết kế](docs/superpowers/specs/2026-08-21-internal-single-store-pos-design.md)
+- [Đặc tả Cloud và nhập liệu](docs/superpowers/specs/2026-08-22-cloud-platform-data-entry-design.md)
 - [Kế hoạch Phase 0](docs/superpowers/plans/2026-08-21-phase-0-foundation.md)
+- [Kế hoạch Phase 1A](docs/superpowers/plans/2026-08-22-phase-1a-cloud-identity-ux.md)
