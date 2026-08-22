@@ -10,6 +10,15 @@ export default tseslint.config(
     ignores: ['dist', 'coverage', 'playwright-report', 'test-results'],
   },
   {
+    files: ['supabase/functions/**/*.ts'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        Deno: 'readonly',
+      },
+    },
+  },
+  {
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,

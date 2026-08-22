@@ -1,6 +1,13 @@
 import { NavLink, Outlet } from 'react-router';
+import { useSession } from '../../features/auth/use-session';
 import { useOnlineStatus } from '../use-online-status';
 import { navigationItems } from './navigation-items';
+
+const roleLabels = {
+  SALES_WAREHOUSE: 'Bán hàng & kho',
+  BUSINESS: 'Kinh doanh',
+  OWNER: 'Chủ cửa hàng',
+} as const;
 
 function NavigationLinks({ mobile }: { mobile: boolean }) {
   return (
@@ -44,6 +51,7 @@ function NavigationLinks({ mobile }: { mobile: boolean }) {
 
 export function AppShell() {
   const isOnline = useOnlineStatus();
+  const { session, signOut } = useSession();
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -55,12 +63,37 @@ export function AppShell() {
             </p>
             <p className="text-sm text-slate-600">Bán hàng &amp; Kho</p>
           </div>
-          <nav
-            aria-label="Điều hướng máy tính"
-            className="hidden lg:flex lg:items-center lg:gap-1"
-          >
-            <NavigationLinks mobile={false} />
-          </nav>
+          <div className="flex min-w-0 items-center gap-5">
+            <nav
+              aria-label="Điều hướng máy tính"
+              className="hidden lg:flex lg:items-center lg:gap-1"
+            >
+              <NavigationLinks mobile={false} />
+            </nav>
+            {session ? (
+              <details className="relative">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center rounded-lg px-3 text-left hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+                  <span className="min-w-0">
+                    <span className="block max-w-36 truncate text-sm font-medium text-slate-900">
+                      {session.displayName}
+                    </span>
+                    <span className="block text-xs text-slate-500">
+                      {roleLabels[session.roleTemplate]}
+                    </span>
+                  </span>
+                </summary>
+                <div className="absolute right-0 z-20 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => void signOut()}
+                    className="min-h-11 w-full rounded-lg px-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
+              </details>
+            ) : null}
+          </div>
         </div>
       </header>
 

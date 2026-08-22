@@ -1,11 +1,31 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { SessionApi } from '../features/auth/session-context';
 import { App } from './App';
 
-describe('App', () => {
-  it('renders the Tuệ Nhi product identity', () => {
-    render(<App />);
+const sessionApi: SessionApi = {
+  getAuthSession: vi.fn().mockResolvedValue({
+    userId: '00000000-0000-4000-8000-000000000001',
+  }),
+  getSessionContext: vi.fn().mockResolvedValue({
+    userId: '00000000-0000-4000-8000-000000000001',
+    email: 'owner@example.com',
+    displayName: 'Chủ cửa hàng',
+    roleTemplate: 'OWNER',
+    isActive: true,
+    mustChangePassword: false,
+    permissions: [],
+  }),
+  signIn: vi.fn().mockResolvedValue(undefined),
+  changePassword: vi.fn().mockResolvedValue(undefined),
+  signOut: vi.fn().mockResolvedValue(undefined),
+  subscribe: vi.fn(() => () => undefined),
+};
 
-    expect(screen.getByText('Tuệ Nhi')).toBeInTheDocument();
+describe('App', () => {
+  it('renders the Tuệ Nhi product identity', async () => {
+    render(<App sessionApi={sessionApi} />);
+
+    expect(await screen.findByText('Tuệ Nhi')).toBeInTheDocument();
   });
 });

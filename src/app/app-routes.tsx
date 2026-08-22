@@ -1,4 +1,7 @@
 import type { RouteObject } from 'react-router';
+import { ChangePasswordPage } from '../features/auth/ChangePasswordPage';
+import { LoginPage } from '../features/auth/LoginPage';
+import { RequireSession } from '../features/auth/RequireSession';
 import { AppShell } from './layout/AppShell';
 import { DashboardPage } from './pages/DashboardPage';
 import { FoundationSectionPage } from './pages/FoundationSectionPage';
@@ -14,14 +17,24 @@ function foundationPage(title: string) {
 
 export const appRoutes: RouteObject[] = [
   {
-    element: <AppShell />,
+    path: 'login',
+    element: <LoginPage />,
+  },
+  {
+    element: <RequireSession />,
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'products', element: foundationPage('Hàng hóa') },
-      { path: 'pos', element: foundationPage('Bán hàng') },
-      { path: 'sales', element: foundationPage('Hóa đơn') },
-      { path: 'more', element: foundationPage('Nhiều hơn') },
-      { path: '*', element: foundationPage('Không tìm thấy trang') },
+      { path: 'change-password', element: <ChangePasswordPage /> },
+      {
+        element: <AppShell />,
+        children: [
+          { index: true, element: <DashboardPage /> },
+          { path: 'products', element: foundationPage('Hàng hóa') },
+          { path: 'pos', element: foundationPage('Bán hàng') },
+          { path: 'sales', element: foundationPage('Hóa đơn') },
+          { path: 'more', element: foundationPage('Nhiều hơn') },
+          { path: '*', element: foundationPage('Không tìm thấy trang') },
+        ],
+      },
     ],
   },
 ];

@@ -69,6 +69,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      complete_initial_password_change: {
+        Args: { p_user_id: string };
+        Returns: Json;
+      };
       get_my_session_context: { Args: never; Returns: Json };
     };
     Enums: {

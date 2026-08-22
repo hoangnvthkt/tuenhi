@@ -23,7 +23,7 @@
     "test:e2e:ui": "playwright test --ui",
     "pwa:assets": "pwa-assets-generator --preset minimal-2023 public/logo.svg",
     "supabase:types": "supabase gen types --linked --lang typescript --schema api > src/lib/supabase/database.types.ts",
-    "cloud:verify:phase1a": "supabase db query --linked --file supabase/tests/phase_1a_identity_assertions.sql",
+    "cloud:verify:phase1a": "supabase db query --linked --file supabase/tests/phase_1a_identity_assertions.sql && supabase db query --linked --file supabase/tests/phase_1a_password_change_assertions.sql",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "check:full": "pnpm check && pnpm test:e2e",
     "supabase": "supabase"
