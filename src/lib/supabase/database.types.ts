@@ -143,6 +143,83 @@ export type Database = {
           },
         ];
       };
+      import_runs: {
+        Row: {
+          actor_id: string;
+          adapter_id: string | null;
+          committed_at: string | null;
+          correlation_id: string;
+          created_at: string;
+          expires_at: string;
+          file_name: string;
+          file_sha256: string;
+          id: string;
+          idempotency_key: string;
+          invalid_rows: number;
+          mode: string;
+          next_chunk_index: number;
+          result: Json | null;
+          status: string;
+          target_type: string;
+          template_version: number | null;
+          total_rows: number;
+          valid_rows: number;
+          validated_at: string | null;
+        };
+        Insert: {
+          actor_id: string;
+          adapter_id?: string | null;
+          committed_at?: string | null;
+          correlation_id?: string;
+          created_at?: string;
+          expires_at?: string;
+          file_name: string;
+          file_sha256: string;
+          id?: string;
+          idempotency_key: string;
+          invalid_rows?: number;
+          mode: string;
+          next_chunk_index?: number;
+          result?: Json | null;
+          status?: string;
+          target_type: string;
+          template_version?: number | null;
+          total_rows?: number;
+          valid_rows?: number;
+          validated_at?: string | null;
+        };
+        Update: {
+          actor_id?: string;
+          adapter_id?: string | null;
+          committed_at?: string | null;
+          correlation_id?: string;
+          created_at?: string;
+          expires_at?: string;
+          file_name?: string;
+          file_sha256?: string;
+          id?: string;
+          idempotency_key?: string;
+          invalid_rows?: number;
+          mode?: string;
+          next_chunk_index?: number;
+          result?: Json | null;
+          status?: string;
+          target_type?: string;
+          template_version?: number | null;
+          total_rows?: number;
+          valid_rows?: number;
+          validated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'import_runs_actor_id_fkey';
+            columns: ['actor_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       inventory_balances: {
         Row: {
           on_hand_qty: number;
@@ -603,8 +680,23 @@ export type Database = {
         Args: { p_user_ids: string[] };
         Returns: Json;
       };
+      commit_import: {
+        Args: { p_idempotency_key: string; p_import_run_id: string };
+        Returns: Json;
+      };
       complete_initial_password_change: {
         Args: { p_user_id: string };
+        Returns: Json;
+      };
+      create_import_run: {
+        Args: {
+          p_file_name: string;
+          p_file_sha256: string;
+          p_idempotency_key: string;
+          p_mode: string;
+          p_target_type: string;
+          p_template_version: number;
+        };
         Returns: Json;
       };
       finalize_staff_profile: {
@@ -619,6 +711,15 @@ export type Database = {
         Returns: Json;
       };
       get_effective_permissions: { Args: { p_user_id: string }; Returns: Json };
+      get_import_result: { Args: { p_import_run_id: string }; Returns: Json };
+      get_import_validation_result: {
+        Args: {
+          p_cursor_row_number?: number;
+          p_import_run_id: string;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
       get_my_notifications: {
         Args: {
           p_cursor_created_at?: string;
@@ -661,6 +762,16 @@ export type Database = {
           p_cursor_name?: string;
           p_limit?: number;
           p_search?: string;
+        };
+        Returns: Json;
+      };
+      list_import_runs: {
+        Args: {
+          p_cursor_created_at?: string;
+          p_cursor_id?: string;
+          p_limit?: number;
+          p_status?: string;
+          p_target_type?: string;
         };
         Returns: Json;
       };
@@ -718,6 +829,10 @@ export type Database = {
           p_expected_version: number;
           p_idempotency_key: string;
         };
+        Returns: Json;
+      };
+      save_import_mapping: {
+        Args: { p_import_run_id: string; p_mapping: Json };
         Returns: Json;
       };
       save_product: {
@@ -783,6 +898,15 @@ export type Database = {
           p_reason: string;
           p_role: string;
           p_user_id: string;
+        };
+        Returns: Json;
+      };
+      validate_import_rows: {
+        Args: {
+          p_chunk_index: number;
+          p_import_run_id: string;
+          p_is_last_chunk: boolean;
+          p_rows: Json;
         };
         Returns: Json;
       };
