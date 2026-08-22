@@ -163,4 +163,46 @@ describe('client import validation', () => {
       companyName: '',
     });
   });
+
+  it('validates opening quantities, costs and duplicate SKUs strictly', () => {
+    const result = validateClientRows(
+      [
+        {
+          rowNumber: 2,
+          values: {
+            sku: 'THUOC-001',
+            openingQuantity: '0',
+            openingUnitCost: '12,000',
+          },
+        },
+        {
+          rowNumber: 3,
+          values: {
+            sku: ' thuoc-001 ',
+            openingQuantity: '2.500',
+            openingUnitCost: '12000.50',
+          },
+        },
+      ],
+      'OPENING_BALANCES',
+      1,
+    );
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowNumber: 2,
+          targetField: 'openingQuantity',
+          code: 'NUMBER_MUST_BE_POSITIVE',
+        }),
+        expect.objectContaining({
+          rowNumber: 2,
+          targetField: 'openingUnitCost',
+          code: 'NUMBER_FORMAT_INVALID',
+        }),
+        expect.objectContaining({ rowNumber: 2, code: 'DUPLICATE_IN_FILE' }),
+        expect.objectContaining({ rowNumber: 3, code: 'DUPLICATE_IN_FILE' }),
+      ]),
+    );
+  });
 });

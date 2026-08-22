@@ -5,6 +5,7 @@ export const IMPORT_TARGETS = [
   'PRODUCTS',
   'SUPPLIERS',
   'CUSTOMERS',
+  'OPENING_BALANCES',
 ] as const satisfies readonly ImportTarget[];
 
 export const CURRENT_TEMPLATE_VERSION = {
@@ -12,6 +13,7 @@ export const CURRENT_TEMPLATE_VERSION = {
   PRODUCTS: 1,
   SUPPLIERS: 1,
   CUSTOMERS: 2,
+  OPENING_BALANCES: 1,
 } as const;
 
 export type ImportFieldType =
@@ -324,6 +326,40 @@ const TEMPLATE_CONTRACTS: readonly TemplateContract[] = [
         example: 'Khách thường',
       },
       ...customerTailColumns,
+    ],
+  },
+  {
+    target: 'OPENING_BALANCES',
+    version: 1,
+    fileName: 'opening-balances-v1.xlsx',
+    displayName: 'Tồn đầu kỳ',
+    columns: [
+      {
+        header: 'SKU',
+        field: 'sku',
+        type: 'text',
+        required: true,
+        maxLength: 64,
+        aliases: ['Mã SP', 'Mã sản phẩm'],
+        example: 'SP-MAU-001',
+        textFormat: true,
+      },
+      {
+        header: 'Số lượng tồn đầu kỳ',
+        field: 'openingQuantity',
+        type: 'quantity',
+        required: true,
+        aliases: ['Tồn đầu kỳ'],
+        example: '10.500',
+      },
+      {
+        header: 'Đơn giá vốn đầu kỳ',
+        field: 'openingUnitCost',
+        type: 'money',
+        required: true,
+        aliases: ['Giá vốn đầu kỳ'],
+        example: '25000.50',
+      },
     ],
   },
 ];

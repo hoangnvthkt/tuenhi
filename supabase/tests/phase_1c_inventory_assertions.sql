@@ -38,7 +38,9 @@ begin
     'api.list_opening_stock_documents(timestamp with time zone,uuid,integer)',
     'api.get_opening_stock_document(uuid)',
     'api.list_opening_balance_suggestions(uuid,integer)',
-    'api.get_inventory_valuation(text,uuid,integer)'
+    'api.get_inventory_valuation(text,uuid,integer)',
+    'api.create_import_run(text,integer,text,text,text,uuid)',
+    'api.commit_import(uuid,uuid)'
   ] loop
     if to_regprocedure(v_function) is null then
       raise exception '% missing', v_function;
@@ -162,6 +164,7 @@ declare
   v_product_one jsonb;
   v_product_two jsonb;
   v_product_three jsonb;
+  v_product_four jsonb;
   v_receipt jsonb;
   v_detail jsonb;
   v_submit jsonb;
@@ -175,10 +178,18 @@ declare
   v_product_one_id uuid;
   v_product_two_id uuid;
   v_product_three_id uuid;
+  v_product_four_id uuid;
   v_receipt_id uuid;
   v_line_id uuid;
   v_version bigint;
   v_key uuid;
+  v_import jsonb;
+  v_import_run_id uuid;
+  v_mapping jsonb;
+  v_validation jsonb;
+  v_import_commit jsonb;
+  v_import_retry jsonb;
+  v_stock_count_id uuid;
 begin
   if current_setting('phase1c.inventory_command_test', true) <> 'enabled' then
     return;
@@ -205,15 +216,24 @@ begin
       'unitName', 'Hộp', 'minStockQty', '0', 'isActive', true
     ), gen_random_uuid()
   );
+  v_product_four := api.save_product(
+    null, null,
+    jsonb_build_object(
+      'sku', 'P1C-D-' || left(v_suffix, 20), 'name', 'Excel mở sổ D',
+      'unitName', 'Hộp', 'minStockQty', '0', 'isActive', true
+    ), gen_random_uuid()
+  );
   if not coalesce((v_product_one ->> 'ok')::boolean, false)
     or not coalesce((v_product_two ->> 'ok')::boolean, false)
     or not coalesce((v_product_three ->> 'ok')::boolean, false)
+    or not coalesce((v_product_four ->> 'ok')::boolean, false)
   then
     raise exception 'Phase 1C test product creation failed';
   end if;
   v_product_one_id := (v_product_one #>> '{data,productId}')::uuid;
   v_product_two_id := (v_product_two #>> '{data,productId}')::uuid;
   v_product_three_id := (v_product_three #>> '{data,productId}')::uuid;
+  v_product_four_id := (v_product_four #>> '{data,productId}')::uuid;
 
   v_receipt := api.save_purchase_receipt_draft(
     null, null, null, now(), 'Vector 10 x 40000',
@@ -345,6 +365,68 @@ begin
     )
   then
     raise exception 'purchase reversal failed';
+  end if;
+
+  v_import := api.create_import_run(
+    'OPENING_BALANCES', 1, 'opening-balances-v1.xlsx', repeat('a', 64),
+    'CREATE_ONLY', gen_random_uuid()
+  );
+  if not coalesce((v_import ->> 'ok')::boolean, false) then
+    raise exception 'opening import run creation failed: %', v_import;
+  end if;
+  v_import_run_id := (v_import #>> '{data,importRunId}')::uuid;
+  v_mapping := api.save_import_mapping(
+    v_import_run_id,
+    jsonb_build_object(
+      'SKU', 'sku', 'Số lượng tồn đầu kỳ', 'openingQuantity',
+      'Đơn giá vốn đầu kỳ', 'openingUnitCost'
+    )
+  );
+  v_validation := api.validate_import_rows(
+    v_import_run_id, 0,
+    jsonb_build_array(jsonb_build_object(
+      'rowNumber', 2,
+      'values', jsonb_build_object(
+        'sku', 'P1C-D-' || left(v_suffix, 20),
+        'openingQuantity', '4.250', 'openingUnitCost', '12500.50'
+      )
+    )), true
+  );
+  if not coalesce((v_mapping ->> 'ok')::boolean, false)
+    or not coalesce((v_validation ->> 'ok')::boolean, false)
+    or (v_validation #>> '{data,invalidRows}')::integer <> 0
+  then
+    raise exception 'opening import validation failed: %', v_validation;
+  end if;
+  v_key := gen_random_uuid();
+  v_import_commit := api.commit_import(v_import_run_id, v_key);
+  v_import_retry := api.commit_import(v_import_run_id, v_key);
+  if not coalesce((v_import_commit ->> 'ok')::boolean, false)
+    or v_import_retry <> v_import_commit
+  then
+    raise exception 'opening import commit or retry failed: %', v_import_commit;
+  end if;
+  v_stock_count_id := (v_import_commit #>> '{data,stockCountId}')::uuid;
+  if not exists (
+    select 1 from api.stock_counts c
+    join api.stock_count_lines line on line.stock_count_id = c.id
+    join app_private.stock_count_line_costs cost
+      on cost.stock_count_line_id = line.id
+    where c.id = v_stock_count_id and c.status = 'DRAFT'
+      and line.product_id = v_product_four_id and line.counted_qty = 4.250
+      and cost.opening_unit_cost = 12500.50
+  ) or exists (
+    select 1 from api.stock_movements movement
+    where movement.product_id = v_product_four_id
+  ) or not exists (
+    select 1 from api.inventory_balances quantity_balance
+    join app_private.inventory_cost_balances cost_balance
+      on cost_balance.product_id = quantity_balance.product_id
+    where quantity_balance.product_id = v_product_four_id
+      and quantity_balance.on_hand_qty = 0
+      and cost_balance.inventory_value = 0
+  ) then
+    raise exception 'opening import must create draft without posting balances';
   end if;
 end;
 $$;

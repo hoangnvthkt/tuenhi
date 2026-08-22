@@ -27,7 +27,11 @@ function textValue(raw: unknown) {
 
 function duplicateKey(target: ImportTarget, values: Record<string, unknown>) {
   const field =
-    target === 'CATEGORIES' ? 'name' : target === 'PRODUCTS' ? 'sku' : 'code';
+    target === 'CATEGORIES'
+      ? 'name'
+      : target === 'PRODUCTS' || target === 'OPENING_BALANCES'
+        ? 'sku'
+        : 'code';
   const value = textValue(values[field]);
   return value ? normalizeImportHeader(value) : null;
 }
@@ -150,8 +154,21 @@ export function validateClientRows(
           precision: 18,
           nonNegative: true,
         });
-        if (result.ok) values[column.field] = result.value;
-        else addError(column.field, result.code, result.message, raw);
+        if (result.ok) {
+          values[column.field] = result.value;
+          if (
+            target === 'OPENING_BALANCES' &&
+            column.field === 'openingQuantity' &&
+            Number(result.value) <= 0
+          ) {
+            addError(
+              column.field,
+              'NUMBER_MUST_BE_POSITIVE',
+              'Số lượng tồn đầu kỳ phải lớn hơn 0.',
+              raw,
+            );
+          }
+        } else addError(column.field, result.code, result.message, raw);
         continue;
       }
 
@@ -204,7 +221,7 @@ export function validateClientRows(
         targetField:
           target === 'CATEGORIES'
             ? 'name'
-            : target === 'PRODUCTS'
+            : target === 'PRODUCTS' || target === 'OPENING_BALANCES'
               ? 'sku'
               : 'code',
         code: 'DUPLICATE_IN_FILE',

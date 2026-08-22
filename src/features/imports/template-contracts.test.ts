@@ -6,19 +6,49 @@ import {
 } from './template-contracts';
 
 describe('catalog import template contracts', () => {
-  it('declares the four stable targets and current versions', () => {
+  it('declares the catalog targets plus owner-only opening balances', () => {
     expect(IMPORT_TARGETS).toEqual([
       'CATEGORIES',
       'PRODUCTS',
       'SUPPLIERS',
       'CUSTOMERS',
+      'OPENING_BALANCES',
     ]);
     expect(CURRENT_TEMPLATE_VERSION).toEqual({
       CATEGORIES: 1,
       PRODUCTS: 1,
       SUPPLIERS: 1,
       CUSTOMERS: 2,
+      OPENING_BALANCES: 1,
     });
+  });
+
+  it('keeps opening stock in a separate three-column financial template', () => {
+    const contract = getTemplateContract('OPENING_BALANCES', 1);
+
+    expect(contract.fileName).toBe('opening-balances-v1.xlsx');
+    expect(
+      contract.columns.map(({ header, field, type, required }) => ({
+        header,
+        field,
+        type,
+        required,
+      })),
+    ).toEqual([
+      { header: 'SKU', field: 'sku', type: 'text', required: true },
+      {
+        header: 'Số lượng tồn đầu kỳ',
+        field: 'openingQuantity',
+        type: 'quantity',
+        required: true,
+      },
+      {
+        header: 'Đơn giá vốn đầu kỳ',
+        field: 'openingUnitCost',
+        type: 'money',
+        required: true,
+      },
+    ]);
   });
 
   it('keeps the approved product header order and field types', () => {
