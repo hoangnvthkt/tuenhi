@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { SessionApi } from '../features/auth/session-context';
 import type { NotificationApi } from '../features/notifications/notification-api';
 import { App } from './App';
@@ -31,6 +31,11 @@ const notificationApi: NotificationApi = {
   markAllRead: vi.fn().mockResolvedValue(undefined),
   subscribe: vi.fn(() => () => undefined),
 };
+
+beforeAll(() => {
+  vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
+  vi.stubEnv('VITE_SUPABASE_PUBLISHABLE_KEY', 'test-publishable-key');
+});
 
 describe('App', () => {
   it('renders the Tuệ Nhi product identity', async () => {

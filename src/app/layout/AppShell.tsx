@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router';
 import { useSession } from '../../features/auth/use-session';
+import { useCatalogRealtime } from '../../features/catalog/use-catalog-realtime';
 import { NotificationCenter } from '../../features/notifications/NotificationCenter';
 import { useOnlineStatus } from '../use-online-status';
 import { navigationItems } from './navigation-items';
@@ -64,6 +65,7 @@ function NavigationLinks({
 export function AppShell() {
   const isOnline = useOnlineStatus();
   const { session, signOut } = useSession();
+  useCatalogRealtime({ isOnline });
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">

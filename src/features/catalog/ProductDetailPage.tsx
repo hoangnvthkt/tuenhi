@@ -13,6 +13,7 @@ import {
 } from './catalog-api';
 import type { ProductDetail, ProductFormValues } from './catalog-types';
 import { ProductForm, type ProductSaveRequest } from './ProductForm';
+import { ProductImageManager } from './ProductImageManager';
 
 type ProductDetailMode = 'view' | 'create' | 'edit';
 
@@ -292,6 +293,16 @@ export function ProductDetailPage({
           </div>
         </aside>
       </div>
+
+      <ProductImageManager
+        productId={detail.id}
+        images={detail.images}
+        canManage={canManage}
+        isOnline={isOnline}
+        onChanged={async () => {
+          await detailQuery.refetch();
+        }}
+      />
 
       {canManageSalePrice ? (
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
