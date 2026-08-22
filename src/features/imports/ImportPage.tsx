@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useToast } from '../../components/feedback/use-toast';
 import { useOnlineStatus } from '../../app/use-online-status';
 import { useSession } from '../auth/use-session';
@@ -52,6 +52,9 @@ function allowedTargets(permissions: readonly string[]) {
   }
   if (permissions.includes('supplier.manage')) targets.push('SUPPLIERS');
   if (permissions.includes('customer.manage')) targets.push('CUSTOMERS');
+  if (permissions.includes('inventory.adjustment.post')) {
+    targets.push('OPENING_BALANCES');
+  }
   return targets;
 }
 
@@ -122,6 +125,7 @@ export function ImportPage({
   const isOnline = online ?? detectedOnline;
   const { session } = useSession();
   const toast = useToast();
+  const [searchParams] = useSearchParams();
   const targets = useMemo(
     () => allowedTargets(session?.permissions ?? []),
     [session?.permissions],
@@ -130,9 +134,11 @@ export function ImportPage({
     session?.roleTemplate === 'OWNER' &&
     session.permissions.includes('legacy.sale.import');
   const [legacyMode, setLegacyMode] = useState(false);
-  const [target, setTarget] = useState<ImportTarget>(
-    targets[0] ?? 'CATEGORIES',
-  );
+  const requestedTarget = searchParams.get('target');
+  const initialTarget = targets.includes(requestedTarget as ImportTarget)
+    ? (requestedTarget as ImportTarget)
+    : (targets[0] ?? 'CATEGORIES');
+  const [target, setTarget] = useState<ImportTarget>(initialTarget);
   const version = CURRENT_TEMPLATE_VERSION[target];
   const isOwner = session?.roleTemplate === 'OWNER';
   const canImportPrice = isOwner;
@@ -399,8 +405,14 @@ export function ImportPage({
       setCommitResult(result);
       toast.show({
         kind: 'success',
-        title: 'Đã nhập dữ liệu thành công',
-        message: `Đã nhập ${result.totalRows.toLocaleString('vi-VN')} dòng dữ liệu.`,
+        title:
+          target === 'OPENING_BALANCES'
+            ? 'Đã tạo phiếu mở sổ nháp'
+            : 'Đã nhập dữ liệu thành công',
+        message:
+          target === 'OPENING_BALANCES'
+            ? `Đã đưa ${result.totalRows.toLocaleString('vi-VN')} dòng vào phiếu nháp; tồn kho chưa thay đổi.`
+            : `Đã nhập ${result.totalRows.toLocaleString('vi-VN')} dòng dữ liệu.`,
         dedupeKey: `import-committed:${importRunId}`,
         actionRoute: `/imports/${importRunId}`,
       });
@@ -529,6 +541,7 @@ export function ImportPage({
           onTargetChange={(next) => {
             resetWorkflow();
             setTarget(next);
+            if (next === 'OPENING_BALANCES') setMode('CREATE_ONLY');
           }}
           onModeChange={setMode}
           onFile={(file) => void startFile(file, false)}

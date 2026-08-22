@@ -7,6 +7,7 @@ const targetLabels: Record<ImportTarget, string> = {
   PRODUCTS: 'Sản phẩm',
   SUPPLIERS: 'Nhà cung cấp',
   CUSTOMERS: 'Khách hàng',
+  OPENING_BALANCES: 'Tồn và giá vốn đầu kỳ',
 };
 
 export function FileStage({
@@ -37,6 +38,7 @@ export function FileStage({
   onRetry?: () => void;
 }) {
   const contract = getTemplateContract(target, version);
+  const canUpdate = isOwner && target !== 'OPENING_BALANCES';
   function selectFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (file) onFile(file);
@@ -83,19 +85,21 @@ export function FileStage({
               onChange={(event) =>
                 onModeChange(event.target.value as ImportMode)
               }
-              disabled={isBusy || !isOwner}
+              disabled={isBusy || !canUpdate}
               className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3"
             >
               <option value="CREATE_ONLY">Chỉ tạo dữ liệu mới</option>
-              {isOwner ? (
+              {canUpdate ? (
                 <option value="UPDATE_EXISTING">
                   Cập nhật dữ liệu hiện có
                 </option>
               ) : null}
             </select>
-            {!isOwner ? (
+            {!canUpdate ? (
               <p className="mt-2 text-xs text-slate-600">
-                Chỉ chủ cửa hàng được cập nhật dữ liệu đã có bằng Excel.
+                {target === 'OPENING_BALANCES'
+                  ? 'Tồn đầu kỳ chỉ hỗ trợ tạo phiếu mở sổ nháp mới.'
+                  : 'Chỉ chủ cửa hàng được cập nhật dữ liệu đã có bằng Excel.'}
               </p>
             ) : null}
           </div>

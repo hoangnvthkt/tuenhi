@@ -17,7 +17,30 @@ const destinations = [
       'supplier.manage',
       'customer.manage',
       'legacy.sale.import',
+      'inventory.adjustment.post',
     ],
+  },
+  {
+    to: '/more/purchases',
+    title: 'Nhập hàng',
+    description: 'Lập, gửi, nhập giá và ghi sổ phiếu nhập.',
+    permissions: [
+      'purchase.operational.read',
+      'purchase.draft.manage',
+      'purchase.cost.read',
+    ],
+  },
+  {
+    to: '/more/inventory/opening',
+    title: 'Mở sổ tồn đầu kỳ',
+    description: 'Tạo phiếu thủ công, Excel hoặc từ gợi ý dữ liệu cũ.',
+    permissions: ['inventory.adjustment.post'],
+  },
+  {
+    to: '/more/inventory/valuation',
+    title: 'Định giá tồn kho',
+    description: 'Tồn, giá vốn bình quân và tổng giá trị hiện tại.',
+    permissions: ['report.cost_profit.read'],
   },
   {
     to: '/more/suppliers',

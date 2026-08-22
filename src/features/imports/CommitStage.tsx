@@ -7,6 +7,7 @@ const targetLabels: Record<ImportTarget, string> = {
   PRODUCTS: 'Sản phẩm',
   SUPPLIERS: 'Nhà cung cấp',
   CUSTOMERS: 'Khách hàng',
+  OPENING_BALANCES: 'Tồn và giá vốn đầu kỳ',
 };
 
 export function CommitStage({
@@ -42,16 +43,22 @@ export function CommitStage({
           Nhập dữ liệu thành công
         </h2>
         <p className="mt-3 text-sm text-emerald-900">
-          Đã tạo {result.createdRows.toLocaleString('vi-VN')} và cập nhật{' '}
-          {result.updatedRows.toLocaleString('vi-VN')} dòng. Phiên nhập không
-          lưu tệp Excel gốc.
+          {result.stockCountId
+            ? `Đã tạo phiếu mở sổ nháp từ ${result.totalRows.toLocaleString('vi-VN')} dòng. Tồn kho chưa thay đổi.`
+            : `Đã tạo ${result.createdRows.toLocaleString('vi-VN')} và cập nhật ${result.updatedRows.toLocaleString('vi-VN')} dòng. Phiên nhập không lưu tệp Excel gốc.`}
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
-            to={`/imports/${importRunId}`}
+            to={
+              result.stockCountId
+                ? `/more/inventory/opening/${result.stockCountId}`
+                : `/imports/${importRunId}`
+            }
             className="inline-flex min-h-11 items-center rounded-lg bg-emerald-800 px-4 text-sm font-semibold text-white"
           >
-            Xem kết quả phiên nhập
+            {result.stockCountId
+              ? 'Kiểm tra phiếu mở sổ'
+              : 'Xem kết quả phiên nhập'}
           </Link>
           <Link
             to="/imports"
@@ -92,8 +99,9 @@ export function CommitStage({
           </div>
         </dl>
         <p className="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          Khi xác nhận, toàn bộ tệp được ghi trong một giao dịch. Nếu có lỗi
-          hoặc dữ liệu vừa thay đổi, không dòng nào được lưu.
+          {target === 'OPENING_BALANCES'
+            ? 'Khi xác nhận, hệ thống chỉ tạo phiếu mở sổ nháp để owner kiểm tra. Chưa có tồn kho hoặc giá vốn nào được ghi sổ.'
+            : 'Khi xác nhận, toàn bộ tệp được ghi trong một giao dịch. Nếu có lỗi hoặc dữ liệu vừa thay đổi, không dòng nào được lưu.'}
         </p>
         {!isOnline ? (
           <p

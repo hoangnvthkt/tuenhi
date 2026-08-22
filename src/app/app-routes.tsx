@@ -12,6 +12,11 @@ import { ImportPage } from '../features/imports/ImportPage';
 import { LegacySaleDetailPage } from '../features/legacy-sales/LegacySaleDetailPage';
 import { LegacySalesPage } from '../features/legacy-sales/LegacySalesPage';
 import { SalesChannelPage } from '../features/settings/SalesChannelPage';
+import { InventoryValuationPage } from '../features/inventory/InventoryValuationPage';
+import { OpeningDetailPage } from '../features/inventory/OpeningDetailPage';
+import { OpeningListPage } from '../features/inventory/OpeningListPage';
+import { PurchaseDetailPage } from '../features/inventory/PurchaseDetailPage';
+import { PurchaseListPage } from '../features/inventory/PurchaseListPage';
 import { StaffPage } from '../features/staff/StaffPage';
 import { AppShell } from './layout/AppShell';
 import { DashboardPage } from './pages/DashboardPage';
@@ -78,6 +83,7 @@ export const appRoutes: RouteObject[] = [
                   'supplier.manage',
                   'customer.manage',
                   'legacy.sale.import',
+                  'inventory.adjustment.post',
                 ]}
               />
             ),
@@ -97,6 +103,59 @@ export const appRoutes: RouteObject[] = [
               {
                 path: 'legacy-sales/:legacySaleId',
                 element: <LegacySaleDetailPage />,
+              },
+            ],
+          },
+          {
+            element: (
+              <RequireSession
+                permission={[
+                  'purchase.operational.read',
+                  'purchase.draft.manage',
+                  'purchase.cost.read',
+                ]}
+              />
+            ),
+            children: [
+              { path: 'more/purchases', element: <PurchaseListPage /> },
+              {
+                path: 'more/purchases/:receiptId',
+                element: <PurchaseDetailPage />,
+              },
+            ],
+          },
+          {
+            element: <RequireSession permission="purchase.draft.manage" />,
+            children: [
+              {
+                path: 'more/purchases/new',
+                element: <PurchaseDetailPage mode="create" />,
+              },
+            ],
+          },
+          {
+            element: <RequireSession permission="inventory.adjustment.post" />,
+            children: [
+              {
+                path: 'more/inventory/opening',
+                element: <OpeningListPage />,
+              },
+              {
+                path: 'more/inventory/opening/new',
+                element: <OpeningDetailPage mode="create" />,
+              },
+              {
+                path: 'more/inventory/opening/:countId',
+                element: <OpeningDetailPage />,
+              },
+            ],
+          },
+          {
+            element: <RequireSession permission="report.cost_profit.read" />,
+            children: [
+              {
+                path: 'more/inventory/valuation',
+                element: <InventoryValuationPage />,
               },
             ],
           },

@@ -642,6 +642,179 @@ export type Database = {
           },
         ];
       };
+      purchase_receipt_lines: {
+        Row: {
+          created_at: string;
+          id: string;
+          line_order: number;
+          product_id: string;
+          product_name: string;
+          purchase_receipt_id: string;
+          received_qty: number;
+          sku: string;
+          unit_name: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          line_order: number;
+          product_id: string;
+          product_name: string;
+          purchase_receipt_id: string;
+          received_qty: number;
+          sku: string;
+          unit_name: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          line_order?: number;
+          product_id?: string;
+          product_name?: string;
+          purchase_receipt_id?: string;
+          received_qty?: number;
+          sku?: string;
+          unit_name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'purchase_receipt_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_catalog_read';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_receipt_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_receipt_lines_purchase_receipt_id_fkey';
+            columns: ['purchase_receipt_id'];
+            isOneToOne: false;
+            referencedRelation: 'purchase_receipts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      purchase_receipts: {
+        Row: {
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          correlation_id: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          note: string | null;
+          posted_at: string | null;
+          posted_by: string | null;
+          receipt_number: string | null;
+          received_at: string;
+          reverse_reason: string | null;
+          reversed_at: string | null;
+          reversed_by: string | null;
+          status: string;
+          submitted_at: string | null;
+          submitted_by: string | null;
+          supplier_id: string | null;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          correlation_id?: string;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          note?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          receipt_number?: string | null;
+          received_at: string;
+          reverse_reason?: string | null;
+          reversed_at?: string | null;
+          reversed_by?: string | null;
+          status?: string;
+          submitted_at?: string | null;
+          submitted_by?: string | null;
+          supplier_id?: string | null;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          correlation_id?: string;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          note?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          receipt_number?: string | null;
+          received_at?: string;
+          reverse_reason?: string | null;
+          reversed_at?: string | null;
+          reversed_by?: string | null;
+          status?: string;
+          submitted_at?: string | null;
+          submitted_by?: string | null;
+          supplier_id?: string | null;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'purchase_receipts_cancelled_by_fkey';
+            columns: ['cancelled_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_receipts_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_receipts_posted_by_fkey';
+            columns: ['posted_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_receipts_reversed_by_fkey';
+            columns: ['reversed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_receipts_submitted_by_fkey';
+            columns: ['submitted_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_receipts_supplier_id_fkey';
+            columns: ['supplier_id'];
+            isOneToOne: false;
+            referencedRelation: 'suppliers';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       sales_channels: {
         Row: {
           code: string;
@@ -695,6 +868,223 @@ export type Database = {
             columns: ['updated_by'];
             isOneToOne: false;
             referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      stock_count_lines: {
+        Row: {
+          counted_qty: number;
+          created_at: string;
+          id: string;
+          inventory_version_snapshot: number;
+          line_order: number;
+          product_id: string;
+          product_name: string;
+          sku: string;
+          stock_count_id: string;
+          system_qty_snapshot: number;
+          unit_name: string;
+        };
+        Insert: {
+          counted_qty: number;
+          created_at?: string;
+          id?: string;
+          inventory_version_snapshot: number;
+          line_order: number;
+          product_id: string;
+          product_name: string;
+          sku: string;
+          stock_count_id: string;
+          system_qty_snapshot: number;
+          unit_name: string;
+        };
+        Update: {
+          counted_qty?: number;
+          created_at?: string;
+          id?: string;
+          inventory_version_snapshot?: number;
+          line_order?: number;
+          product_id?: string;
+          product_name?: string;
+          sku?: string;
+          stock_count_id?: string;
+          system_qty_snapshot?: number;
+          unit_name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'stock_count_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_catalog_read';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'stock_count_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'stock_count_lines_stock_count_id_fkey';
+            columns: ['stock_count_id'];
+            isOneToOne: false;
+            referencedRelation: 'stock_counts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      stock_counts: {
+        Row: {
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          correlation_id: string;
+          count_number: string | null;
+          count_type: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          note: string | null;
+          posted_at: string | null;
+          posted_by: string | null;
+          status: string;
+          submitted_at: string | null;
+          submitted_by: string | null;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          correlation_id?: string;
+          count_number?: string | null;
+          count_type?: string;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          note?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          status?: string;
+          submitted_at?: string | null;
+          submitted_by?: string | null;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          correlation_id?: string;
+          count_number?: string | null;
+          count_type?: string;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          note?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          status?: string;
+          submitted_at?: string | null;
+          submitted_by?: string | null;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'stock_counts_cancelled_by_fkey';
+            columns: ['cancelled_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'stock_counts_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'stock_counts_posted_by_fkey';
+            columns: ['posted_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'stock_counts_submitted_by_fkey';
+            columns: ['submitted_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      stock_movements: {
+        Row: {
+          actor_id: string;
+          correlation_id: string;
+          id: string;
+          movement_type: string;
+          note: string | null;
+          occurred_at: string;
+          product_id: string;
+          quantity_after: number;
+          quantity_delta: number;
+          reference_id: string;
+          reference_type: string;
+        };
+        Insert: {
+          actor_id: string;
+          correlation_id: string;
+          id?: string;
+          movement_type: string;
+          note?: string | null;
+          occurred_at?: string;
+          product_id: string;
+          quantity_after: number;
+          quantity_delta: number;
+          reference_id: string;
+          reference_type: string;
+        };
+        Update: {
+          actor_id?: string;
+          correlation_id?: string;
+          id?: string;
+          movement_type?: string;
+          note?: string | null;
+          occurred_at?: string;
+          product_id?: string;
+          quantity_after?: number;
+          quantity_delta?: number;
+          reference_id?: string;
+          reference_type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'stock_movements_actor_id_fkey';
+            columns: ['actor_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'stock_movements_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_catalog_read';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'stock_movements_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
             referencedColumns: ['id'];
           },
         ];
@@ -878,11 +1268,33 @@ export type Database = {
         Returns: Json;
       };
       authorize_staff_admin: { Args: never; Returns: Json };
+      cancel_opening_stock: {
+        Args: {
+          p_count_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_reason: string;
+        };
+        Returns: Json;
+      };
+      cancel_purchase_receipt: {
+        Args: {
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_reason: string;
+          p_receipt_id: string;
+        };
+        Returns: Json;
+      };
       cleanup_phase1a_test_users: {
         Args: { p_user_ids: string[] };
         Returns: Json;
       };
       cleanup_phase1b_test_users: {
+        Args: { p_user_ids: string[] };
+        Returns: Json;
+      };
+      cleanup_phase1c_test_users: {
         Args: { p_user_ids: string[] };
         Returns: Json;
       };
@@ -930,6 +1342,14 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_inventory_valuation: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_name?: string;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
       get_legacy_sale: { Args: { p_legacy_sale_id: string }; Returns: Json };
       get_legacy_sales: {
         Args: {
@@ -950,6 +1370,10 @@ export type Database = {
         Returns: Json;
       };
       get_my_session_context: { Args: never; Returns: Json };
+      get_opening_stock_document: {
+        Args: { p_count_id: string };
+        Returns: Json;
+      };
       get_product_catalog: {
         Args: {
           p_category_id?: string;
@@ -972,6 +1396,14 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_purchase_receipt_cost_detail: {
+        Args: { p_receipt_id: string };
+        Returns: Json;
+      };
+      get_purchase_receipt_operational: {
+        Args: { p_receipt_id: string };
+        Returns: Json;
+      };
       list_categories: {
         Args: { p_include_inactive?: boolean };
         Returns: Json;
@@ -992,6 +1424,27 @@ export type Database = {
           p_limit?: number;
           p_status?: string;
           p_target_type?: string;
+        };
+        Returns: Json;
+      };
+      list_opening_balance_suggestions: {
+        Args: { p_cursor_id?: string; p_limit?: number };
+        Returns: Json;
+      };
+      list_opening_stock_documents: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_updated_at?: string;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
+      list_purchase_receipts: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_updated_at?: string;
+          p_filters?: Json;
+          p_limit?: number;
         };
         Returns: Json;
       };
@@ -1021,6 +1474,23 @@ export type Database = {
         Args: { p_notification_id: string };
         Returns: Json;
       };
+      post_opening_stock: {
+        Args: {
+          p_count_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
+      post_purchase_receipt: {
+        Args: {
+          p_cost_lines: Json;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_receipt_id: string;
+        };
+        Returns: Json;
+      };
       prepare_staff_password_reset: {
         Args: {
           p_idempotency_key: string;
@@ -1031,6 +1501,14 @@ export type Database = {
       };
       remove_product_image: {
         Args: { p_idempotency_key: string; p_product_image_id: string };
+        Returns: Json;
+      };
+      reverse_purchase_receipt: {
+        Args: {
+          p_idempotency_key: string;
+          p_reason: string;
+          p_receipt_id: string;
+        };
         Returns: Json;
       };
       save_category: {
@@ -1059,12 +1537,34 @@ export type Database = {
         Args: { p_import_run_id: string; p_mapping: Json };
         Returns: Json;
       };
+      save_opening_stock_draft: {
+        Args: {
+          p_count_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_lines: Json;
+          p_note: string;
+        };
+        Returns: Json;
+      };
       save_product: {
         Args: {
           p_expected_version: number;
           p_idempotency_key: string;
           p_product: Json;
           p_product_id: string;
+        };
+        Returns: Json;
+      };
+      save_purchase_receipt_draft: {
+        Args: {
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_lines: Json;
+          p_note: string;
+          p_receipt_id: string;
+          p_received_at: string;
+          p_supplier_id: string;
         };
         Returns: Json;
       };
@@ -1122,6 +1622,22 @@ export type Database = {
           p_reason: string;
           p_role: string;
           p_user_id: string;
+        };
+        Returns: Json;
+      };
+      submit_opening_stock: {
+        Args: {
+          p_count_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
+      submit_purchase_receipt: {
+        Args: {
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_receipt_id: string;
         };
         Returns: Json;
       };

@@ -130,6 +130,17 @@ begin
   ) then
     raise exception 'every product must have one cost balance';
   end if;
+
+  if to_regprocedure('api.cleanup_phase1c_test_users(uuid[])') is null
+    or not has_function_privilege(
+      'service_role', 'api.cleanup_phase1c_test_users(uuid[])', 'execute'
+    )
+    or has_function_privilege(
+      'authenticated', 'api.cleanup_phase1c_test_users(uuid[])', 'execute'
+    )
+  then
+    raise exception 'Phase 1C Cloud test cleanup grants are unsafe';
+  end if;
 end;
 $$;
 
@@ -155,8 +166,6 @@ begin
   perform set_config('request.jwt.claim.role', 'authenticated', true);
 end;
 $$;
-
-set local role authenticated;
 
 do $$
 declare
@@ -430,7 +439,5 @@ begin
   end if;
 end;
 $$;
-
-reset role;
 
 rollback;

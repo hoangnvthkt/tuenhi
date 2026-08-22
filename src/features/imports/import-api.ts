@@ -17,6 +17,7 @@ const importTargetSchema = z.enum([
   'PRODUCTS',
   'SUPPLIERS',
   'CUSTOMERS',
+  'OPENING_BALANCES',
 ]);
 const importHistoryTargetSchema = z.union([
   importTargetSchema,
@@ -123,6 +124,7 @@ const commitResultSchema = z
     createdRows: z.number().int().min(0).max(5000),
     updatedRows: z.number().int().min(0).max(5000),
     totalRows: z.number().int().min(0).max(5000),
+    stockCountId: z.uuid().optional(),
   })
   .strict();
 const commitEnvelopeSchema = envelopeSchema(commitResultSchema);

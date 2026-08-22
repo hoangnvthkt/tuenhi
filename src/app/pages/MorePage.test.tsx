@@ -94,4 +94,32 @@ describe('MorePage', () => {
       screen.queryByRole('link', { name: /Dữ liệu cũ/ }),
     ).not.toBeInTheDocument();
   });
+
+  it('separates operational purchase access from owner-only cost destinations', () => {
+    renderPage(['purchase.operational.read']);
+    expect(screen.getByRole('link', { name: /Nhập hàng/ })).toHaveAttribute(
+      'href',
+      '/more/purchases',
+    );
+    expect(
+      screen.queryByRole('link', { name: /Mở sổ tồn đầu kỳ/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /Định giá tồn kho/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows opening stock, valuation and Excel import to the owner', () => {
+    renderPage(['inventory.adjustment.post', 'report.cost_profit.read']);
+    expect(
+      screen.getByRole('link', { name: /Mở sổ tồn đầu kỳ/ }),
+    ).toHaveAttribute('href', '/more/inventory/opening');
+    expect(
+      screen.getByRole('link', { name: /Định giá tồn kho/ }),
+    ).toHaveAttribute('href', '/more/inventory/valuation');
+    expect(screen.getByRole('link', { name: /Nhập dữ liệu/ })).toHaveAttribute(
+      'href',
+      '/imports',
+    );
+  });
 });
