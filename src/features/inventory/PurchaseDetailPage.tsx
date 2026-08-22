@@ -93,11 +93,10 @@ export function PurchaseDetailPage({
           .getPurchaseCost(receiptId)
           .then((detail) => {
             if (!active) return;
-            setCosts(
-              Object.fromEntries(
-                detail.lines.map((line) => [line.lineId, line.unitCost ?? '']),
-              ),
+            const serverCosts = Object.fromEntries(
+              detail.lines.map((line) => [line.lineId, line.unitCost ?? '']),
             );
+            setCosts((current) => ({ ...serverCosts, ...current }));
             setTotalCost(detail.totalCost);
           })
           .catch(() => undefined);

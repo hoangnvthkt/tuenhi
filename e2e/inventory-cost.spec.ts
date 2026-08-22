@@ -39,7 +39,7 @@ async function logout(page: Page) {
   await expect(page.getByRole('heading', { name: 'Đăng nhập' })).toBeVisible();
 }
 
-test.beforeAll(async (_fixtures, workerInfo) => {
+test.beforeAll(async ({ browserName }, workerInfo) => {
   const project = workerInfo.project.name.replace(/[^a-z0-9]+/gi, '-');
   ownerEmail = `codex-phase1c-owner-${project}-${runId}@example.invalid`;
   staffEmail = `codex-phase1c-staff-${project}-${runId}@example.invalid`;
@@ -70,7 +70,7 @@ test.beforeAll(async (_fixtures, workerInfo) => {
     {
       id: ownerId,
       email: ownerEmail,
-      display_name: `Owner ${marker}`,
+      display_name: `Owner ${browserName} ${marker}`,
       role_template: 'OWNER',
       is_active: true,
       must_change_password: false,
