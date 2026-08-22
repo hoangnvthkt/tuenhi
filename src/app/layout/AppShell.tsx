@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router';
 import { useSession } from '../../features/auth/use-session';
+import { NotificationCenter } from '../../features/notifications/NotificationCenter';
 import { useOnlineStatus } from '../use-online-status';
 import { navigationItems } from './navigation-items';
 
@@ -70,6 +71,7 @@ export function AppShell() {
             >
               <NavigationLinks mobile={false} />
             </nav>
+            <NotificationCenter />
             {session ? (
               <details className="relative">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center rounded-lg px-3 text-left hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">

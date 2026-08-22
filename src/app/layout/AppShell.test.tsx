@@ -4,6 +4,8 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from '../../features/auth/AuthProvider';
 import type { SessionApi } from '../../features/auth/session-context';
+import type { NotificationApi } from '../../features/notifications/notification-api';
+import { NotificationApiContext } from '../../features/notifications/notification-context';
 import { appRoutes } from '../app-routes';
 
 const sessionApi: SessionApi = {
@@ -25,6 +27,15 @@ const sessionApi: SessionApi = {
   subscribe: vi.fn(() => () => undefined),
 };
 
+const notificationApi: NotificationApi = {
+  list: vi
+    .fn()
+    .mockResolvedValue({ items: [], unreadCount: 0, nextCursor: null }),
+  markRead: vi.fn().mockResolvedValue(undefined),
+  markAllRead: vi.fn().mockResolvedValue(undefined),
+  subscribe: vi.fn(() => () => undefined),
+};
+
 function renderAppRoute(initialEntry: string) {
   const router = createMemoryRouter(appRoutes, {
     initialEntries: [initialEntry],
@@ -33,7 +44,9 @@ function renderAppRoute(initialEntry: string) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <AuthProvider api={sessionApi}>
-        <RouterProvider router={router} />
+        <NotificationApiContext.Provider value={notificationApi}>
+          <RouterProvider router={router} />
+        </NotificationApiContext.Provider>
       </AuthProvider>
     </QueryClientProvider>,
   );

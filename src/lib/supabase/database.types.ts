@@ -64,6 +64,68 @@ export type Database = {
           },
         ];
       };
+      user_notifications: {
+        Row: {
+          action_route: string | null;
+          category: string;
+          correlation_id: string;
+          created_at: string;
+          dedupe_key: string | null;
+          entity_id: string | null;
+          entity_type: string | null;
+          expires_at: string;
+          id: string;
+          message: string;
+          metadata: Json;
+          read_at: string | null;
+          severity: string;
+          title: string;
+          user_id: string;
+        };
+        Insert: {
+          action_route?: string | null;
+          category: string;
+          correlation_id?: string;
+          created_at?: string;
+          dedupe_key?: string | null;
+          entity_id?: string | null;
+          entity_type?: string | null;
+          expires_at?: string;
+          id?: string;
+          message: string;
+          metadata?: Json;
+          read_at?: string | null;
+          severity: string;
+          title: string;
+          user_id: string;
+        };
+        Update: {
+          action_route?: string | null;
+          category?: string;
+          correlation_id?: string;
+          created_at?: string;
+          dedupe_key?: string | null;
+          entity_id?: string | null;
+          entity_type?: string | null;
+          expires_at?: string;
+          id?: string;
+          message?: string;
+          metadata?: Json;
+          read_at?: string | null;
+          severity?: string;
+          title?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_notifications_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -73,7 +135,21 @@ export type Database = {
         Args: { p_user_id: string };
         Returns: Json;
       };
+      get_my_notifications: {
+        Args: {
+          p_cursor_created_at?: string;
+          p_cursor_id?: string;
+          p_limit?: number;
+          p_unread_only?: boolean;
+        };
+        Returns: Json;
+      };
       get_my_session_context: { Args: never; Returns: Json };
+      mark_all_notifications_read: { Args: never; Returns: Json };
+      mark_notification_read: {
+        Args: { p_notification_id: string };
+        Returns: Json;
+      };
     };
     Enums: {
       [_ in never]: never;

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { SessionApi } from '../features/auth/session-context';
+import type { NotificationApi } from '../features/notifications/notification-api';
 import { App } from './App';
 
 const sessionApi: SessionApi = {
@@ -22,9 +23,18 @@ const sessionApi: SessionApi = {
   subscribe: vi.fn(() => () => undefined),
 };
 
+const notificationApi: NotificationApi = {
+  list: vi
+    .fn()
+    .mockResolvedValue({ items: [], unreadCount: 0, nextCursor: null }),
+  markRead: vi.fn().mockResolvedValue(undefined),
+  markAllRead: vi.fn().mockResolvedValue(undefined),
+  subscribe: vi.fn(() => () => undefined),
+};
+
 describe('App', () => {
   it('renders the Tuệ Nhi product identity', async () => {
-    render(<App sessionApi={sessionApi} />);
+    render(<App sessionApi={sessionApi} notificationApi={notificationApi} />);
 
     expect(await screen.findByText('Tuệ Nhi')).toBeInTheDocument();
   });
