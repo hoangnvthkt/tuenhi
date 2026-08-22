@@ -18,6 +18,13 @@ export const businessErrorMessages = {
   AUTH_UPDATE_FAILED: 'Không thể cập nhật tài khoản. Vui lòng thử lại.',
   PASSWORD_CHANGE_INCOMPLETE:
     'Mật khẩu đã được cập nhật nhưng chưa thể hoàn tất hồ sơ. Vui lòng thử lại.',
+  STAFF_NOT_FOUND: 'Không tìm thấy tài khoản nhân viên.',
+  DUPLICATE_STAFF_EMAIL: 'Email này đã được dùng cho tài khoản khác.',
+  LAST_ACTIVE_OWNER:
+    'Hệ thống phải luôn còn ít nhất một chủ cửa hàng hoạt động.',
+  OWNER_ONLY_PERMISSION: 'Quyền này chỉ dành cho chủ cửa hàng.',
+  OWNER_PERMISSION_OVERRIDE_NOT_ALLOWED:
+    'Tài khoản chủ cửa hàng không sử dụng quyền tùy chỉnh.',
 } as const;
 
 export type BusinessErrorCode = keyof typeof businessErrorMessages;

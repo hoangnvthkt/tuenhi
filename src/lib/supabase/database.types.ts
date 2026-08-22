@@ -131,10 +131,23 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      authorize_staff_admin: { Args: never; Returns: Json };
       complete_initial_password_change: {
         Args: { p_user_id: string };
         Returns: Json;
       };
+      finalize_staff_profile: {
+        Args: {
+          p_created_by: string;
+          p_display_name: string;
+          p_email: string;
+          p_idempotency_key: string;
+          p_role_template: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      get_effective_permissions: { Args: { p_user_id: string }; Returns: Json };
       get_my_notifications: {
         Args: {
           p_cursor_created_at?: string;
@@ -145,9 +158,53 @@ export type Database = {
         Returns: Json;
       };
       get_my_session_context: { Args: never; Returns: Json };
+      list_staff: {
+        Args: {
+          p_cursor_created_at?: string;
+          p_cursor_id?: string;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
       mark_all_notifications_read: { Args: never; Returns: Json };
       mark_notification_read: {
         Args: { p_notification_id: string };
+        Returns: Json;
+      };
+      prepare_staff_password_reset: {
+        Args: {
+          p_idempotency_key: string;
+          p_reason: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      set_staff_active: {
+        Args: {
+          p_active: boolean;
+          p_idempotency_key: string;
+          p_reason: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      set_staff_permission_override: {
+        Args: {
+          p_effect: string;
+          p_idempotency_key: string;
+          p_permission_code: string;
+          p_reason: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      set_staff_role: {
+        Args: {
+          p_idempotency_key: string;
+          p_reason: string;
+          p_role: string;
+          p_user_id: string;
+        };
         Returns: Json;
       };
     };

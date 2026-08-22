@@ -32,15 +32,25 @@ set -a
 source "$TUENHI_ENV_FILE"
 set +a
 
-pnpm exec supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
+pnpm exec supabase migration list --linked
 pnpm exec supabase db advisors --linked --type security --level error --fail-on error
-pnpm exec supabase db push --linked --dry-run --password "$SUPABASE_DB_PASSWORD"
-pnpm exec supabase db push --linked --password "$SUPABASE_DB_PASSWORD"
+pnpm exec supabase db push --linked --dry-run
+pnpm exec supabase db push --linked
 pnpm cloud:verify:phase1a
 pnpm supabase:types
 ```
 
 Migration phải được tạo bằng `pnpm exec supabase migration new <tên>` và review trước khi push. Data API của ứng dụng chỉ expose schema `api`; `app_private` không được expose và không cấp direct table privilege cho browser roles.
+
+## Bootstrap chủ cửa hàng lần đầu
+
+Chỉ chạy một lần sau khi migration Phase 1A đã được áp dụng. Cấp các biến runtime `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_PASSWORD`, `BOOTSTRAP_OWNER_DISPLAY_NAME`, sau đó chạy:
+
+```bash
+pnpm bootstrap:owner
+```
+
+Script không ghi hoặc in mật khẩu/secret. Owner đầu tiên phải đổi mật khẩu trong lần đăng nhập đầu tiên. Không đưa các biến bootstrap hoặc secret key vào biến `VITE_*` hay commit vào Git.
 
 ## Ranh giới PWA cache
 

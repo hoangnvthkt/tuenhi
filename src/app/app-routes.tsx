@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router';
 import { ChangePasswordPage } from '../features/auth/ChangePasswordPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RequireSession } from '../features/auth/RequireSession';
+import { StaffPage } from '../features/staff/StaffPage';
 import { AppShell } from './layout/AppShell';
 import { DashboardPage } from './pages/DashboardPage';
 import { FoundationSectionPage } from './pages/FoundationSectionPage';
@@ -32,6 +33,10 @@ export const appRoutes: RouteObject[] = [
           { path: 'pos', element: foundationPage('Bán hàng') },
           { path: 'sales', element: foundationPage('Hóa đơn') },
           { path: 'more', element: foundationPage('Nhiều hơn') },
+          {
+            element: <RequireSession permission="staff.manage" />,
+            children: [{ path: 'staff', element: <StaffPage /> }],
+          },
           { path: '*', element: foundationPage('Không tìm thấy trang') },
         ],
       },

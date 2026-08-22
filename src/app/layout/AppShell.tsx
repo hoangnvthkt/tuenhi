@@ -10,42 +10,53 @@ const roleLabels = {
   OWNER: 'Chủ cửa hàng',
 } as const;
 
-function NavigationLinks({ mobile }: { mobile: boolean }) {
+function NavigationLinks({
+  mobile,
+  permissions,
+}: {
+  mobile: boolean;
+  permissions: readonly string[];
+}) {
   return (
     <>
-      {navigationItems.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end}
-          className={({ isActive }) =>
-            [
-              'relative inline-flex min-h-11 items-center justify-center px-3 text-sm font-medium',
-              'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700',
-              isActive
-                ? 'text-teal-800'
-                : 'text-slate-600 hover:text-slate-950',
-              mobile ? 'flex-1' : 'rounded-md',
-            ].join(' ')
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <span>{item.label}</span>
-              {isActive ? (
-                <span
-                  aria-hidden="true"
-                  className={
-                    mobile
-                      ? 'absolute bottom-1 h-1 w-1 rounded-full bg-current'
-                      : 'absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-current'
-                  }
-                />
-              ) : null}
-            </>
-          )}
-        </NavLink>
-      ))}
+      {navigationItems
+        .filter(
+          (item) =>
+            !('permission' in item) || permissions.includes(item.permission),
+        )
+        .map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) =>
+              [
+                'relative inline-flex min-h-11 items-center justify-center px-3 text-sm font-medium',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700',
+                isActive
+                  ? 'text-teal-800'
+                  : 'text-slate-600 hover:text-slate-950',
+                mobile ? 'flex-1' : 'rounded-md',
+              ].join(' ')
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <span>{item.label}</span>
+                {isActive ? (
+                  <span
+                    aria-hidden="true"
+                    className={
+                      mobile
+                        ? 'absolute bottom-1 h-1 w-1 rounded-full bg-current'
+                        : 'absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-current'
+                    }
+                  />
+                ) : null}
+              </>
+            )}
+          </NavLink>
+        ))}
     </>
   );
 }
@@ -69,7 +80,10 @@ export function AppShell() {
               aria-label="Điều hướng máy tính"
               className="hidden lg:flex lg:items-center lg:gap-1"
             >
-              <NavigationLinks mobile={false} />
+              <NavigationLinks
+                mobile={false}
+                permissions={session?.permissions ?? []}
+              />
             </nav>
             <NotificationCenter />
             {session ? (
@@ -116,7 +130,7 @@ export function AppShell() {
         aria-label="Điều hướng di động"
         className="fixed bottom-0 left-0 right-0 z-10 flex border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
-        <NavigationLinks mobile />
+        <NavigationLinks mobile permissions={session?.permissions ?? []} />
       </nav>
     </div>
   );
