@@ -20,7 +20,8 @@ begin
     'api.set_staff_role(uuid,text,text,uuid)',
     'api.set_staff_permission_override(uuid,text,text,text,uuid)',
     'api.get_effective_permissions(uuid)',
-    'api.prepare_staff_password_reset(uuid,text,uuid)'
+    'api.prepare_staff_password_reset(uuid,text,uuid)',
+    'api.cleanup_phase1a_test_users(uuid[])'
   ]
   loop
     if to_regprocedure(routine_signature) is null then
@@ -50,6 +51,14 @@ begin
     'execute'
   ) then
     raise exception 'service role cannot finalize staff profiles';
+  end if;
+
+  if has_function_privilege(
+    'authenticated',
+    'api.cleanup_phase1a_test_users(uuid[])',
+    'execute'
+  ) then
+    raise exception 'browser must not execute security test cleanup';
   end if;
 
   if not exists (

@@ -132,6 +132,10 @@ export type Database = {
     };
     Functions: {
       authorize_staff_admin: { Args: never; Returns: Json };
+      cleanup_phase1a_test_users: {
+        Args: { p_user_ids: string[] };
+        Returns: Json;
+      };
       complete_initial_password_change: {
         Args: { p_user_id: string };
         Returns: Json;

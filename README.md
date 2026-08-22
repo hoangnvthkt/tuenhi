@@ -17,7 +17,7 @@ pnpm check
 pnpm check:full
 ```
 
-`pnpm check:full` là quality gate đầy đủ trong một lệnh. `pnpm test:e2e` chạy trên bản production đã build; nếu chỉ chạy browser smoke test, dùng `pnpm build && pnpm test:e2e`.
+`pnpm check:full` là quality gate frontend đầy đủ trong một lệnh. `pnpm test:e2e` chạy trên bản production đã build và cần bộ tài khoản kiểm thử Cloud tạm thời như phần dưới. Luôn nạp biến `VITE_*` trước `pnpm build` vì Vite ghi cấu hình public vào bundle tại thời điểm build.
 
 ## Biến môi trường
 
@@ -42,6 +42,19 @@ pnpm supabase:types
 
 Migration phải được tạo bằng `pnpm exec supabase migration new <tên>` và review trước khi push. Data API của ứng dụng chỉ expose schema `api`; `app_private` không được expose và không cấp direct table privilege cho browser roles.
 
+## Kiểm thử bảo mật Phase 1A trên Cloud
+
+Hai lệnh runtime dùng tài khoản Auth tạm, kiểm tra bằng JWT thật rồi tự xóa dữ liệu trong `finally`:
+
+```bash
+pnpm test:cloud:phase1a
+pnpm test:e2e
+```
+
+Cấp tại runtime các biến `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `TEST_OWNER_EMAIL`, `TEST_OWNER_PASSWORD`, `TEST_EMPLOYEE_EMAIL`, `TEST_EMPLOYEE_PASSWORD`. Email test bắt buộc dùng miền `example.invalid` và tiền tố `codex-phase1a-`; mỗi lần chạy phải dùng giá trị riêng. Không lưu các biến này vào file trong repository, command history, log CI hoặc browser artifact. Playwright đã tắt trace, screenshot và video để tránh ghi credential test.
+
+`test:cloud:phase1a` kiểm tra RLS, RPC, Edge Function, phân quyền owner/employee, hard gate đổi mật khẩu, last-owner protection và ranh giới `app_private`. `test:e2e` kiểm tra luồng đăng nhập/đổi mật khẩu/đăng xuất, route staff, giao diện desktop/mobile và trạng thái offline. Hàm dọn dữ liệu test chỉ cho service role gọi và chỉ chấp nhận profile có email test đúng tiền tố trên.
+
 ## Bootstrap chủ cửa hàng lần đầu
 
 Chỉ chạy một lần sau khi migration Phase 1A đã được áp dụng. Cấp các biến runtime `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_PASSWORD`, `BOOTSTRAP_OWNER_DISPLAY_NAME`, sau đó chạy:
@@ -56,9 +69,13 @@ Script không ghi hoặc in mật khẩu/secret. Owner đầu tiên phải đổ
 
 Service worker chỉ precache app shell và static asset. Mọi phản hồi tài chính, API, Auth, Storage và báo cáo luôn đi qua network, không được runtime-cache.
 
+## Quản trị nhân viên
+
+Owner dùng màn `/staff` để tạo, khóa, mở lại tài khoản và đặt mật khẩu tạm. Các thao tác Auth Admin đi qua bốn Edge Function `create-employee`, `deactivate-employee`, `reactivate-employee`, `reset-employee-password`; UI không bao giờ nhận secret key. Nhân viên mới hoặc vừa được đặt lại mật khẩu phải đổi mật khẩu ở lần đăng nhập tiếp theo.
+
 ## Triển khai
 
-Vercel được chủ động hoãn lại; Phase 0 không tạo hoặc liên kết dự án triển khai.
+Vercel được chủ động hoãn lại; Phase 1A không tạo hoặc liên kết dự án triển khai.
 
 ## Tài liệu đã phê duyệt
 
