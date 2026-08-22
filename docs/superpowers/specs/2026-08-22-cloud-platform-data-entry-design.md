@@ -2,7 +2,7 @@
 
 Date: 2026-08-22
 
-Status: Draft for user review
+Status: Approved architecture, amended for legacy workbook requirements
 
 Related design: `docs/superpowers/specs/2026-08-21-internal-single-store-pos-design.md`
 
@@ -15,9 +15,10 @@ This document refines the cross-cutting platform decisions for the Tuệ Nhi int
 - Strict international decimal input and Vietnamese display formatting.
 - Vietnamese user-facing errors, toast feedback, and a persistent notification center.
 - Versioned Excel templates, column mapping, preview, row-level validation, and atomic imports.
+- A one-time, owner-only adapter that archives the supported legacy sales workbook without treating it as an operational ledger.
 - A trust-first product UI guided by the installed taste skill without applying landing-page patterns to dense POS screens.
 
-This document supplements the original design. Where it is more specific, this document governs numeric input, feedback, notifications, Excel import, and Phase 1 sequencing. Financial posting, inventory costing, sales, returns, and reporting continue to follow the original design.
+This document supplements the original design. Where it is more specific, this document governs numeric/phone input, feedback, notifications, Excel import, legacy-workbook conversion, and Phase 1 sequencing. Financial posting, inventory costing, sales, returns, and reporting continue to follow the original design.
 
 ## 2. Confirmed project context
 
@@ -49,10 +50,11 @@ The platform work is divided into two independently testable increments.
 
 ### 3.2 Increment 1B: Catalog and Excel import vertical slice
 
-- Categories, products, current sale price, suppliers, customers, and zero-value inventory balances required by imported products.
+- Categories, products, current sale price, suppliers, minimized customer profiles, configurable sales channels, and zero-value inventory balances required by imported products.
 - Versioned `.xlsx` templates for categories, products, suppliers, and customers.
 - Upload, sheet selection, column mapping, preview, row/cell validation, atomic commit, and error workbook export.
 - Import history and persistent user notifications.
+- Customer template v2 with E.164 phone normalization while v1 remains supported.
 
 Increment 1B brings the non-financial catalog portion of the original Phase 2 forward so the bulk-import requirement is usable early. It does not import opening stock, purchase cost, average cost, purchase receipts, stock movements, or any financial document. Those remain in the inventory and purchase phases after the cost engine exists.
 
@@ -64,8 +66,9 @@ Increment 1B brings the non-financial catalog portion of the original Phase 2 fo
 - No email, SMS, web-push, or native-push notification channel in these increments.
 - No offline queue and no automatic submission after reconnect.
 - No partial financial import.
-- No opening-stock, purchase-cost, sale, return, cancellation, or stock-count import.
-- No formulas, macros, password-protected workbooks, external workbook links, or executable spreadsheet content.
+- No operational opening-stock, purchase-cost, sale, return, cancellation, or stock-count import.
+- Generic templates never accept formulas, macros, password-protected workbooks, external workbook links, or executable spreadsheet content.
+- Legacy sale rows are archive-only and never become operational sales, payments, movements, returns, cancellations, revenue, cost, or profit events.
 - No direct browser insert/update/delete for multi-table commands.
 
 ## 5. Architectural decisions
@@ -99,6 +102,12 @@ Before the frontend uses the Data API, the Cloud Data API settings must expose `
 Realtime is an invalidation signal, never the source of truth. A notification event causes the client to invalidate and refetch the notification query. The event payload is not used as the final notification record or as a balance.
 
 For the single-store scale, filtered Postgres Changes on the user's notification rows is acceptable. If throughput or channel-security needs increase, the implementation may move to private Broadcast without changing the query or notification DTO contracts.
+
+### 5.5 Legacy conversion boundary
+
+The supported legacy workbook is handled by a dedicated adapter, not by weakening the generic template rules. Parsing occurs in browser memory. The original file is never uploaded to Storage or committed to Git.
+
+The adapter recognizes a fixed sheet/header fingerprint, reads only allowlisted cells, and never evaluates spreadsheet formulas. Known derived cells may contribute their cached display value to the archive with provenance `CACHED_UNVERIFIED`; they never become authoritative prices, totals, cost, or inventory. The committed archive is physically and logically separate from operational sales and reports.
 
 ## 6. Canonical numeric contract
 
@@ -182,6 +191,17 @@ Vietnamese display: 1.234.567,5
 
 The client may add a field label before the message, for example `Số lượng: Chỉ nhập chữ số và dấu chấm cho phần thập phân.`
 
+### 6.7 Phone normalization
+
+Phone input is text, not a numeric amount. Manual entry accepts only ASCII digits with one optional leading `+`; spaces, hyphens, parentheses, extensions, Unicode digits, and multiple plus signs are rejected.
+
+- Canonical storage uses E.164 and must match `^\+[1-9][0-9]{7,14}$`.
+- A value beginning with `+` is parsed as an international number.
+- A Vietnamese national number beginning with `0` is parsed with default country `VN`, then stored in E.164 form.
+- The UI displays a Vietnamese national format when the parsed country is `VN`; otherwise it displays the international format.
+- Paste and Excel import use the same parser and do not silently strip forbidden characters.
+- Invalid values return `PHONE_FORMAT_INVALID` with `Số điện thoại không đúng định dạng.`
+
 ## 7. Vietnamese feedback and notification contract
 
 ### 7.1 Three feedback levels
@@ -247,6 +267,8 @@ Constraints and indexes:
 - Import validation completed with errors.
 - Import committed successfully.
 - Import failed after submission.
+- Legacy workbook validation completed with warnings.
+- Legacy archive committed successfully.
 - A server command has an unknown network outcome and requires result lookup.
 
 No notification contains cost or profit fields unless the receiving user is an active owner and the generating command is owner-only.
@@ -266,6 +288,8 @@ No notification contains cost or profit fields unless the receiving user is an a
 
 SKU, barcode, phone, and document numbers are text cells. They are never treated as numeric values because leading zeroes must be preserved.
 
+These sheet/formula rules apply to official generic templates. The only exception is the fixed legacy adapter in section 8.10; that adapter never executes formulas and cannot be selected for an arbitrary workbook.
+
 ### 8.2 Versioned templates
 
 Templates are generated from code and committed under:
@@ -275,7 +299,10 @@ public/templates/import/categories-v1.xlsx
 public/templates/import/products-v1.xlsx
 public/templates/import/suppliers-v1.xlsx
 public/templates/import/customers-v1.xlsx
+public/templates/import/customers-v2.xlsx
 ```
+
+`customers-v2.xlsx` is the current customer template. Version 1 remains accepted and defaults missing `customerType` to `INDIVIDUAL`; it is retained so an already-downloaded template does not break.
 
 Each template includes:
 
@@ -346,13 +373,19 @@ Required columns:
 Optional columns:
 
 - `Mã khách hàng`
+- `Loại khách hàng`
 - `Số điện thoại`
 - `Email`
 - `Địa chỉ`
+- `Công ty`
+- `Mã số thuế`
+- `Nhóm khách hàng`
 - `Ghi chú`
 - `Hoạt động`
 
-The default walk-in customer remains `customer_id = null`; it is not imported as a customer row.
+`Loại khách hàng` accepts `Cá nhân` or `Doanh nghiệp` and defaults to `Cá nhân` for v1/blank input. `Công ty` is required when the type is `Doanh nghiệp`. Phone values use section 6.7 and are stored as `phone_e164`. Customer code is unique when present.
+
+The default walk-in customer remains `customer_id = null`; it is not imported as a customer row. CCCD, date of birth, gender, Facebook/social handles, points, debt, and historical total-sales fields are intentionally unsupported. When these headers appear, the UI labels them `Không nhập vì ngoài phạm vi hoặc nhạy cảm`, requires explicit ignore confirmation, and never includes their cell values in the server payload, import-row storage, error workbook, notification, or audit event.
 
 ### 8.4 Header normalization and mapping
 
@@ -468,6 +501,68 @@ The workbook is generated in browser memory and downloaded directly. It is not u
 - Committed business records are never deleted when raw import rows expire.
 - Import notifications use the 365-day notification retention policy in section 7.4.
 
+### 8.10 Supported legacy sales adapter
+
+The adapter identifier is `LEGACY_Q237_V1`. It is owner-only (`legacy.sale.import`) and accepts the same 5 MiB/5,000 sales-row limits as generic imports. It requires these sheet/header fingerprints:
+
+- `Bán hàng hằng ngày`: `Ngày bán`, `Mã đơn`, `Nhân viên`, `Kênh bán`, `Khách hàng`, `SĐT`, `Mã SP`, `Tên sản phẩm`, `SL`, `Đơn giá`, `Chiết khấu`, `Thành tiền`, `Phương thức TT`, `Trạng thái đơn`, `Ghi chú`, `Mã đơn liên kết HĐ`, `STT SP trong đơn`, `Khóa HĐ-SP`.
+- `Danh mục sản phẩm`: `Mã hàng`, `Tên hàng`, `Nhóm SP`, `Quy cách`, `Giá bán`, `Giá vốn`, `Tồn đầu kỳ`, `Ghi chú`.
+- `KHACH HANG`: `Loại khách`, `Chi nhánh tạo`, `Mã khách hàng`, `Tên khách hàng`, `Điện thoại`, `Địa chỉ`, `Khu vực giao hàng`, `Phường/Xã`, `Công ty`, `Mã số thuế`, `Số CMND/CCCD`, `Ngày sinh`, `Giới tính`, `Email`, `Facebook`, `Nhóm khách hàng`, `Ghi chú`, `Điểm hiện tại`, `Tổng điểm`, `Người tạo`, `Ngày tạo`, `Ngày giao dịch cuối`, `Số ngày nợ`, `Nợ cần thu hiện tại`, `Tổng bán`, `Tổng bán trừ trả hàng`, `Trạng thái`.
+- `Tổng hợp`, `Báo cáo theo ngày`, `HÓA ĐƠN K80`, and an empty extra sheet may exist but are never imported as source-of-truth data.
+
+Formula policy:
+
+- The adapter rejects macros, password protection, external workbook links, formula errors, and formulas outside the known derived columns/sheets.
+- It never recalculates or executes a formula.
+- Formula columns `F`, `G`, `J`, `L`, `P`, `Q`, and `R` on the sales sheet and formulas on the summary/report/invoice sheets are allowlisted only so the structural fingerprint can be recognized.
+- Helper columns `P:R` are ignored. The adapter derives effective invoice number and line number itself.
+- Cached values for unit price/line total may be archived with provenance `CACHED_UNVERIFIED`; missing caches produce warnings rather than invented zeroes.
+
+Sales-row grouping:
+
+1. A non-empty `Mã đơn` starts a source invoice group; repeating the same number on immediately adjacent product rows continues that group.
+2. Following rows with a product but blank `Mã đơn` inherit the most recent source invoice number.
+3. A product row before any source invoice number is a blocking error.
+4. Empty product rows are ignored and never extend a group.
+5. The first row of a group supplies date, staff, channel, customer, payment, status, and note. Conflicting repeated values within the group are blocking errors.
+6. Every distinct non-empty product/customer/staff/channel label must be resolved to a target ID or explicitly marked `SOURCE_LABEL_ONLY`. The resolution is frozen before validation; unresolved labels block commit, while `SOURCE_LABEL_ONLY` commits with a warning and no operational link.
+7. A source invoice number that reappears after a different invoice group has started is a blocking duplicate; the adapter never merges disjoint groups silently.
+
+Controlled source mappings:
+
+- `Bán tại quầy`, `Bán hàng tại cửa hàng`, and `Tại cửa hàng` propose `IN_STORE`; `Khách tỉnh` proposes `REMOTE_PROVINCE`; `Online` proposes `ONLINE`; `Đại lý` proposes `WHOLESALE`. The owner must confirm every proposed channel mapping.
+- `Tiền mặt` maps to `CASH`; `Chuyển khoản` maps to `BANK_TRANSFER`. Other labels remain archive text with a warning and never create a payment.
+- Sales dates accept an Excel date cell or exact `dd/MM/yyyy`; ambiguous/invalid dates are blocking errors.
+- Customer type `Cá nhân` maps to `INDIVIDUAL` and `Doanh nghiệp` maps to `BUSINESS`. Source status `1`/`true` maps active and `0`/`false` maps inactive.
+- Eligible customer fields are type, code, name, phone, email, address, company, tax code, group, note, and active status. Branch, delivery region/ward, identity, demographics, social, points, debt, creator/timestamps, and historical totals are discarded in browser memory.
+- Product/staff/customer automatic proposals require exact normalized identifiers or names. Fuzzy matches are suggestions only and always require owner confirmation.
+
+The adapter stages three outputs independently:
+
+- Product/customer candidates go through the normal versioned-template validation and explicit commit flow; the legacy adapter never bypasses catalog permissions or uniqueness checks.
+- `Giá vốn` and `Tồn đầu kỳ` become owner-only opening-balance suggestions. They cannot commit until the cost engine and audited opening-stock command are available.
+- Sales groups commit only to `api.legacy_sales` and `api.legacy_sale_lines`. Archive commit is atomic/idempotent but never creates operational sale/payment/movement/revenue/cost/return records.
+
+Legacy records have `VALID` or `WARNING` quality status. The archive UI always shows `Chỉ để tra cứu`, warning counts, source row numbers, and cache provenance. It provides search/export only; no return, cancel, repost, payment, inventory, profit, or official-report action.
+
+Additional stable error/warning codes:
+
+| Code                                | Vietnamese user message                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| `LEGACY_WORKBOOK_UNSUPPORTED`       | `Tệp không đúng định dạng dữ liệu bán hàng cũ được hỗ trợ.`               |
+| `LEGACY_SHEET_FINGERPRINT_MISMATCH` | `Tên trang tính hoặc tiêu đề cột không đúng mẫu dữ liệu cũ.`              |
+| `LEGACY_FORMULA_NOT_ALLOWED`        | `Tệp có công thức ngoài các cột được hỗ trợ. Vui lòng kiểm tra lại.`      |
+| `LEGACY_INVOICE_NUMBER_REQUIRED`    | `Không xác định được mã đơn cho dòng sản phẩm này.`                       |
+| `LEGACY_DUPLICATE_INVOICE_NUMBER`   | `Mã đơn xuất hiện ở nhiều nhóm không liền nhau. Vui lòng kiểm tra lại.`   |
+| `LEGACY_GROUP_CONFLICT`             | `Các dòng cùng mã đơn có thông tin đơn hàng không thống nhất.`            |
+| `LEGACY_MAPPING_REQUIRED`           | `Vui lòng ghép dữ liệu hoặc xác nhận chỉ giữ nhãn cũ trước khi tiếp tục.` |
+| `LEGACY_PRODUCT_NOT_FOUND`          | `Không tìm thấy sản phẩm phù hợp trong danh mục hiện tại.`                |
+| `LEGACY_CACHED_VALUE_MISSING`       | `Không có giá trị đã lưu cho ô công thức; hệ thống không tự thay bằng 0.` |
+| `LEGACY_CACHED_VALUE_UNVERIFIED`    | `Giá trị này lấy từ bộ nhớ công thức của tệp cũ và chỉ dùng để tra cứu.`  |
+| `LEGACY_ARCHIVE_ALREADY_COMMITTED`  | `Dữ liệu từ tệp này đã được lưu trước đó.`                                |
+
+Excluded customer columns are removed in browser memory before any rows are sent to the server. The original workbook is not uploaded. Raw allowlisted row payloads/errors retain the existing 30-day policy; committed archive records remain until an owner-approved retention/export policy is introduced.
+
 ## 9. Identity and authorization model
 
 ### 9.1 Roles
@@ -485,6 +580,8 @@ role defaults + individual grants - individual revokes
 ```
 
 Owner-only permissions cannot be granted to employees. Owners do not receive overrides and always retain all owner permissions while active.
+
+`legacy.sale.import` is owner-only. `legacy.sale.read` defaults to owner, may be individually granted to an employee, and does not imply `sale.all.read` or report permissions. Sales-channel mutation continues to use owner-only `settings.manage`.
 
 ### 9.2 Profile hard gates
 
@@ -524,7 +621,10 @@ Deactivation updates the database profile first so RLS/RPC blocks immediately, t
 - `products`
 - `suppliers`
 - `customers`
+- `sales_channels`
 - `inventory_balances`
+- `legacy_sales`
+- `legacy_sale_lines`
 - Security-invoker read views for current product catalog, import summaries, and notification feed.
 - Security-invoker wrappers for the commands in section 11.
 
@@ -538,6 +638,7 @@ Every exposed table enables and forces RLS. Direct write grants are revoked unle
 - `command_deduplication`
 - `import_run_rows`
 - `import_run_mappings`
+- `legacy_opening_balance_suggestions`
 - `product_sale_prices`
 - `inventory_cost_balances`
 - Sensitive audit payloads and helper functions.
@@ -553,6 +654,7 @@ No `anon` or `authenticated` role receives direct table access to this schema.
 - `actor_id uuid not null references api.profiles(id)`.
 - `target_type text not null`.
 - `template_version integer null`.
+- `adapter_id text null`; it is `LEGACY_Q237_V1` only when `target_type = 'LEGACY_SALES_ARCHIVE'` and null for generic templates.
 - `file_name text not null` stored as sanitized display text.
 - `file_sha256 text not null`.
 - `mode text not null check (mode in ('CREATE_ONLY','UPDATE_EXISTING'))`.
@@ -585,13 +687,33 @@ Every foreign-key column receives a supporting index.
 - `set_staff_permission_override(...)`
 - `get_effective_permissions(p_user_id)`
 
-### 11.2 Notifications
+### 11.2 Sales configuration and invoice output
+
+- `list_sales_channels(p_include_inactive)`
+- `save_sales_channel(p_channel_id, p_code, p_name, p_sort_order, p_is_active, p_idempotency_key)`
+- `get_sale_invoice(p_sale_id)`
+
+`save_sales_channel` requires `settings.manage`; a new code must match `^[A-Z][A-Z0-9_]{1,31}$`, codes are immutable after creation, and used channels cannot be deleted. `get_sale_invoice` returns one versioned DTO for both 80 mm and PDF renderers, including sanitized store settings, channel snapshot, customer/staff/payment data, lines, line discounts, allocated order discounts, totals, and no cost/profit fields.
+
+`InvoiceDtoV1` contains:
+
+- `version: 1`.
+- `store`: display name, optional logo URL, address, contact phone, Zalo, and invoice footer.
+- `sale`: ID, sale number, completion time, status, channel code/name snapshot, staff display name, optional customer name/phone, and payment method.
+- `lines[]`: stable line ID, product name/SKU/unit snapshots, quantity, unit sale price, gross amount, line discount, allocated order discount, and net amount.
+- `totals`: subtotal, line-discount total, order-discount total, net total, and captured amount.
+
+All quantity/money fields are canonical decimal strings. The printable/shareable DTO contains no raw database error, internal permission detail, cost, inventory value, or profit field for any caller; owner-only analysis uses a separate read model.
+
+Both renderers run after the DTO has been fetched and never inside a database transaction. The 80 mm renderer uses a dedicated print stylesheet. The PDF is generated in browser memory, shared through the Web Share API when file sharing is supported, and otherwise downloaded; it is not uploaded to Storage in the MVP.
+
+### 11.3 Notifications
 
 - `get_my_notifications(p_unread_only, p_cursor, p_limit)`
 - `mark_notification_read(p_notification_id)`
 - `mark_all_notifications_read()`
 
-### 11.3 Imports
+### 11.4 Imports
 
 - `create_import_run(p_target_type, p_template_version, p_file_name, p_file_sha256, p_mode, p_idempotency_key)`
 - `save_import_mapping(p_import_run_id, p_mapping)`
@@ -599,10 +721,16 @@ Every foreign-key column receives a supporting index.
 - `get_import_validation_result(p_import_run_id, p_cursor, p_limit)`
 - `commit_import(p_import_run_id, p_idempotency_key)`
 - `get_import_result(p_import_run_id)`
+- `validate_legacy_sales_import(p_import_run_id)`
+- `commit_legacy_sales_import(p_import_run_id, p_idempotency_key)`
+- `get_legacy_sales(p_filters, p_cursor, p_limit)`
+- `get_legacy_sale(p_legacy_sale_id)`
 
 Validation may accept rows in bounded chunks for transport, but commit remains one atomic database command for the complete validated run. Chunk order and row numbers are stable.
 
-### 11.4 Command envelope
+Legacy validation/commit requires `target_type = 'LEGACY_SALES_ARCHIVE'`, `mode = 'CREATE_ONLY'`, adapter `LEGACY_Q237_V1`, and `legacy.sale.import`. Read commands require `legacy.sale.read`. Archive result DTOs always contain `isOperational: false`, quality status, warnings, and provenance; they never expose a return/cancel/payment action.
+
+### 11.5 Command envelope
 
 All commands keep the existing envelope:
 
@@ -648,6 +776,8 @@ Details contain only whitelisted fields. They never contain SQL text, stack trac
 - Foreign keys use `on delete restrict` or `no action` for historical/business data; no financial history cascades.
 - Import commit locks conflicting keys in a consistent ascending order and keeps the transaction short.
 - `file_name`, cell values, and mapped headers are data only. They are never interpolated into SQL identifiers or executable statements.
+- `api.legacy_sales` and `api.legacy_sale_lines` require `legacy.sale.read`; only the owner-only commit command may write them.
+- No foreign key from operational payments, movements, returns, revenue/cost events, or official sales points to a legacy archive row.
 
 ## 13. UI and interaction direction
 
@@ -698,6 +828,16 @@ The stage names themselves are the labels; the UI does not add generic labels su
 
 Desktop uses a wide mapping/preview table with a sticky summary. Mobile shows one row error at a time with filters by error type and a persistent summary/action bar. A user can always return to mapping without re-uploading the file while the page remains open.
 
+### 13.5 Legacy archive workflow UI
+
+Legacy conversion uses the same four action labels, with an additional mapping panel for staff, channel, product, and customer labels. The confirmation screen separates:
+
+- catalog candidates eligible for normal import;
+- opening-balance suggestions that cannot be posted yet;
+- archive invoices with `VALID` or `WARNING` quality.
+
+Every archive screen shows a persistent `Chỉ để tra cứu` banner. Search results never mix archive rows with operational invoices, and there is no return, cancel, payment, inventory, or profit action.
+
 ## 14. Audit and observability
 
 Audit events record:
@@ -714,6 +854,8 @@ Audit events record:
 Audit payloads never store passwords, access tokens, publishable keys, signed URLs, complete workbook rows, or raw cost values in a surface readable by employees.
 
 Import metrics include validation duration, commit duration, row counts, error-code counts, and final status. They do not include raw cell values.
+
+Legacy audit records include adapter ID, source file SHA-256, mapping version, archive counts, warning-code counts, actor, correlation ID, and idempotency key. They do not include the original workbook, excluded customer fields, full raw rows, or cached formula values.
 
 ## 15. Cloud migration workflow
 
@@ -777,9 +919,11 @@ Required rejected examples:
 
 Tests cover keystroke state, paste, blur, submit, server parsing, and `vi-VN` display formatting.
 
+Phone tests cover Vietnamese national input, international E.164 input, canonical storage, display formatting, paste, Excel text cells, and rejection of spaces, hyphens, extensions, Unicode digits, invalid country/length, or an embedded plus sign.
+
 ### 16.2 Excel unit and component tests
 
-- Generated template contract for all four target types.
+- Generated template contract for all four target types and both supported customer versions.
 - Exact and alias header mapping.
 - Duplicate and missing mappings.
 - Formula and protected-workbook rejection.
@@ -789,6 +933,8 @@ Tests cover keystroke state, paste, blur, submit, server parsing, and `vi-VN` di
 - Error aggregation by row and column.
 - Mobile and desktop import states.
 - Vietnamese visible copy and accessible live regions.
+- Customer v1 defaults, customer v2 type/company fields, E.164 normalization, and removal of excluded sensitive columns before transport.
+- Legacy workbook fingerprint, formula allowlist without execution, cached-value provenance, carry-forward invoice grouping, adjacent repeated numbers, disjoint duplicate invoice numbers, group conflicts, mapping, and warning aggregation.
 
 ### 16.3 Cloud integration tests
 
@@ -803,6 +949,10 @@ Tests cover keystroke state, paste, blur, submit, server parsing, and `vi-VN` di
 - Concurrent import of the same SKU has one deterministic winner and one Vietnamese conflict result.
 - A failed import leaves no catalog, price, balance, notification, or audit partial write.
 - Mark-read only changes the actor's own notification.
+- `legacy.sale.import` cannot be granted to an employee and is required for archive commit.
+- Users without `legacy.sale.read` cannot list, fetch, infer counts, or export legacy rows.
+- Legacy commit creates no operational sale, payment, stock/cost movement, revenue/cost event, return, cancellation, or official-report contribution.
+- Renaming/deactivating a sales channel cannot change an operational invoice snapshot or archive source label.
 
 ### 16.4 Browser tests
 
@@ -812,6 +962,10 @@ Tests cover keystroke state, paste, blur, submit, server parsing, and `vi-VN` di
 - Notification unread/read behavior.
 - Official template download.
 - Import mapping, preview, invalid cell navigation, error workbook download, and successful commit.
+- Customer v2 download/import and continued customer v1 import.
+- Legacy adapter preview separates catalog candidates, deferred opening suggestions, and archive invoices.
+- Archive search/detail always shows `Chỉ để tra cứu` and never offers return/cancel/payment/inventory/profit actions.
+- The 80 mm and PDF renderers consume the same invoice DTO and handle long names, walk-in customers, discounts, more than 15 lines, reprint, download, and share fallback.
 - Offline mode prevents import commit and never auto-submits after reconnect.
 - Mobile and desktop viewports.
 
@@ -828,7 +982,7 @@ Tests cover keystroke state, paste, blur, submit, server parsing, and `vi-VN` di
 9. Read-only values display with `vi-VN` grouping and decimal separators without changing canonical values.
 10. Every user-facing error, toast, import error, notification, loading state, and empty state is Vietnamese.
 11. Raw database/dependency errors and secrets never appear in the UI.
-12. Four versioned Excel templates are generated and contract-tested.
+12. Four import target types are supported; all five generated workbook versions, including customer v1/v2, are contract-tested.
 13. Import mapping identifies missing, duplicate, unknown, and conflicting columns before commit.
 14. Row/cell errors include stable codes, Vietnamese messages, and original row numbers.
 15. Import is atomic and idempotent; an invalid row produces zero business writes.
@@ -838,6 +992,12 @@ Tests cover keystroke state, paste, blur, submit, server parsing, and `vi-VN` di
 19. Realtime only invalidates/refetches and never becomes the authoritative record.
 20. UI passes the defined trust-first design, responsive, contrast, focus, loading, empty, error, and offline checks.
 21. Security, unit, integration, and browser tests pass against Supabase Cloud with no production credential committed.
+22. Customer phones are stored as canonical E.164 and excluded sensitive customer columns never leave browser memory.
+23. Sales channels use stable codes; deactivation blocks new completion without changing historical snapshots.
+24. Line and order discounts are represented separately and reconcile exactly to sale net totals and refunds.
+25. The invoice 80 mm and PDF outputs use the same versioned DTO and support more than 15 lines.
+26. Legacy conversion never evaluates formulas and every cached value retains `CACHED_UNVERIFIED` provenance.
+27. Legacy archive rows are permission-isolated and cannot affect operational inventory, payments, returns, revenue, cost, profit, or official reports.
 
 ## 18. Operational notes
 

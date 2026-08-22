@@ -26,6 +26,7 @@ Xây dựng một ứng dụng nội bộ cho một cửa hàng nhỏ để:
 - Xem tổng số sản phẩm và lượng tồn hiện tại của từng sản phẩm.
 - Nhập hàng và cập nhật giá vốn bình quân.
 - Bán hàng, thu tiền đủ tại thời điểm thanh toán và phát hành hóa đơn nội bộ.
+- Phân loại giao dịch theo kênh bán và đối soát doanh thu theo kênh/phương thức thanh toán.
 - Trả một phần hoặc toàn bộ hàng theo đúng hóa đơn gốc.
 - Kiểm kho và điều chỉnh chênh lệch có kiểm soát.
 - Theo dõi doanh thu, giá vốn và lợi nhuận gộp.
@@ -51,6 +52,10 @@ Xây dựng một ứng dụng nội bộ cho một cửa hàng nhỏ để:
 14. Thanh toán MVP chỉ gồm tiền mặt hoặc chuyển khoản và phải thanh toán đủ. Không quản lý công nợ.
 15. Báo cáo tài chính trong MVP là **lợi nhuận gộp**, không phải lợi nhuận ròng vì chưa quản lý chi phí vận hành.
 16. Giao diện lấy cảm hứng từ cách bố trí của ứng dụng tham khảo nhưng phải dùng nhận diện, component và tài sản hình ảnh riêng; không sao chép logo hoặc tài sản thương hiệu.
+17. Kênh bán là danh mục cấu hình có mã ổn định; hóa đơn hoàn tất snapshot mã và tên kênh để việc đổi tên sau này không sửa lịch sử.
+18. MVP hỗ trợ chiết khấu số tiền cố định ở từng dòng và toàn hóa đơn. Server là nguồn tính toán authoritative và phân bổ phần giảm toàn đơn xuống từng dòng.
+19. Dữ liệu giao dịch từ workbook cũ chỉ nằm trong kho lưu trữ tra cứu riêng, không tạo tồn kho, giá vốn, payment, doanh thu chính thức hoặc quyền trả/hủy.
+20. Hóa đơn nội bộ có hai đầu ra từ cùng một DTO: bản in nhiệt 80 mm và PDF để tải/chia sẻ.
 
 ## 3. Phạm vi MVP
 
@@ -61,14 +66,16 @@ Xây dựng một ứng dụng nội bộ cho một cửa hàng nhỏ để:
 - Danh mục sản phẩm, nhóm hàng, ảnh, SKU, mã vạch, đơn vị tính và thông số linh hoạt.
 - Tìm kiếm theo tên, SKU hoặc mã vạch; hỗ trợ quét mã vạch bằng camera khi trình duyệt cho phép.
 - Tồn kho hiện tại, ngưỡng tồn tối thiểu, lịch sử tăng giảm số lượng.
-- Nhà cung cấp và khách hàng ở mức thông tin cơ bản.
+- Nhà cung cấp và khách hàng ở mức thông tin cơ bản, có phân loại cá nhân/doanh nghiệp và chuẩn hóa số điện thoại.
 - Phiếu nhập hàng hai bước: nhân viên lập số lượng, chủ cửa hàng nhập giá và ghi sổ.
-- POS, giỏ hàng, lưu tạm, giảm giá toàn hóa đơn, thanh toán đủ và phát hành hóa đơn.
+- POS, giỏ hàng, lưu tạm, kênh bán, giảm giá từng dòng/toàn hóa đơn, thanh toán đủ và phát hành hóa đơn.
 - Danh sách và chi tiết hóa đơn.
 - Trả hàng theo hóa đơn gốc, hỗ trợ trả một phần hoặc toàn bộ.
 - Hủy hóa đơn theo quyền và điều kiện nghiệp vụ.
 - Kiểm kho, chốt chênh lệch và số dư đầu kỳ.
 - Dashboard và báo cáo theo quyền.
+- Kho tra cứu dữ liệu bán hàng cũ, tách khỏi sổ vận hành và báo cáo chính thức.
+- In nhiệt 80 mm, tải PDF và chia sẻ hóa đơn nội bộ.
 - Nhật ký audit cho thao tác nhạy cảm.
 - PWA, responsive mobile/desktop, deploy trên Vercel.
 - Supabase Cloud cho Auth, Postgres, RLS, Storage và Realtime.
@@ -87,20 +94,25 @@ Xây dựng một ứng dụng nội bộ cho một cửa hàng nhỏ để:
 - Đổi hàng trong cùng một giao dịch. Đổi hàng được thực hiện bằng một phiếu trả hàng và một hóa đơn bán mới.
 - Trả hàng không có hóa đơn gốc.
 - Hoàn tất giao dịch khi offline.
+- Dùng hóa đơn cũ để trả/hủy, ghi nhận tồn kho, giá vốn, payment, doanh thu hoặc lợi nhuận.
+- Lưu CCCD, ngày sinh, giới tính hoặc tài khoản mạng xã hội của khách hàng.
 
 ## 4. Thuật ngữ nghiệp vụ
 
-| Thuật ngữ | Định nghĩa |
-| --- | --- |
-| Tồn kho | Số lượng thực tế hiện có của sản phẩm trong kho duy nhất |
-| Giá nhập | Đơn giá thực tế của dòng phiếu nhập, do chủ cửa hàng nhập |
-| Giá vốn bình quân | Giá trị tồn kho chia cho số lượng tồn sau mỗi biến động làm thay đổi giá trị |
-| Giá vốn hàng bán | Phần giá trị tồn kho được xuất khi hoàn tất bán hàng |
-| Doanh thu thuần | Tiền hàng sau giảm giá, trừ giá trị hàng trả hoặc hủy |
-| Lợi nhuận gộp | Doanh thu thuần trừ giá vốn thuần |
-| Hóa đơn gốc | Hóa đơn bán hàng đã hoàn tất chứa mặt hàng được yêu cầu trả |
-| Chứng từ ghi sổ | Chứng từ đã hoàn tất và đã tạo biến động tồn kho/giá trị |
-| Lưu tạm | Chứng từ nháp, chưa ảnh hưởng tồn kho hoặc báo cáo |
+| Thuật ngữ         | Định nghĩa                                                                                     |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| Tồn kho           | Số lượng thực tế hiện có của sản phẩm trong kho duy nhất                                       |
+| Giá nhập          | Đơn giá thực tế của dòng phiếu nhập, do chủ cửa hàng nhập                                      |
+| Giá vốn bình quân | Giá trị tồn kho chia cho số lượng tồn sau mỗi biến động làm thay đổi giá trị                   |
+| Giá vốn hàng bán  | Phần giá trị tồn kho được xuất khi hoàn tất bán hàng                                           |
+| Doanh thu thuần   | Tiền hàng sau giảm giá, trừ giá trị hàng trả hoặc hủy                                          |
+| Lợi nhuận gộp     | Doanh thu thuần trừ giá vốn thuần                                                              |
+| Hóa đơn gốc       | Hóa đơn bán hàng đã hoàn tất chứa mặt hàng được yêu cầu trả                                    |
+| Chứng từ ghi sổ   | Chứng từ đã hoàn tất và đã tạo biến động tồn kho/giá trị                                       |
+| Lưu tạm           | Chứng từ nháp, chưa ảnh hưởng tồn kho hoặc báo cáo                                             |
+| Kênh bán          | Nguồn giao dịch do chủ cửa hàng cấu hình, mặc định gồm Tại quầy, Khách tỉnh, Online và Đại lý  |
+| Giảm giá dòng     | Số tiền giảm trực tiếp trên một dòng trước khi phân bổ giảm giá toàn hóa đơn                   |
+| Dữ liệu cũ        | Hóa đơn nhập từ workbook trước ngày chuyển đổi, chỉ dùng tra cứu và không phải chứng từ ghi sổ |
 
 ## 5. Người dùng và phân quyền
 
@@ -130,37 +142,39 @@ Ký hiệu:
 - `Không`: quyền mặc định tắt nhưng chủ cửa hàng có thể cấp riêng nếu đây là quyền vận hành.
 - `Khóa`: chỉ chủ cửa hàng, không thể cấp cho nhân viên.
 
-| Mã quyền | Chức năng | Bán hàng & Kho | Kinh doanh | Chủ cửa hàng |
-| --- | --- | ---: | ---: | ---: |
-| `dashboard.operational.read` | Xem dashboard vận hành | Có | Có | Có |
-| `catalog.read` | Xem sản phẩm, ảnh, thông số | Có | Có | Có |
-| `catalog.basic.manage` | Thêm/sửa thông tin cơ bản sản phẩm | Có | Không | Có |
-| `pricing.sale.read` | Xem giá bán | Có | Có | Có |
-| `pricing.sale.manage` | Thay đổi giá bán | Khóa | Khóa | Có |
-| `inventory.read` | Xem tồn kho từng sản phẩm | Có | Có | Có |
-| `inventory.count.draft` | Lập phiếu kiểm kho | Có | Không | Có |
-| `inventory.adjustment.post` | Ghi sổ điều chỉnh kho | Khóa | Khóa | Có |
-| `purchase.draft.manage` | Lập phiếu nhập và số lượng | Có | Không | Có |
-| `purchase.operational.read` | Xem phiếu nhập không có giá vốn | Có | Không | Có |
-| `purchase.cost.read` | Xem giá nhập | Khóa | Khóa | Có |
-| `purchase.cost.enter` | Nhập giá nhập | Khóa | Khóa | Có |
-| `purchase.post` | Ghi sổ phiếu nhập | Khóa | Khóa | Có |
-| `sale.draft.manage` | Lập và sửa hóa đơn nháp của mình | Có | Có | Có |
-| `sale.complete` | Hoàn tất bán hàng | Có | Có | Có |
-| `sale.discount.apply` | Áp dụng giảm giá toàn hóa đơn | Có | Có | Có |
-| `sale.own.read` | Xem hóa đơn do mình tạo | Có | Có | Có |
-| `sale.all.read` | Xem tất cả hóa đơn | Không | Không | Có |
-| `sale.cancel` | Hủy hóa đơn đã hoàn tất | Khóa | Khóa | Có |
-| `return.request.create` | Tạo yêu cầu trả hàng từ hóa đơn gốc | Có | Có | Có |
-| `return.complete` | Kiểm nhận và hoàn tất trả hàng | Có | Không | Có |
-| `customer.manage` | Thêm/sửa khách hàng cơ bản | Có | Có | Có |
-| `supplier.manage` | Thêm/sửa nhà cung cấp | Có | Không | Có |
-| `report.own_revenue.read` | Xem doanh thu của bản thân | Có | Có | Có |
-| `report.all_revenue.read` | Xem tổng doanh thu cửa hàng | Không | Không | Có |
-| `report.cost_profit.read` | Xem giá vốn, giá trị tồn và lợi nhuận | Khóa | Khóa | Có |
-| `staff.manage` | Tạo, khóa và phân quyền tài khoản | Khóa | Khóa | Có |
-| `settings.manage` | Cấu hình cửa hàng/chứng từ | Khóa | Khóa | Có |
-| `audit.read` | Xem nhật ký audit | Khóa | Khóa | Có |
+| Mã quyền                     | Chức năng                                  | Bán hàng & Kho | Kinh doanh | Chủ cửa hàng |
+| ---------------------------- | ------------------------------------------ | -------------: | ---------: | -----------: |
+| `dashboard.operational.read` | Xem dashboard vận hành                     |             Có |         Có |           Có |
+| `catalog.read`               | Xem sản phẩm, ảnh, thông số                |             Có |         Có |           Có |
+| `catalog.basic.manage`       | Thêm/sửa thông tin cơ bản sản phẩm         |             Có |      Không |           Có |
+| `pricing.sale.read`          | Xem giá bán                                |             Có |         Có |           Có |
+| `pricing.sale.manage`        | Thay đổi giá bán                           |           Khóa |       Khóa |           Có |
+| `inventory.read`             | Xem tồn kho từng sản phẩm                  |             Có |         Có |           Có |
+| `inventory.count.draft`      | Lập phiếu kiểm kho                         |             Có |      Không |           Có |
+| `inventory.adjustment.post`  | Ghi sổ điều chỉnh kho                      |           Khóa |       Khóa |           Có |
+| `purchase.draft.manage`      | Lập phiếu nhập và số lượng                 |             Có |      Không |           Có |
+| `purchase.operational.read`  | Xem phiếu nhập không có giá vốn            |             Có |      Không |           Có |
+| `purchase.cost.read`         | Xem giá nhập                               |           Khóa |       Khóa |           Có |
+| `purchase.cost.enter`        | Nhập giá nhập                              |           Khóa |       Khóa |           Có |
+| `purchase.post`              | Ghi sổ phiếu nhập                          |           Khóa |       Khóa |           Có |
+| `sale.draft.manage`          | Lập và sửa hóa đơn nháp của mình           |             Có |         Có |           Có |
+| `sale.complete`              | Hoàn tất bán hàng                          |             Có |         Có |           Có |
+| `sale.discount.apply`        | Áp dụng giảm giá từng dòng và toàn hóa đơn |             Có |         Có |           Có |
+| `sale.own.read`              | Xem hóa đơn do mình tạo                    |             Có |         Có |           Có |
+| `sale.all.read`              | Xem tất cả hóa đơn                         |          Không |      Không |           Có |
+| `sale.cancel`                | Hủy hóa đơn đã hoàn tất                    |           Khóa |       Khóa |           Có |
+| `return.request.create`      | Tạo yêu cầu trả hàng từ hóa đơn gốc        |             Có |         Có |           Có |
+| `return.complete`            | Kiểm nhận và hoàn tất trả hàng             |             Có |      Không |           Có |
+| `customer.manage`            | Thêm/sửa khách hàng cơ bản                 |             Có |         Có |           Có |
+| `supplier.manage`            | Thêm/sửa nhà cung cấp                      |             Có |      Không |           Có |
+| `report.own_revenue.read`    | Xem doanh thu của bản thân                 |             Có |         Có |           Có |
+| `report.all_revenue.read`    | Xem tổng doanh thu cửa hàng                |          Không |      Không |           Có |
+| `report.cost_profit.read`    | Xem giá vốn, giá trị tồn và lợi nhuận      |           Khóa |       Khóa |           Có |
+| `legacy.sale.read`           | Tra cứu dữ liệu bán hàng cũ                |          Không |      Không |           Có |
+| `legacy.sale.import`         | Nhập và đối soát workbook bán hàng cũ      |           Khóa |       Khóa |           Có |
+| `staff.manage`               | Tạo, khóa và phân quyền tài khoản          |           Khóa |       Khóa |           Có |
+| `settings.manage`            | Cấu hình cửa hàng/chứng từ                 |           Khóa |       Khóa |           Có |
+| `audit.read`                 | Xem nhật ký audit                          |           Khóa |       Khóa |           Có |
 
 ### 5.3 Quy tắc dữ liệu theo người dùng
 
@@ -194,6 +208,8 @@ Trên desktop, các mục tương tự được trình bày bằng sidebar. Rout
 /sales
 /sales/:saleId
 /sales/:saleId/return
+/legacy-sales
+/legacy-sales/:legacySaleId
 /purchases
 /purchases/:purchaseReceiptId
 /stock-counts
@@ -238,6 +254,7 @@ Route phải kiểm tra quyền trước khi render. Việc người dùng biế
 - Giá vốn thuần, lợi nhuận gộp và tỷ suất lợi nhuận gộp.
 - Giá trị tồn kho hiện tại.
 - Hóa đơn, phiếu nhập và kiểm kho chờ xử lý.
+- Doanh thu theo kênh bán và phương thức thanh toán.
 
 Bộ lọc thời gian: hôm nay, tuần này, tháng này và khoảng ngày tùy chọn. Múi giờ nghiệp vụ cố định `Asia/Ho_Chi_Minh`.
 
@@ -277,8 +294,10 @@ Không cho xóa cứng sản phẩm đã có giao dịch. Chỉ được ngừng
 - Hiển thị giá bán, tồn hiện tại và số lượng trong giỏ.
 - Cho tăng/giảm số lượng, xóa dòng và nhập số lượng hợp lệ theo đơn vị.
 - Khách hàng là tùy chọn; mặc định “Khách lẻ”.
-- Cho giảm giá toàn hóa đơn nếu có `sale.discount.apply`.
-- Giảm giá phải từ 0 đến tổng tiền hàng.
+- Kênh bán là bắt buộc; hóa đơn nháp mặc định chọn kênh `IN_STORE` nếu kênh này còn hoạt động.
+- Chỉ cho chọn kênh đang hoạt động, nhưng hóa đơn cũ vẫn hiển thị snapshot kênh đã ngừng dùng.
+- Cho nhập số tiền giảm từng dòng và giảm toàn hóa đơn nếu có `sale.discount.apply`.
+- Giảm dòng phải từ 0 đến tiền gộp của dòng; giảm toàn đơn phải từ 0 đến tổng còn lại sau giảm dòng.
 - Có nút **Lưu tạm** và **Thanh toán**.
 - Lưu tạm không giữ chỗ và không làm giảm tồn.
 - Thanh toán yêu cầu chọn tiền mặt hoặc chuyển khoản và thanh toán đủ.
@@ -289,21 +308,23 @@ Không cho xóa cứng sản phẩm đã có giao dịch. Chỉ được ngừng
 Danh sách hỗ trợ:
 
 - Tìm theo mã hóa đơn, khách hàng hoặc sản phẩm.
-- Lọc khoảng ngày, người tạo, trạng thái và phương thức thanh toán theo quyền.
+- Lọc khoảng ngày, người tạo, trạng thái, kênh bán và phương thức thanh toán theo quyền.
 - Nhóm theo ngày.
 - Hiển thị tổng tiền, trạng thái và phương thức thanh toán.
 
 Chi tiết hóa đơn hiển thị:
 
-- Mã, thời gian, trạng thái, nhân viên, khách hàng.
-- Danh sách dòng với snapshot tên/SKU, đơn giá, số lượng và thành tiền.
-- Tổng tiền hàng, giảm giá, khách cần trả và đã trả.
+- Mã, thời gian, trạng thái, nhân viên, khách hàng và snapshot kênh bán.
+- Danh sách dòng với snapshot tên/SKU, đơn giá, số lượng, giảm dòng, giảm toàn đơn được phân bổ và thành tiền thuần.
+- Tổng tiền hàng, tổng giảm dòng, giảm toàn đơn, khách cần trả và đã trả.
 - Lịch sử trả hàng hoặc hủy.
-- Nút in/chia sẻ bản nội bộ.
+- Nút in nhiệt 80 mm, tải PDF và chia sẻ bản nội bộ từ cùng một invoice DTO.
 - Nút trả hàng nếu còn số lượng có thể trả.
 - Nút hủy chỉ cho chủ cửa hàng và khi thỏa điều kiện.
 
 Giá vốn và lợi nhuận của hóa đơn chỉ xuất hiện với chủ cửa hàng.
+
+Bản in/PDF không hard-code nội dung từ workbook. Tên cửa hàng, địa chỉ, số liên hệ, Zalo và nội dung lưu ý lấy từ `store_settings`. Hóa đơn dài được tiếp tục theo chiều dài giấy 80 mm và phân trang hợp lý trong PDF; không giới hạn 15 dòng.
 
 ### 6.7 Nhiều hơn
 
@@ -316,6 +337,8 @@ Menu chỉ hiển thị mục người dùng có quyền:
 - Báo cáo.
 - Nhân viên và phân quyền.
 - Cấu hình cửa hàng.
+- Cấu hình kênh bán.
+- Dữ liệu cũ nếu có `legacy.sale.read`.
 - Nhật ký audit.
 
 ## 7. Luồng nghiệp vụ và trạng thái chứng từ
@@ -376,17 +399,18 @@ Luồng hoàn tất:
 
 1. Nhân viên tạo hoặc lưu hóa đơn `DRAFT`; chưa thay đổi kho.
 2. Server xác minh tài khoản hoạt động và có `sale.complete`.
-3. Server lấy giá bán hiện hành, kiểm tra giảm giá và so sánh snapshot xem trước.
-4. Nếu giá thay đổi, trả `PRICE_CHANGED`; chưa ghi bất kỳ biến động nào.
-5. Khóa `inventory_balances` và `inventory_cost_balances` theo `product_id` tăng dần.
-6. Kiểm tra lại tồn. Nếu thiếu, trả `INSUFFICIENT_STOCK`; toàn bộ giao dịch rollback.
-7. Phân bổ giảm giá cho từng dòng.
-8. Snapshot đơn giá bán, doanh thu thuần, đơn giá vốn và tổng giá vốn từng dòng.
-9. Trừ tồn và giá trị tồn; tạo stock/cost movement.
-10. Tạo một payment `CAPTURED` bằng đúng tổng thanh toán, với phương thức tiền mặt hoặc chuyển khoản.
-11. Cấp mã `HDxxxxxx`, chuyển hóa đơn thành `COMPLETED`, ghi audit và trả DTO kết quả.
+3. Server kiểm tra kênh bán tồn tại, đang hoạt động và lấy snapshot mã/tên kênh.
+4. Server lấy giá bán hiện hành, kiểm tra giảm dòng/giảm toàn đơn và so sánh snapshot xem trước.
+5. Nếu giá thay đổi, trả `PRICE_CHANGED`; chưa ghi bất kỳ biến động nào.
+6. Khóa `inventory_balances` và `inventory_cost_balances` theo `product_id` tăng dần.
+7. Kiểm tra lại tồn. Nếu thiếu, trả `INSUFFICIENT_STOCK`; toàn bộ giao dịch rollback.
+8. Tính giảm dòng trước, sau đó phân bổ giảm toàn đơn trên số tiền còn lại của từng dòng.
+9. Snapshot đơn giá bán, từng thành phần giảm giá, doanh thu thuần, đơn giá vốn và tổng giá vốn từng dòng.
+10. Trừ tồn và giá trị tồn; tạo stock/cost movement.
+11. Tạo một payment `CAPTURED` bằng đúng tổng thanh toán, với phương thức tiền mặt hoặc chuyển khoản.
+12. Cấp mã `HDxxxxxx`, chuyển hóa đơn thành `COMPLETED`, ghi audit và trả DTO kết quả.
 
-Không nhận giá bán tùy ý từ client khi hoàn tất. Client gửi sản phẩm, số lượng, giảm giá và phương thức; server là nguồn giá bán cuối cùng.
+Không nhận giá bán tùy ý từ client khi hoàn tất. Client gửi sản phẩm, số lượng, giảm dòng, giảm toàn đơn, kênh bán và phương thức; server là nguồn giá bán và phép tính cuối cùng.
 
 ### 7.5 Trả hàng theo hóa đơn gốc
 
@@ -461,6 +485,18 @@ DRAFT -> COUNTED -> POSTED
 
 Giảm tồn dùng giá vốn bình quân hiện tại. Tăng tồn dùng giá vốn bình quân hiện tại; nếu sản phẩm đang có số lượng và giá trị bằng 0, chủ cửa hàng bắt buộc nhập đơn giá ước tính cho phần tăng. Số dư đầu kỳ được ghi bằng một phiếu kiểm/điều chỉnh loại `OPENING`, do chủ cửa hàng nhập số lượng và đơn giá đầu kỳ.
 
+### 7.8 Kho dữ liệu bán hàng cũ
+
+Chỉ chủ cửa hàng có `legacy.sale.import` được nhập workbook cũ. Import này là luồng chuyển đổi riêng, không dùng command hoàn tất bán hàng:
+
+1. Hệ thống nhận diện đúng cấu trúc workbook đã hỗ trợ, trích xuất dữ liệu trong trình duyệt và không thực thi công thức, macro hoặc liên kết ngoài.
+2. Người dùng mapping sản phẩm, khách hàng, nhân viên và kênh bán; mọi dòng lỗi/cảnh báo phải hiển thị bằng tiếng Việt trước khi commit.
+3. Công thức và cột helper chỉ hỗ trợ nhận diện cấu trúc. Giá trị cache từ công thức được gắn nguồn `CACHED_UNVERIFIED`, không trở thành số liệu tài chính authoritative.
+4. Sản phẩm và khách hàng hợp lệ đi qua command import danh mục chuẩn. Giá vốn/tồn đầu kỳ chỉ trở thành dữ liệu gợi ý trong luồng mở sổ owner-only và không tự ghi sổ.
+5. Hóa đơn cũ được ghi vào `legacy_sales`/`legacy_sale_lines` trong một transaction idempotent riêng.
+
+Dữ liệu cũ có nhãn trực quan “Chỉ để tra cứu”, không xuất hiện trong POS, danh sách hóa đơn vận hành hoặc báo cáo chính thức. Không thể dùng dữ liệu cũ làm hóa đơn gốc để trả hàng, hủy, tạo payment hoặc tạo movement tồn/cost/revenue.
+
 ## 8. Giá vốn, doanh thu và lợi nhuận
 
 ### 8.1 Kiểu số và làm tròn
@@ -507,25 +543,41 @@ Nếu bán hết tồn, command ép `new_qty = 0`, `new_value = 0`, `new_avg_cos
 
 ### 8.3 Ví dụ chuẩn để kiểm thử
 
-| Sự kiện | Số lượng tồn | Giá trị tồn | Giá vốn bình quân | Doanh thu | Giá vốn bán | Lợi nhuận gộp |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Nhập 10 × 40.000 | 10 | 400.000 | 40.000 | 0 | 0 | 0 |
-| Nhập 5 × 50.000 | 15 | 650.000 | 43.333,333333 | 0 | 0 | 0 |
-| Bán 6 × 60.000 | 9 | 390.000 | 43.333,333333 | 360.000 | 260.000 | 100.000 |
-| Trả 1 từ hóa đơn trên | 10 | 433.333,33 | 43.333,333000 | -60.000 | -43.333,33 | -16.666,67 |
+| Sự kiện               | Số lượng tồn | Giá trị tồn | Giá vốn bình quân | Doanh thu | Giá vốn bán | Lợi nhuận gộp |
+| --------------------- | -----------: | ----------: | ----------------: | --------: | ----------: | ------------: |
+| Nhập 10 × 40.000      |           10 |     400.000 |            40.000 |         0 |           0 |             0 |
+| Nhập 5 × 50.000       |           15 |     650.000 |     43.333,333333 |         0 |           0 |             0 |
+| Bán 6 × 60.000        |            9 |     390.000 |     43.333,333333 |   360.000 |     260.000 |       100.000 |
+| Trả 1 từ hóa đơn trên |           10 |  433.333,33 |     43.333,333000 |   -60.000 |  -43.333,33 |    -16.666,67 |
 
 Giá trị có thể lệch rất nhỏ ở đơn giá bình quân do làm tròn tổng tiền hai chữ số; total value và snapshot dòng là số liệu đối soát authoritative.
 
 ### 8.4 Phân bổ giảm giá và hoàn tiền
 
-Với giảm giá toàn hóa đơn `D` và tổng tiền hàng `S`:
+Với mỗi dòng `i`:
 
 ```text
-allocated_discount_i = round(D × line_gross_i / S, 2)
-line_net_i            = line_gross_i - allocated_discount_i
+line_gross_i           = round(quantity_i × unit_sale_price_i, 2)
+line_discount_i        = số tiền giảm trực tiếp của dòng
+line_after_discount_i  = line_gross_i - line_discount_i
 ```
 
-Dòng cuối nhận phần dư để tổng `allocated_discount_i` bằng chính xác `D`.
+Invariant bắt buộc:
+
+```text
+0 <= line_discount_i <= line_gross_i
+order_discount_base = tổng line_after_discount_i
+0 <= order_discount <= order_discount_base
+```
+
+Phân bổ giảm toàn hóa đơn `order_discount` theo tỷ trọng số tiền sau giảm dòng:
+
+```text
+allocated_order_discount_i = round(order_discount × line_after_discount_i / order_discount_base, 2)
+line_net_i                  = line_after_discount_i - allocated_order_discount_i
+```
+
+Nếu `order_discount_base = 0` thì `order_discount` bắt buộc bằng 0. Dòng cuối có số tiền còn lại lớn hơn 0 nhận phần dư để tổng `allocated_order_discount_i` bằng chính xác `order_discount`. `discount_total` của hóa đơn bằng tổng `line_discount_i` cộng `order_discount`.
 
 Khi trả một phần dòng:
 
@@ -541,7 +593,7 @@ Các chỉ tiêu:
 
 ```text
 gross_sales       = tổng tiền hàng của các sự kiện bán hoàn tất
-discounts         = tổng giảm giá đã phân bổ
+discounts         = tổng giảm dòng + giảm toàn đơn đã phân bổ
 sales_returns     = tổng tiền hoàn của phiếu trả hoàn tất
 cancellations     = giá trị hóa đơn bị hủy
 net_revenue       = gross_sales - discounts - sales_returns - cancellations
@@ -559,6 +611,8 @@ Báo cáo theo khoảng ngày dùng thời điểm phát sinh sự kiện:
 Do đó một hóa đơn bán hôm trước nhưng trả hôm nay ghi doanh thu âm và giá vốn âm vào hôm nay. Không sửa ngược báo cáo ngày bán. Báo cáo phải đối soát từ movement/event ledger, không tính lại bằng giá vốn hiện tại.
 
 Doanh thu cá nhân được quy cho `sales.created_by`. Trả hàng hoặc hủy hóa đơn làm giảm doanh thu của người đã tạo hóa đơn gốc, không quy cho nhân viên thực hiện thao tác trả/hủy.
+
+Dashboard/báo cáo doanh thu cung cấp breakdown theo kênh bán snapshot và phương thức thanh toán, đồng thời hiển thị số đơn, số lượng sản phẩm, doanh thu gộp, giảm dòng, giảm toàn đơn, doanh thu thuần và giá trị đơn trung bình. Kênh đã ngừng hoạt động vẫn xuất hiện trong lịch sử. `legacy_sales` luôn bị loại khỏi các chỉ tiêu này.
 
 ## 9. Kiến trúc kỹ thuật
 
@@ -650,7 +704,7 @@ Không đặt phép tính giá vốn hoặc quyền authoritative trong frontend
 
 Các bảng nghiệp vụ dùng chung các cột audit phù hợp: `created_at`, `updated_at`, `created_by`, `updated_by`. Chứng từ có thêm thời điểm và actor tương ứng từng chuyển trạng thái.
 
-### 10.2 Schema `public` — dữ liệu có thể expose qua RLS
+### 10.2 Schema `api` — bề mặt Data API có thể expose qua RLS
 
 #### Tài khoản và quyền
 
@@ -667,31 +721,20 @@ Các bảng nghiệp vụ dùng chung các cột audit phù hợp: `created_at`,
 - `created_by uuid null references profiles(id)`.
 - Timestamps.
 
-`permission_definitions`
+Permission definitions, role defaults và user overrides nằm trong `app_private`; frontend chỉ đọc quyền hiệu lực qua RPC/session DTO.
 
-- `code text primary key`.
-- `category text not null`.
-- `label text not null`.
-- `owner_only boolean not null default false`.
-- `description text not null`.
+#### Cấu hình bán hàng
 
-`role_default_permissions`
+`sales_channels`
 
-- `role_template text`.
-- `permission_code text references permission_definitions(code)`.
-- `allowed boolean not null`.
-- Primary key `(role_template, permission_code)`.
-
-`user_permission_overrides`
-
-- `user_id uuid references profiles(id)`.
-- `permission_code text references permission_definitions(code)`.
-- `effect text check (effect in ('GRANT','REVOKE'))`.
-- `changed_by uuid references profiles(id)`.
-- Timestamps.
-- Primary key `(user_id, permission_code)`.
-
-Database từ chối `GRANT` nếu permission là `owner_only` và target không phải `OWNER`.
+- `id uuid primary key`.
+- `code text not null unique` match `^[A-Z][A-Z0-9_]{1,31}$`, là mã ổn định và không đổi sau khi tạo.
+- `name text not null` và `name_normalized text not null unique`.
+- `is_active boolean not null default true`.
+- `sort_order integer not null default 0`.
+- Audit columns.
+- Seed bốn mã: `IN_STORE` (Tại quầy), `REMOTE_PROVINCE` (Khách tỉnh), `ONLINE` (Online), `WHOLESALE` (Đại lý).
+- Chỉ `settings.manage` được tạo/đổi tên/bật/tắt; không xóa cứng kênh đã được sử dụng.
 
 #### Danh mục
 
@@ -739,12 +782,21 @@ Database từ chối `GRANT` nếu permission là `owner_only` và target không
 - `change_reason text null`.
 - Partial unique index bảo đảm tối đa một dòng `valid_to is null` cho mỗi sản phẩm.
 
-`suppliers` và `customers`
+`suppliers`
 
 - UUID primary key.
 - Mã tùy chọn, tên bắt buộc, điện thoại/email/địa chỉ/ghi chú tùy chọn.
 - `is_active boolean`.
 - Audit columns.
+
+`customers`
+
+- UUID primary key và mã khách hàng tùy chọn, unique khi có giá trị.
+- `customer_type text not null check (customer_type in ('INDIVIDUAL','BUSINESS'))`.
+- Tên bắt buộc; `phone_e164`, email, địa chỉ, công ty, mã số thuế, nhóm khách và ghi chú tùy chọn.
+- `phone_e164` lưu canonical E.164 và phải match `^\+[1-9][0-9]{7,14}$` khi có giá trị.
+- Không có cột CCCD, ngày sinh, giới tính, Facebook, điểm, công nợ hoặc tổng bán nhập tay.
+- `is_active boolean not null default true` và audit columns.
 - Khách mặc định “Khách lẻ” được biểu diễn bằng `customer_id null`, không cần một auth user.
 
 #### Tồn kho
@@ -799,7 +851,7 @@ Bảng này tuyệt đối không chứa giá trị hoặc giá vốn để nhâ
 - Snapshot `product_name`, `sku`, `unit_name`.
 - `received_qty numeric(18,3) check (received_qty > 0)`.
 - Unique `(purchase_receipt_id, product_id)` trong MVP.
-- Không có giá nhập trong schema public.
+- Không có giá nhập trong schema `api`.
 
 #### Bán hàng
 
@@ -808,7 +860,11 @@ Bảng này tuyệt đối không chứa giá trị hoặc giá vốn để nhâ
 - UUID và `sale_number text unique null` đến lúc hoàn tất.
 - `status text` gồm `DRAFT`, `COMPLETED`, `PARTIALLY_RETURNED`, `RETURNED`, `CANCELLED`.
 - `customer_id uuid null`.
+- `sales_channel_id uuid not null references sales_channels(id)`.
+- `sales_channel_code_snapshot text null` và `sales_channel_name_snapshot text null` đến lúc hoàn tất; sau đó bắt buộc có giá trị và immutable.
 - `subtotal numeric(20,2) not null default 0`.
+- `line_discount_total numeric(20,2) not null default 0`.
+- `order_discount_total numeric(20,2) not null default 0`.
 - `discount_total numeric(20,2) not null default 0`.
 - `net_total numeric(20,2) not null default 0`.
 - `note text null`.
@@ -822,7 +878,8 @@ Bảng này tuyệt đối không chứa giá trị hoặc giá vốn để nhâ
 - Snapshot `product_name`, `sku`, `unit_name`.
 - `quantity numeric(18,3) check (quantity > 0)`.
 - `unit_sale_price numeric(18,2) check (unit_sale_price >= 0)`.
-- `gross_amount`, `allocated_discount`, `net_amount` dạng `numeric(20,2)`.
+- `gross_amount`, `line_discount_amount`, `allocated_order_discount`, `net_amount` dạng `numeric(20,2)` và không âm.
+- `net_amount = gross_amount - line_discount_amount - allocated_order_discount`.
 - Unique `(sale_id, product_id)` trong MVP.
 
 `payments`
@@ -833,6 +890,27 @@ Bảng này tuyệt đối không chứa giá trị hoặc giá vốn để nhâ
 - `status text check (status in ('CAPTURED','REVERSED'))`.
 - `paid_at`, `reversed_at`, actor và reference đảo.
 - Mỗi hóa đơn hoàn tất có đúng một payment captured trong MVP.
+
+#### Kho dữ liệu cũ
+
+`legacy_sales`
+
+- UUID primary key và `source_import_run_id uuid not null references api.import_runs(id) on delete restrict`.
+- `source_sale_number text not null`, `source_row_start integer not null`, `sold_on date null` và các nhãn nhân viên/kênh/khách/phương thức/trạng thái từ nguồn.
+- Mapping tùy chọn gồm `profile_id uuid null references api.profiles(id)`, `customer_id uuid null references api.customers(id)` và `sales_channel_id uuid null references api.sales_channels(id)`; không có foreign key tới `sales`.
+- `reported_subtotal`, `reported_discount_total`, `reported_net_total numeric(20,2) null` chỉ là số liệu nguồn không authoritative.
+- `data_quality_status text check (data_quality_status in ('VALID','WARNING'))` và `warning_codes text[] not null default '{}'` đã sanitize.
+- Unique `(source_import_run_id, source_sale_number)`.
+- Immutable sau commit, không có status ghi sổ và không được tham gia RPC trả/hủy.
+
+`legacy_sale_lines`
+
+- UUID, `legacy_sale_id uuid not null references api.legacy_sales(id) on delete restrict`, `source_row_number` và `line_number` unique theo hóa đơn cũ.
+- Nhãn sản phẩm nguồn, `product_id uuid null references api.products(id)`, số lượng và các số liệu giá/giảm/thành tiền cache khi có.
+- Mỗi số liệu cache kèm trạng thái `CACHED_UNVERIFIED`; không có cost snapshot.
+- Không được tham chiếu từ `stock_movements`, `payments`, revenue/cost events hoặc `sale_return_lines`.
+
+RLS cho hai bảng yêu cầu `legacy.sale.read`. Import chỉ qua command owner-only có `legacy.sale.import`; direct insert/update/delete bị revoke.
 
 #### Trả hàng
 
@@ -869,7 +947,8 @@ Bảng này tuyệt đối không chứa giá trị hoặc giá vốn để nhâ
 `store_settings`
 
 - `id smallint primary key check (id = 1)`.
-- Tên cửa hàng, logo path, địa chỉ, điện thoại.
+- Tên cửa hàng, logo path, địa chỉ, điện thoại, số Zalo và nội dung lưu ý cuối hóa đơn.
+- `invoice_paper_width_mm smallint not null default 80 check (invoice_paper_width_mm = 80)`.
 - `currency text not null default 'VND' check (currency = 'VND')`.
 - `timezone text not null default 'Asia/Ho_Chi_Minh'`.
 - Cấu hình prefix chứng từ và audit columns.
@@ -890,6 +969,32 @@ Bảng này tuyệt đối không chứa giá trị hoặc giá vốn để nhâ
 - Chỉ chủ cửa hàng đọc; dữ liệu cost trong audit phải được bảo vệ tương đương cost tables.
 
 ### 10.3 Schema `app_private` — không expose qua Data API
+
+`permission_definitions`
+
+- `code text primary key`.
+- `category text not null`.
+- `label text not null`.
+- `owner_only boolean not null default false`.
+- `description text not null`.
+
+`role_default_permissions`
+
+- `role_template text`.
+- `permission_code text references app_private.permission_definitions(code)`.
+- `allowed boolean not null`.
+- Primary key `(role_template, permission_code)`.
+
+`user_permission_overrides`
+
+- `user_id uuid references api.profiles(id)`.
+- `permission_code text references app_private.permission_definitions(code)`.
+- `effect text check (effect in ('GRANT','REVOKE'))`.
+- `changed_by uuid references api.profiles(id)`.
+- Timestamps.
+- Primary key `(user_id, permission_code)`.
+
+Database từ chối `GRANT` nếu permission là `owner_only` và target không phải `OWNER`.
 
 `purchase_receipt_line_costs`
 
@@ -944,21 +1049,23 @@ Các report/read function của chủ cửa hàng đọc schema này sau khi ki�
 
 ### 10.4 Read models
 
-Read model public được phép gồm:
+Read model trong `api` được phép gồm:
 
 - `product_catalog_read`: sản phẩm + giá bán hiện hành + tồn số lượng, tuyệt đối không có cost.
 - `my_sales_read`: hóa đơn thuộc actor, trừ khi actor có `sale.all.read`.
 - `operational_purchase_read`: phiếu nhập và số lượng, không có giá.
+- `active_sales_channels_read`: kênh đang hoạt động cho POS; màn cấu hình owner đọc cả kênh đã tắt.
+- `legacy_sales_read`: dữ liệu cũ theo `legacy.sale.read`, luôn có nhãn chất lượng và không trộn với `my_sales_read`.
 
-Mọi view exposed dùng `security_invoker = true`. Báo cáo cost/profit không tạo view public; dùng RPC được bảo vệ và chỉ trả DTO cho chủ cửa hàng.
+Mọi view exposed dùng `security_invoker = true`. Báo cáo cost/profit không tạo view trong `api`; dùng RPC được bảo vệ và chỉ trả DTO cho chủ cửa hàng.
 
 ## 11. Database commands và interface
 
 ### 11.1 Nguyên tắc chung
 
 - Frontend không tự chạy chuỗi insert/update nhiều bảng cho nghiệp vụ ghi sổ.
-- Command public là wrapper có chữ ký rõ ràng; logic đặc quyền nằm trong `app_private`, đặt `security definer set search_path = ''`, dùng tên schema đầy đủ và kiểm tra actor bên trong.
-- Revoke execute mặc định khỏi `public`/`anon`; chỉ grant từng function cho `authenticated` khi cần.
+- Command exposed là wrapper `security invoker` trong `api` có chữ ký rõ ràng; logic đặc quyền nằm trong `app_private`, đặt `security definer set search_path = ''`, dùng tên schema đầy đủ và kiểm tra actor bên trong.
+- Revoke execute mặc định khỏi role `PUBLIC`/`anon`; chỉ grant từng function cho `authenticated` khi cần.
 - Không nhận `actor_user_id` từ client; actor luôn là `(select auth.uid())`.
 - Mỗi command kiểm tra `profiles.is_active`, quyền hiệu lực, trạng thái chứng từ và idempotency.
 - Khóa balance theo `product_id` tăng dần để tránh deadlock.
@@ -966,27 +1073,34 @@ Mọi view exposed dùng `security_invoker = true`. Báo cáo cost/profit không
 
 ### 11.2 Command bắt buộc
 
-| Interface | Trách nhiệm |
-| --- | --- |
-| `get_my_session_context()` | Profile hoạt động, vai trò và danh sách quyền hiệu lực |
-| `set_product_sale_price(...)` | Chủ cửa hàng đóng giá cũ và tạo giá hiện hành mới |
-| `save_sale_draft(...)` | Tạo/cập nhật hóa đơn nháp của actor |
-| `complete_sale(p_sale_id, p_payment_method, p_idempotency_key)` | Hoàn tất bán, trừ kho, snapshot giá vốn, tạo payment |
-| `lookup_sale_for_return(p_full_sale_number)` | Exact lookup một hóa đơn để trả hàng, không cấp quyền duyệt danh sách |
-| `create_sale_return_request(...)` | Tạo yêu cầu trả từ hóa đơn gốc |
-| `complete_sale_return(p_return_id, p_lines, p_refund_method, p_idempotency_key)` | Hoàn tiền và nhập lại kho |
-| `cancel_sale(p_sale_id, p_reason, p_idempotency_key)` | Chủ cửa hàng đảo hóa đơn chưa trả |
-| `save_purchase_receipt_draft(...)` | Lưu phiếu nhập/số lượng không cost |
-| `submit_purchase_receipt(p_receipt_id)` | Chuyển sang chờ chủ nhập giá |
-| `post_purchase_receipt(p_receipt_id, p_cost_lines, p_idempotency_key)` | Ghi sổ nhập và tính lại bình quân |
-| `reverse_purchase_receipt(p_receipt_id, p_reason, p_idempotency_key)` | Đảo phiếu khi thỏa điều kiện chặt |
-| `save_stock_count(...)` | Lưu số đếm và version snapshot |
-| `submit_stock_count(p_count_id)` | Chuyển phiếu sang chờ chốt |
-| `post_stock_count(p_count_id, p_opening_costs, p_idempotency_key)` | Chủ cửa hàng ghi chênh lệch |
-| `get_my_sales_summary(p_from, p_to)` | Doanh thu/hóa đơn của actor |
-| `get_owner_dashboard(p_from, p_to)` | Chỉ số doanh thu, cost, profit, inventory value |
-| `get_profit_report(p_from, p_to, p_cursor, p_limit)` | Báo cáo chi tiết owner-only |
-| `get_inventory_valuation(p_cursor, p_limit)` | Tồn và giá trị owner-only |
+| Interface                                                                                        | Trách nhiệm                                                             |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `get_my_session_context()`                                                                       | Profile hoạt động, vai trò và danh sách quyền hiệu lực                  |
+| `list_sales_channels(p_include_inactive)`                                                        | Danh mục kênh bán theo quyền; POS chỉ nhận kênh hoạt động               |
+| `save_sales_channel(p_channel_id, p_code, p_name, p_sort_order, p_is_active, p_idempotency_key)` | Owner tạo/đổi tên/sắp xếp/bật/tắt kênh; mã chỉ nhận lúc tạo và bất biến |
+| `set_product_sale_price(...)`                                                                    | Chủ cửa hàng đóng giá cũ và tạo giá hiện hành mới                       |
+| `save_sale_draft(...)`                                                                           | Tạo/cập nhật hóa đơn nháp gồm kênh, giảm dòng và giảm toàn đơn          |
+| `complete_sale(p_sale_id, p_payment_method, p_idempotency_key)`                                  | Hoàn tất bán, trừ kho, snapshot giá vốn, tạo payment                    |
+| `get_sale_invoice(p_sale_id)`                                                                    | DTO versioned dùng chung cho in 80 mm, PDF, tải và chia sẻ              |
+| `lookup_sale_for_return(p_full_sale_number)`                                                     | Exact lookup một hóa đơn để trả hàng, không cấp quyền duyệt danh sách   |
+| `create_sale_return_request(...)`                                                                | Tạo yêu cầu trả từ hóa đơn gốc                                          |
+| `complete_sale_return(p_return_id, p_lines, p_refund_method, p_idempotency_key)`                 | Hoàn tiền và nhập lại kho                                               |
+| `cancel_sale(p_sale_id, p_reason, p_idempotency_key)`                                            | Chủ cửa hàng đảo hóa đơn chưa trả                                       |
+| `save_purchase_receipt_draft(...)`                                                               | Lưu phiếu nhập/số lượng không cost                                      |
+| `submit_purchase_receipt(p_receipt_id)`                                                          | Chuyển sang chờ chủ nhập giá                                            |
+| `post_purchase_receipt(p_receipt_id, p_cost_lines, p_idempotency_key)`                           | Ghi sổ nhập và tính lại bình quân                                       |
+| `reverse_purchase_receipt(p_receipt_id, p_reason, p_idempotency_key)`                            | Đảo phiếu khi thỏa điều kiện chặt                                       |
+| `save_stock_count(...)`                                                                          | Lưu số đếm và version snapshot                                          |
+| `submit_stock_count(p_count_id)`                                                                 | Chuyển phiếu sang chờ chốt                                              |
+| `post_stock_count(p_count_id, p_opening_costs, p_idempotency_key)`                               | Chủ cửa hàng ghi chênh lệch                                             |
+| `get_my_sales_summary(p_from, p_to)`                                                             | Doanh thu/hóa đơn của actor                                             |
+| `get_owner_dashboard(p_from, p_to)`                                                              | Chỉ số doanh thu, cost, profit, inventory value                         |
+| `get_profit_report(p_from, p_to, p_cursor, p_limit)`                                             | Báo cáo chi tiết owner-only                                             |
+| `get_inventory_valuation(p_cursor, p_limit)`                                                     | Tồn và giá trị owner-only                                               |
+| `validate_legacy_sales_import(p_import_run_id)`                                                  | Owner kiểm tra cấu trúc, mapping và chất lượng workbook cũ              |
+| `commit_legacy_sales_import(p_import_run_id, p_idempotency_key)`                                 | Commit kho dữ liệu cũ, không tạo bất kỳ bút toán vận hành nào           |
+| `get_legacy_sales(p_filters, p_cursor, p_limit)`                                                 | Tra cứu kho dữ liệu cũ theo quyền riêng                                 |
+| `get_legacy_sale(p_legacy_sale_id)`                                                              | Chi tiết hóa đơn cũ cùng warning và nguồn dữ liệu                       |
 
 Các command trả envelope thống nhất:
 
@@ -1016,6 +1130,8 @@ hoặc:
 
 Idempotency trùng của một command đã thành công phải trả lại cùng ID/số chứng từ, không tạo chứng từ mới.
 
+`get_sale_invoice` trả DTO có `version`, thông tin cửa hàng đã sanitize, mã/ngày/trạng thái, nhân viên, khách hàng, snapshot kênh, phương thức thanh toán, các dòng và đầy đủ tổng tiền/giảm giá. DTO in/chia sẻ không chứa cost/profit với bất kỳ caller nào; owner xem các số liệu đó ở read model riêng. Renderer 80 mm và PDF chỉ trình bày DTO này; không tự query thêm hoặc tính lại số tiền.
+
 ### 11.3 Edge Functions quản trị tài khoản
 
 - `create-employee`.
@@ -1044,9 +1160,9 @@ Mỗi function xác minh user JWT, kiểm tra active owner trong database, valid
 
 RLS không bảo vệ theo cột một cách đủ an toàn cho thiết kế này. Vì vậy:
 
-- Giá nhập không nằm trong `public.purchase_receipt_lines`.
-- Giá vốn tồn không nằm trong `public.inventory_balances`.
-- Cost snapshot không nằm trong `public.sale_lines`.
+- Giá nhập không nằm trong `api.purchase_receipt_lines`.
+- Giá vốn tồn không nằm trong `api.inventory_balances`.
+- Cost snapshot không nằm trong `api.sale_lines`.
 - Cost/profit nằm trong `app_private` không expose.
 - RPC nhân viên không bao giờ trả khóa JSON liên quan cost, kể cả giá trị null.
 - Kiểm thử trực tiếp bằng publishable key + JWT của từng vai trò phải chứng minh không thể truy cập cost tables/functions.
@@ -1090,13 +1206,17 @@ Tất cả command dùng cùng thứ tự để ngăn deadlock. Transaction ph�
 - `on_hand_qty >= 0` sau mọi movement.
 - `inventory_value >= 0`, ngoại trừ sai số tối đa 0,01 được normalize về 0 khi hết hàng.
 - Một sản phẩm có tối đa một giá bán hiện hành.
+- Hóa đơn hoàn tất luôn có snapshot mã/tên kênh; kênh đã tắt không được dùng cho lần hoàn tất mới.
 - Một dòng sản phẩm tối đa một lần trong cùng chứng từ MVP.
+- Mỗi giảm dòng nằm trong `[0, gross_amount]`; giảm toàn đơn nằm trong `[0, tổng sau giảm dòng]`.
+- `sale.discount_total = sale.line_discount_total + sale.order_discount_total` và tổng `sale_lines.net_amount = sale.net_total`.
 - Tổng payment captured bằng `sale.net_total`.
 - Tổng accepted return lũy kế không vượt lượng bán.
 - Tổng refund bằng tổng refund lines.
 - Khi trả hết, doanh thu/cost hoàn lũy kế bằng đúng snapshot gốc.
 - Chứng từ `POSTED/COMPLETED/RETURNED/CANCELLED/REVERSED` là immutable ngoài trường audit do command hợp lệ cập nhật.
 - Mỗi command idempotent chỉ tạo tối đa một kết quả.
+- `legacy_sales` không được tạo hoặc tham chiếu payment, movement tồn/cost/revenue hay phiếu trả/hủy.
 
 ## 14. Realtime, cache và offline
 
@@ -1112,21 +1232,27 @@ Tất cả command dùng cùng thứ tự để ngăn deadlock. Transaction ph�
 
 Mã lỗi nghiệp vụ tối thiểu:
 
-| Mã | Ý nghĩa và phản ứng UI |
-| --- | --- |
-| `AUTH_REQUIRED` | Chuyển về đăng nhập |
-| `ACCOUNT_INACTIVE` | Đăng xuất và báo tài khoản đã khóa |
-| `PERMISSION_DENIED` | Báo không có quyền, không hiển thị dữ liệu nhạy cảm |
-| `INVALID_STATE` | Refresh chứng từ vì trạng thái đã thay đổi |
-| `PRICE_CHANGED` | Cập nhật giá giỏ và yêu cầu xác nhận lại |
-| `INSUFFICIENT_STOCK` | Nêu sản phẩm và tồn mới, giữ giỏ để sửa |
-| `RETURN_QTY_EXCEEDED` | Refresh số lượng còn được trả |
-| `RETURN_NOTHING_ACCEPTED` | Không cho hoàn tất phiếu khi mọi số lượng chấp nhận đều bằng 0 |
-| `ORIGINAL_INVOICE_REQUIRED` | Buộc quay lại chọn hóa đơn gốc |
-| `STALE_STOCK_COUNT` | Yêu cầu cập nhật/đếm lại vì tồn đã đổi |
-| `DUPLICATE_REQUEST` | Đọc lại kết quả idempotent đã có |
-| `NETWORK_OUTCOME_UNKNOWN` | Tra theo idempotency key trước khi cho thử lại |
-| `VALIDATION_ERROR` | Hiển thị lỗi theo trường bằng tiếng Việt |
+| Mã                            | Ý nghĩa và phản ứng UI                                         |
+| ----------------------------- | -------------------------------------------------------------- |
+| `AUTH_REQUIRED`               | Chuyển về đăng nhập                                            |
+| `ACCOUNT_INACTIVE`            | Đăng xuất và báo tài khoản đã khóa                             |
+| `PERMISSION_DENIED`           | Báo không có quyền, không hiển thị dữ liệu nhạy cảm            |
+| `INVALID_STATE`               | Refresh chứng từ vì trạng thái đã thay đổi                     |
+| `PRICE_CHANGED`               | Cập nhật giá giỏ và yêu cầu xác nhận lại                       |
+| `SALES_CHANNEL_INACTIVE`      | Yêu cầu chọn kênh bán đang hoạt động trước khi thanh toán      |
+| `LINE_DISCOUNT_EXCEEDED`      | Nêu dòng có giảm giá vượt tiền hàng và giữ giỏ để sửa          |
+| `ORDER_DISCOUNT_EXCEEDED`     | Giảm toàn đơn vượt số tiền còn lại sau giảm dòng               |
+| `INSUFFICIENT_STOCK`          | Nêu sản phẩm và tồn mới, giữ giỏ để sửa                        |
+| `RETURN_QTY_EXCEEDED`         | Refresh số lượng còn được trả                                  |
+| `RETURN_NOTHING_ACCEPTED`     | Không cho hoàn tất phiếu khi mọi số lượng chấp nhận đều bằng 0 |
+| `ORIGINAL_INVOICE_REQUIRED`   | Buộc quay lại chọn hóa đơn gốc                                 |
+| `STALE_STOCK_COUNT`           | Yêu cầu cập nhật/đếm lại vì tồn đã đổi                         |
+| `DUPLICATE_REQUEST`           | Đọc lại kết quả idempotent đã có                               |
+| `NETWORK_OUTCOME_UNKNOWN`     | Tra theo idempotency key trước khi cho thử lại                 |
+| `VALIDATION_ERROR`            | Hiển thị lỗi theo trường bằng tiếng Việt                       |
+| `LEGACY_WORKBOOK_UNSUPPORTED` | File không đúng cấu trúc workbook cũ đã hỗ trợ                 |
+| `LEGACY_MAPPING_REQUIRED`     | Yêu cầu hoàn tất mapping trước khi commit dữ liệu cũ           |
+| `LEGACY_FORMULA_NOT_ALLOWED`  | Công thức xuất hiện ngoài cột/sheet allowlist của adapter      |
 
 Mọi lỗi command phải rollback toàn bộ. Log kỹ thuật dùng correlation ID; thông báo cho nhân viên không chứa SQL, stack trace, cost hoặc thông tin quyền nội bộ.
 
@@ -1142,6 +1268,10 @@ Mọi lỗi command phải rollback toàn bộ. Log kỹ thuật dùng correlati
   - Mọi foreign key.
   - `sales(created_by, completed_at desc, id desc)`.
   - `sales(status, completed_at desc, id desc)`.
+  - `sales(sales_channel_id, completed_at desc, id desc)`.
+  - `legacy_sales(source_import_run_id)`, `(source_sale_number)` và `(sold_on desc, id desc)`.
+  - `legacy_sales(profile_id)`, `(customer_id)` và `(sales_channel_id)` để hỗ trợ mapping/filter và foreign key.
+  - Unique `legacy_sale_lines(legacy_sale_id, line_number)` cùng index `(product_id)`.
   - `sale_returns(original_sale_id, status)`.
   - `stock_movements(product_id, occurred_at desc, id desc)`.
   - Các cột actor/quyền dùng trong RLS.
@@ -1157,11 +1287,14 @@ Mọi lỗi command phải rollback toàn bộ. Log kỹ thuật dùng correlati
 - Loading dùng skeleton; danh sách dài giữ vị trí cuộn.
 - Nút hành động ghi sổ có bước xác nhận, disable khi đang gửi và vẫn có idempotency server-side.
 - Giỏ bán hàng giữ thanh tổng và nút Thanh toán cố định ở đáy.
+- Giỏ hiển thị rõ giảm từng dòng, giảm toàn đơn và số tiền còn phải trả; không gộp hai loại giảm thành một ô nhập mơ hồ.
 - Màn trả hàng hiển thị `đang trả / đã mua` cho từng dòng.
 - Màn nhân viên giải thích quyền mặc định và override để chủ cửa hàng hiểu thay đổi.
 - Ảnh sản phẩm có placeholder riêng của ứng dụng.
 - Không sao chép logo, icon độc quyền, tên hoặc thông báo nâng cấp từ ứng dụng tham khảo.
-- Bản in/chia sẻ là chứng từ nội bộ, có tên cửa hàng, mã, ngày, dòng hàng, tổng tiền, phương thức và ghi chú; không tuyên bố là hóa đơn điện tử/thuế.
+- Bản in/chia sẻ là chứng từ nội bộ, có tên cửa hàng, mã, ngày, dòng hàng, giảm giá, tổng tiền, phương thức và ghi chú; không tuyên bố là hóa đơn điện tử/thuế.
+- Bản in nhiệt dùng layout 80 mm với CSS print riêng; PDF dùng cùng invoice DTO, hỗ trợ tên dài, khách lẻ, nhiều hơn 15 dòng và phân trang không cắt dòng/tổng tiền.
+- Màn dữ liệu cũ luôn có banner “Chỉ để tra cứu”, trạng thái chất lượng và warning; không hiển thị nút trả/hủy hoặc hành động ghi sổ.
 
 ## 18. Kiểm thử bắt buộc
 
@@ -1169,12 +1302,16 @@ Mọi lỗi command phải rollback toàn bộ. Log kỹ thuật dùng correlati
 
 - Giá bình quân sau nhiều lần nhập giá khác nhau.
 - Bán một phần, bán hết và normalize số dư về 0.
-- Phân bổ giảm giá có phần dư làm tròn.
+- Giảm từng dòng, phân bổ giảm toàn đơn sau giảm dòng và phần dư làm tròn.
+- Trường hợp mọi dòng còn lại bằng 0 thì giảm toàn đơn bắt buộc bằng 0.
 - Trả một phần nhiều lần và trả hết.
 - Hủy hóa đơn đảo đúng doanh thu/cost/tồn.
 - Đảo phiếu nhập đúng điều kiện.
 - Quyền hiệu lực từ role + grant - revoke và chặn owner-only grant.
 - Format số lượng/tiền và mapping mã lỗi.
+- Chuẩn hóa số điện thoại về E.164 và từ chối số không hợp lệ.
+- Invoice DTO và renderer 80 mm/PDF với hóa đơn dài, tên dài và khách lẻ.
+- Legacy adapter: fingerprint workbook, carry-forward mã đơn, allowlist công thức, mapping và warning chất lượng.
 
 ### 18.2 Database integration trên Supabase Cloud staging
 
@@ -1185,10 +1322,14 @@ Không dùng Supabase local hoặc Docker. Test migrations/RPC/RLS trên Supabas
 - Tài khoản vừa bị khóa thử gọi query và command bằng token cũ; phải bị từ chối.
 - Hai session bán đồng thời số lượng cuối; chỉ một thành công.
 - Hai lần submit cùng idempotency key; chỉ một hóa đơn.
+- Kênh bị tắt giữa lúc lưu nháp và thanh toán; command từ chối nhưng lịch sử kênh cũ không đổi.
+- Tổng giảm dòng/giảm toàn đơn và `net_total` đối soát chính xác trong database.
 - Hai phiếu trả đồng thời cùng dòng; tổng hoàn không vượt lượng bán.
 - Kiểm tra sequence không trùng khi concurrent.
 - Kiểm tra rollback không để document/movement/payment dở dang.
 - Kiểm tra Storage theo quyền và MIME/size.
+- Commit legacy import không tạo payment, stock/cost movement, revenue event hoặc quyền trả/hủy.
+- JWT không có `legacy.sale.read` không thể đọc kho dữ liệu cũ.
 
 ### 18.3 End-to-end
 
@@ -1196,6 +1337,7 @@ Không dùng Supabase local hoặc Docker. Test migrations/RPC/RLS trên Supabas
 - Bán hàng & Kho tạo sản phẩm, tải ảnh, lập phiếu nhập; không thấy cost.
 - Owner nhập cost và post receipt.
 - Kinh doanh tìm/quét sản phẩm, bán hàng, xem doanh thu của mình.
+- POS chọn kênh, áp dụng giảm dòng và giảm toàn đơn, sau đó đối soát bản in 80 mm/PDF.
 - Nhân viên khác không xem hóa đơn của người trước nếu chưa được cấp quyền.
 - Trả một phần theo hóa đơn gốc, kiểm tra tồn tăng.
 - Kinh doanh tạo yêu cầu trả nhưng không hoàn tất mặc định.
@@ -1205,6 +1347,7 @@ Không dùng Supabase local hoặc Docker. Test migrations/RPC/RLS trên Supabas
 - Bán hàng & Kho kiểm kho; owner post.
 - Offline banner và khóa mọi nút ghi sổ.
 - Giao diện mobile và desktop, gồm PWA installability.
+- Owner import workbook cũ, xử lý mapping/warning và tra cứu dữ liệu trong màn riêng; nhân viên không có quyền bị chặn.
 
 ### 18.4 Quality gates
 
@@ -1230,15 +1373,18 @@ MVP chỉ được nghiệm thu khi:
 7. Không thể bán vượt tồn, kể cả hai thiết bị thao tác đồng thời.
 8. Giá bán và cost snapshot của hóa đơn cũ không đổi khi giá hiện hành đổi.
 9. Mỗi hóa đơn hoàn tất có payment đủ bằng tiền mặt hoặc chuyển khoản.
-10. Trả hàng luôn yêu cầu hóa đơn gốc, hỗ trợ partial/full và không vượt lượng mua.
-11. Hàng trả được chấp nhận tăng lại kho và hoàn đúng revenue/cost snapshot.
-12. Hủy hóa đơn chỉ owner, có lý do, không cho hủy hóa đơn đã trả và tạo đảo sổ đầy đủ.
-13. Báo cáo owner đối soát được `net revenue - net COGS = gross profit`.
-14. Báo cáo nhân viên chỉ chứa doanh thu của bản thân theo quyền.
-15. Chứng từ hoàn tất immutable và có audit.
-16. Duplicate submit không tạo chứng từ trùng.
-17. Ứng dụng deploy Vercel, chạy responsive và cài được như PWA.
-18. Giao dịch ghi sổ bị khóa khi offline.
+10. Mỗi hóa đơn hoàn tất snapshot kênh bán và đối soát đúng cả giảm dòng lẫn giảm toàn đơn.
+11. Trả hàng luôn yêu cầu hóa đơn gốc, hỗ trợ partial/full và không vượt lượng mua.
+12. Hàng trả được chấp nhận tăng lại kho và hoàn đúng revenue/cost snapshot.
+13. Hủy hóa đơn chỉ owner, có lý do, không cho hủy hóa đơn đã trả và tạo đảo sổ đầy đủ.
+14. Báo cáo owner đối soát được `net revenue - net COGS = gross profit` và breakdown đúng theo kênh/phương thức.
+15. Báo cáo nhân viên chỉ chứa doanh thu của bản thân theo quyền.
+16. Chứng từ hoàn tất immutable và có audit.
+17. Duplicate submit không tạo chứng từ trùng.
+18. Bản in 80 mm và PDF lấy cùng invoice DTO, hiển thị đúng tổng tiền và không giới hạn 15 dòng.
+19. Dữ liệu cũ chỉ để tra cứu, bị tách khỏi tồn/payment/doanh thu/lợi nhuận/trả/hủy và được bảo vệ bằng quyền riêng.
+20. Ứng dụng deploy Vercel, chạy responsive và cài được như PWA.
+21. Giao dịch ghi sổ bị khóa khi offline.
 
 ## 20. Thứ tự triển khai khuyến nghị
 
@@ -1260,8 +1406,9 @@ MVP chỉ được nghiệm thu khi:
 ### Phase 2 — Catalog và tồn nền
 
 - Categories, products, ảnh private, giá bán lịch sử.
+- Customers tối thiểu, chuẩn hóa E.164 và danh mục kênh bán cấu hình.
 - Inventory quantity/cost balances và movement ledgers.
-- Import sản phẩm/số dư đầu kỳ bằng command owner-only.
+- Import sản phẩm/khách hàng; giá vốn và tồn đầu kỳ từ file chỉ được stage làm gợi ý owner-only.
 - Danh sách, tìm kiếm, chi tiết và Realtime invalidation.
 
 ### Phase 3 — Nhập hàng và giá vốn
@@ -1272,22 +1419,23 @@ MVP chỉ được nghiệm thu khi:
 
 ### Phase 4 — POS và hóa đơn
 
-- Cart, save draft, discount allocation, complete sale.
-- Payments, invoice list/detail, print/share nội bộ.
+- Cart, save draft, giảm dòng + giảm toàn đơn, kênh bán và complete sale.
+- Payments, invoice list/detail, renderer 80 mm và PDF/chia sẻ nội bộ.
 - Concurrency/idempotency tests.
 
 ### Phase 5 — Trả, hủy và kiểm kho
 
 - Return request/completion theo hóa đơn gốc.
 - Cancel sale reversal.
-- Stock count/opening/adjustment.
+- Stock count/opening/adjustment và command owner-only để duyệt/ghi sổ số dư đầu kỳ đã stage.
 - Toàn bộ reconciliation tests.
 
 ### Phase 6 — Báo cáo và bàn giao
 
-- Dashboard theo role, owner profit report, inventory valuation.
+- Dashboard theo role/kênh/phương thức, owner profit report, inventory valuation.
+- Import danh mục thật, mở sổ tồn/cost bằng quy trình owner-only và nhập kho dữ liệu cũ chỉ đọc.
 - E2E, security audit, performance check và UAT.
-- Import dữ liệu thật, deploy production, backup/runbook và hướng dẫn vận hành.
+- Deploy production, backup/runbook và hướng dẫn vận hành.
 
 Mỗi phase phải tạo phần mềm chạy được và kiểm thử độc lập. Không để toàn bộ RLS, concurrency hoặc kiểm thử đến cuối dự án.
 
@@ -1299,7 +1447,8 @@ Mỗi phase phải tạo phần mềm chạy được và kiểm thử độc l�
 - Vercel Preview dùng staging URL/key; Vercel Production dùng production URL/key.
 - Chỉ public URL/publishable key ở frontend. Edge Function secrets cấu hình trong Supabase.
 - Có seed tạo `store_settings`, permission definitions, role defaults và owner profile đầu tiên theo quy trình bảo mật riêng.
-- Dữ liệu sản phẩm ban đầu có thể import CSV; ảnh import riêng và liên kết bằng SKU.
+- Dữ liệu sản phẩm/khách hàng ban đầu dùng template `.xlsx` versioned; ảnh import riêng và liên kết bằng SKU.
+- Workbook bán hàng cũ không được commit vào repository. Chỉ owner chạy adapter chuyển đổi; dữ liệu nhạy cảm ngoài phạm vi bị bỏ và lịch sử cũ không được gộp vào báo cáo chính thức.
 - Trước go-live phải có snapshot/backup dữ liệu và quy trình phục hồi. Backup database của Supabase không bao gồm object Storage, vì vậy ảnh sản phẩm cần chiến lược sao lưu/xuất riêng nếu được coi là dữ liệu bắt buộc.
 - Có runbook cho: khóa nhân viên, reset mật khẩu, kiểm tra giao dịch outcome unknown, đối soát tồn, đảo chứng từ hợp lệ và phục hồi sự cố.
 
@@ -1314,7 +1463,7 @@ Mỗi phase phải tạo phần mềm chạy được và kiểm thử độc l�
 - README mới mô tả setup Cloud, environment variables, migration/deploy/test và account bootstrap.
 - `.env.example` chỉ chứa tên biến, không chứa giá trị bí mật.
 - Vercel Preview và Production build thành công.
-- Owner hoàn thành UAT theo 18 tiêu chí nghiệm thu.
+- Owner hoàn thành UAT theo 21 tiêu chí nghiệm thu.
 - Có tài liệu vận hành và danh sách giới hạn MVP.
 
 ## 23. Nguồn kỹ thuật chính thức cần đối chiếu khi triển khai
