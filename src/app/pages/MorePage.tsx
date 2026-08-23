@@ -49,6 +49,12 @@ const destinations = [
     permissions: ['return.request.create', 'return.complete'],
   },
   {
+    to: '/reports',
+    title: 'Báo cáo',
+    description: 'Doanh thu, kênh bán, thanh toán và lợi nhuận theo quyền.',
+    permissions: ['report.own_revenue.read', 'report.all_revenue.read'],
+  },
+  {
     to: '/more/inventory/valuation',
     title: 'Định giá tồn kho',
     description: 'Tồn, giá vốn bình quân và tổng giá trị hiện tại.',

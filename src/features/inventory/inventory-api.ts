@@ -198,6 +198,7 @@ const suggestionPageSchema = z.object({
   nextCursorId: z.uuid().nullable(),
 });
 const valuationPageSchema = z.object({
+  version: z.literal(2),
   items: z.array(
     z.object({
       productId: z.uuid(),
@@ -448,13 +449,14 @@ export function createInventoryApi() {
         }),
       );
     },
-    async valuation() {
+    async valuation(search = '', cursor?: { name: string; id: string } | null) {
       return parse(
         valuationPageSchema,
         await rpc('get_inventory_valuation', {
-          p_cursor_name: null,
-          p_cursor_id: null,
-          p_limit: 100,
+          p_search: search || null,
+          p_cursor_name: cursor?.name ?? null,
+          p_cursor_id: cursor?.id ?? null,
+          p_limit: 50,
         }),
       );
     },

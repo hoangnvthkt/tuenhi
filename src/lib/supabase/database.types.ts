@@ -1863,6 +1863,10 @@ export type Database = {
         Args: { p_user_ids: string[] };
         Returns: Json;
       };
+      cleanup_phase1f_test_users: {
+        Args: { p_user_ids: string[] };
+        Returns: Json;
+      };
       commit_import: {
         Args: { p_idempotency_key: string; p_import_run_id: string };
         Returns: Json;
@@ -1948,6 +1952,7 @@ export type Database = {
           p_cursor_id?: string;
           p_cursor_name?: string;
           p_limit?: number;
+          p_search?: string;
         };
         Returns: Json;
       };
@@ -1970,9 +1975,21 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_my_sales_summary: {
+        Args: { p_from: string; p_to: string };
+        Returns: Json;
+      };
       get_my_session_context: { Args: never; Returns: Json };
       get_opening_stock_document: {
         Args: { p_count_id: string };
+        Returns: Json;
+      };
+      get_operational_dashboard: {
+        Args: { p_from: string; p_to: string };
+        Returns: Json;
+      };
+      get_owner_dashboard: {
+        Args: { p_from: string; p_to: string };
         Returns: Json;
       };
       get_product_catalog: {
@@ -1997,12 +2014,26 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_profit_report: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_occurred_at?: string;
+          p_from: string;
+          p_limit?: number;
+          p_to: string;
+        };
+        Returns: Json;
+      };
       get_purchase_receipt_cost_detail: {
         Args: { p_receipt_id: string };
         Returns: Json;
       };
       get_purchase_receipt_operational: {
         Args: { p_receipt_id: string };
+        Returns: Json;
+      };
+      get_revenue_report: {
+        Args: { p_from: string; p_scope: string; p_to: string };
         Returns: Json;
       };
       get_sale_detail: { Args: { p_sale_id: string }; Returns: Json };

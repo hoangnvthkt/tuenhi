@@ -50,6 +50,10 @@ const browser = () =>
 const runId = crypto.randomUUID();
 const marker = runId.replaceAll('-', '').slice(0, 16).toUpperCase();
 const password = `Tn!${crypto.randomUUID()}aA9`;
+const testPrefix = process.env.PHASE_TEST_PREFIX ?? 'phase1e';
+const phaseLabel = process.env.PHASE_TEST_LABEL ?? 'Phase 1E';
+const cleanupRpc =
+  process.env.PHASE_TEST_CLEANUP_RPC ?? 'cleanup_phase1e_test_users';
 const authIds = [];
 const profileIds = [];
 let passed = 0;
@@ -70,7 +74,7 @@ async function pass(name, fn) {
   console.log(`PASS ${name}`);
 }
 async function identity(label, role, createdBy = null) {
-  const email = `codex-phase1e-${label}-${runId}@example.invalid`;
+  const email = `codex-${testPrefix}-${label}-${runId}@example.invalid`;
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
@@ -81,7 +85,7 @@ async function identity(label, role, createdBy = null) {
   const { error: profileError } = await admin.from('profiles').insert({
     id: data.user.id,
     email,
-    display_name: `Phase 1E ${label} ${marker}`,
+    display_name: `${phaseLabel} ${label} ${marker}`,
     role_template: role,
     is_active: true,
     must_change_password: false,
@@ -100,7 +104,7 @@ async function identity(label, role, createdBy = null) {
 async function cleanup() {
   let failed = false;
   if (profileIds.length) {
-    const { data, error } = await admin.rpc('cleanup_phase1e_test_users', {
+    const { data, error } = await admin.rpc(cleanupRpc, {
       p_user_ids: profileIds,
     });
     failed ||= Boolean(error) || !data?.ok || data.data.remainingProfiles !== 0;
@@ -109,7 +113,8 @@ async function cleanup() {
     const { error } = await admin.auth.admin.deleteUser(id);
     failed ||= Boolean(error);
   }
-  if (failed) throw new Error('Dọn dữ liệu Cloud test Phase 1E chưa sạch.');
+  if (failed)
+    throw new Error(`Dọn dữ liệu Cloud test ${phaseLabel} chưa sạch.`);
 }
 
 try {
@@ -332,7 +337,72 @@ try {
       assert(!response.ok, 'Browser truy cập được private return cost.');
     },
   );
+
+  await pass(
+    'báo cáo Phase 1F đối soát ledger và không lộ cost cho nhân viên',
+    async () => {
+      const today = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+        .formatToParts()
+        .reduce((value, item) => ({ ...value, [item.type]: item.value }), {});
+      const date = `${today.year}-${today.month}-${today.day}`;
+      const report = await rpc(staff.client, 'get_revenue_report', {
+        p_from: date,
+        p_to: date,
+        p_scope: 'OWN',
+      });
+      assert(
+        report.data.version === 1 &&
+          report.data.summary.netRevenue !== undefined,
+        'Revenue report không trả DTO v1.',
+      );
+      assert(
+        !/cogs|cost|profit|inventoryValue/i.test(JSON.stringify(report.data)),
+        'Revenue report nhân viên làm lộ dữ liệu giá vốn.',
+      );
+      const denied = await rpc(
+        staff.client,
+        'get_owner_dashboard',
+        { p_from: date, p_to: date },
+        false,
+      );
+      assert(
+        denied.error.code === 'PERMISSION_DENIED',
+        'Nhân viên gọi được owner dashboard.',
+      );
+      const ownerDashboard = await rpc(owner.client, 'get_owner_dashboard', {
+        p_from: date,
+        p_to: date,
+      });
+      assert(
+        Number(ownerDashboard.data.grossProfit).toFixed(2) ===
+          (
+            Number(ownerDashboard.data.netRevenue) -
+            Number(ownerDashboard.data.netCogs)
+          ).toFixed(2),
+        'Owner dashboard không đối soát net revenue - net COGS.',
+      );
+      const events = await rpc(owner.client, 'get_profit_report', {
+        p_from: date,
+        p_to: date,
+        p_cursor_occurred_at: null,
+        p_cursor_id: null,
+        p_limit: 50,
+      });
+      assert(
+        events.data.items.some(
+          (item) => item.eventType === 'RETURN_COMPLETED',
+        ) &&
+          events.data.items.some((item) => item.eventType === 'SALE_CANCELLED'),
+        'Profit report không trả sự kiện trả hàng và hủy hóa đơn.',
+      );
+    },
+  );
 } finally {
   await cleanup();
 }
-console.log(`Cloud Phase 1E passed ${passed} cases.`);
+console.log(`Cloud ${phaseLabel} passed ${passed} cases.`);

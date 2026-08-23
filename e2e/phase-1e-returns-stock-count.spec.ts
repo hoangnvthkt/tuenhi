@@ -279,4 +279,17 @@ test('nhân viên trả hàng, kiểm kho; owner ghi sổ và hủy hóa đơn',
   await page.getByRole('button', { name: 'Hủy hóa đơn' }).click();
   await expect(page.getByText('ĐÃ HỦY', { exact: true })).toBeVisible();
   await expect(page.getByText('Phương thức: Tiền mặt')).toBeVisible();
+
+  await page.goto('/reports');
+  await expect(page.getByRole('heading', { name: 'Báo cáo' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Lợi nhuận gộp' }),
+  ).toBeVisible();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Xuất XLSX' }).click();
+  expect((await download).suggestedFilename()).toMatch(/bao-cao-.*\.xlsx/);
+
+  await page.goto('/more/inventory/valuation');
+  await page.getByLabel('Tìm theo tên hoặc SKU').fill(marker);
+  await expect(page.getByText(`Thuốc trả hàng ${marker}`)).toBeVisible();
 });

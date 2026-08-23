@@ -10,10 +10,12 @@ export function InventoryValuationPage() {
   const [api] = useState(createInventoryApi);
   const [page, setPage] = useState<ValuationPage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [loadingMore, setLoadingMore] = useState(false);
   useEffect(() => {
     let active = true;
     api
-      .valuation()
+      .valuation(search)
       .then((data) => active && setPage(data))
       .catch(
         (reason: unknown) => active && setError(safeInventoryMessage(reason)),
@@ -21,7 +23,21 @@ export function InventoryValuationPage() {
     return () => {
       active = false;
     };
-  }, [api]);
+  }, [api, search]);
+  async function loadMore() {
+    if (!page?.nextCursor) return;
+    setLoadingMore(true);
+    try {
+      const next = await api.valuation(search, page.nextCursor);
+      setPage((current) =>
+        current ? { ...next, items: [...current.items, ...next.items] } : next,
+      );
+    } catch (reason) {
+      setError(safeInventoryMessage(reason));
+    } finally {
+      setLoadingMore(false);
+    }
+  }
   return (
     <section className="space-y-5">
       <div>
@@ -30,6 +46,15 @@ export function InventoryValuationPage() {
           Số liệu giá vốn bình quân chỉ dành cho chủ cửa hàng.
         </p>
       </div>
+      <label className="block max-w-md text-sm font-medium text-slate-700">
+        Tìm theo tên hoặc SKU
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"
+          placeholder="Nhập tên hoặc SKU"
+        />
+      </label>
       {error ? (
         <p
           role="alert"
@@ -79,6 +104,16 @@ export function InventoryValuationPage() {
               </tbody>
             </table>
           </div>
+          {page.nextCursor ? (
+            <button
+              type="button"
+              onClick={() => void loadMore()}
+              disabled={loadingMore}
+              className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-50"
+            >
+              {loadingMore ? 'Đang tải…' : 'Tải thêm'}
+            </button>
+          ) : null}
         </>
       ) : null}
     </section>

@@ -27,6 +27,7 @@ import { ReturnListPage } from '../features/returns/ReturnListPage';
 import { StockCountDetailPage } from '../features/inventory/StockCountDetailPage';
 import { StockCountListPage } from '../features/inventory/StockCountListPage';
 import { StoreSettingsPage } from '../features/settings/StoreSettingsPage';
+import { ReportPage } from '../features/reports/ReportPage';
 import { AppShell } from './layout/AppShell';
 import { DashboardPage } from './pages/DashboardPage';
 import { FoundationSectionPage } from './pages/FoundationSectionPage';
@@ -53,7 +54,10 @@ export const appRoutes: RouteObject[] = [
       {
         element: <AppShell />,
         children: [
-          { index: true, element: <DashboardPage /> },
+          {
+            element: <RequireSession permission="dashboard.operational.read" />,
+            children: [{ index: true, element: <DashboardPage /> }],
+          },
           {
             element: <RequireSession permission="catalog.read" />,
             children: [
@@ -119,6 +123,17 @@ export const appRoutes: RouteObject[] = [
             ],
           },
           { path: 'more', element: <MorePage /> },
+          {
+            element: (
+              <RequireSession
+                permission={[
+                  'report.own_revenue.read',
+                  'report.all_revenue.read',
+                ]}
+              />
+            ),
+            children: [{ path: 'reports', element: <ReportPage /> }],
+          },
           {
             element: (
               <RequireSession

@@ -35,6 +35,9 @@ export const businessErrorMessages = {
   REFERENCE_NOT_FOUND: 'Không tìm thấy dữ liệu liên quan.',
   CATEGORY_IN_USE: 'Không thể tắt nhóm hàng đang có sản phẩm hoạt động.',
   IMMUTABLE_FIELD: 'Thông tin này không thể thay đổi sau khi tạo.',
+  REPORT_DATE_RANGE_INVALID: 'Khoảng thời gian báo cáo chưa hợp lệ.',
+  REPORT_SCOPE_DENIED: 'Bạn không có quyền xem phạm vi báo cáo này.',
+  REPORT_LIMIT_INVALID: 'Phân trang báo cáo chưa hợp lệ.',
 } as const;
 
 export type BusinessErrorCode = keyof typeof businessErrorMessages;

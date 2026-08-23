@@ -20,7 +20,12 @@ const sessionApi: SessionApi = {
     roleTemplate: 'OWNER',
     isActive: true,
     mustChangePassword: false,
-    permissions: ['catalog.read', 'sale.draft.manage', 'sale.own.read'],
+    permissions: [
+      'dashboard.operational.read',
+      'catalog.read',
+      'sale.draft.manage',
+      'sale.own.read',
+    ],
   }),
   signIn: vi.fn().mockResolvedValue(undefined),
   changePassword: vi.fn().mockResolvedValue(undefined),

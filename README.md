@@ -125,6 +125,21 @@ Owner dùng màn `/staff` để tạo, khóa, mở lại tài khoản và đặt
 
 Vercel được chủ động hoãn lại; Phase 1B không tạo hoặc liên kết dự án triển khai.
 
+## Báo cáo Phase 1F-A
+
+Dashboard và trang `/reports` dùng múi giờ cố định `Asia/Ho_Chi_Minh`. Dashboard mặc định Hôm nay; báo cáo mặc định Tháng này và hỗ trợ Hôm nay, Tuần này, Tháng này hoặc khoảng ngày tùy chọn tối đa 366 ngày. Nhân viên chỉ nhận DTO doanh thu theo quyền; giá vốn, lợi nhuận và định giá tồn chỉ có trong RPC owner-only và không được persist vào browser storage hoặc PWA runtime cache.
+
+Nút XLSX tạo file trong bộ nhớ trình duyệt, không upload lên Storage. Báo cáo chính thức chỉ tổng hợp ledger vận hành; `legacy_sales` luôn là dữ liệu tra cứu riêng.
+
+Quality gate Phase 1F:
+
+```bash
+pnpm test:cloud:phase1f
+pnpm cloud:verify:phase1f
+```
+
+Phase 1F-B (dữ liệu thật, backup, bật leaked-password protection và go-live) chỉ được bắt đầu khi owner phê duyệt riêng. Project Cloud hiện tại sẽ trở thành production; không chạy runner dữ liệu tổng hợp sau cutover.
+
 ## Tài liệu đã phê duyệt
 
 - [Đặc tả thiết kế](docs/superpowers/specs/2026-08-21-internal-single-store-pos-design.md)
