@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { assertSyntheticTestsAllowed } from './project-lifecycle.mjs';
 
 function required(name) {
   const value = process.env[name]?.trim();
@@ -10,6 +11,27 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+async function temporaryServiceKey() {
+  const response = await fetch(
+    `https://api.supabase.com/v1/projects/${required('SUPABASE_PROJECT_ID')}/api-keys`,
+    {
+      headers: { Authorization: `Bearer ${required('SUPABASE_ACCESS_TOKEN')}` },
+    },
+  );
+  if (!response.ok)
+    throw new Error(
+      'Không thể lấy service key tạm thời cho Cloud test Phase 1B.',
+    );
+  const key = (await response.json()).find(
+    (item) => item.name === 'service_role',
+  )?.api_key;
+  if (!key)
+    throw new Error(
+      'Project không trả service_role key cho Cloud test Phase 1B.',
+    );
+  return key;
+}
+
 function isEnvelope(value) {
   return (
     typeof value === 'object' &&
@@ -19,9 +41,11 @@ function isEnvelope(value) {
   );
 }
 
-const url = required('SUPABASE_URL');
-const publishableKey = required('SUPABASE_PUBLISHABLE_KEY');
-const secretKey = required('SUPABASE_SECRET_KEY');
+const url = process.env.VITE_SUPABASE_URL ?? required('SUPABASE_URL');
+const publishableKey =
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+  required('SUPABASE_PUBLISHABLE_KEY');
+const secretKey = await temporaryServiceKey();
 const identities = [
   ['owner', required('TEST_OWNER_EMAIL'), required('TEST_OWNER_PASSWORD')],
   [
@@ -58,6 +82,7 @@ const admin = createClient(url, secretKey, {
   db: { schema: 'api' },
   auth: { persistSession: false, autoRefreshToken: false },
 });
+await assertSyntheticTestsAllowed(admin);
 
 function browserClient() {
   return createClient(url, publishableKey, {

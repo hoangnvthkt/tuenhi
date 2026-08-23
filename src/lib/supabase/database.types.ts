@@ -2024,6 +2024,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_project_lifecycle: { Args: never; Returns: Json };
       get_purchase_receipt_cost_detail: {
         Args: { p_receipt_id: string };
         Returns: Json;
@@ -2176,6 +2177,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      record_auth_hardening: { Args: never; Returns: Json };
       refresh_stock_count_snapshot: {
         Args: {
           p_count_id: string;
@@ -2363,6 +2365,10 @@ export type Database = {
           p_expected_version: number;
           p_idempotency_key: string;
         };
+        Returns: Json;
+      };
+      transition_project_lifecycle: {
+        Args: { p_cutover_at?: string; p_target_mode: string };
         Returns: Json;
       };
       validate_import_rows: {

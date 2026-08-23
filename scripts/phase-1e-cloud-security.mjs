@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { assertSyntheticTestsAllowed } from './project-lifecycle.mjs';
 
 function required(...names) {
   for (const name of names) {
@@ -42,6 +43,7 @@ const admin = createClient(url, serviceKey, {
   db: { schema: 'api' },
   auth: { persistSession: false, autoRefreshToken: false },
 });
+await assertSyntheticTestsAllowed(admin);
 const browser = () =>
   createClient(url, publishableKey, {
     db: { schema: 'api' },

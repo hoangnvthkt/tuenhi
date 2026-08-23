@@ -140,6 +140,12 @@ pnpm cloud:verify:phase1f
 
 Phase 1F-B (dữ liệu thật, backup, bật leaked-password protection và go-live) chỉ được bắt đầu khi owner phê duyệt riêng. Project Cloud hiện tại sẽ trở thành production; không chạy runner dữ liệu tổng hợp sau cutover.
 
+### Cutover Phase 1F-B
+
+Trước giờ cutover, chạy `pnpm cutover:preflight` và `pnpm cutover:cleanup-tests` không kèm `--confirm`. Chỉ sau khi owner duyệt danh sách test thì chạy lại cleanup với `--confirm`, rồi tạo baseline bằng `pnpm cutover:backup`. Các lệnh backup cần đường dẫn tuyệt đối ngoài repository, PostgreSQL native 17 và không in credential/mật khẩu mã hóa. Xem [runbook cutover](docs/runbooks/phase-1f-production-cutover.md).
+
+Không chuyển `OWNER_PILOT` hoặc `PRODUCTION` khi chưa có phê duyệt go-live riêng. Sau `OWNER_PILOT`, runner tổng hợp bị chặn ở script và database. Tài khoản nhân viên chỉ mở lại sau khi owner bật leaked-password protection, smoke test Auth và ghi nhận `AUTH_HARDENED` qua runbook.
+
 ## Tài liệu đã phê duyệt
 
 - [Đặc tả thiết kế](docs/superpowers/specs/2026-08-21-internal-single-store-pos-design.md)

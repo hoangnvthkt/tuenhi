@@ -21,6 +21,33 @@ Deno.serve(async (request) => {
   if (!parsed.ok) return failure(400, 'VALIDATION_ERROR', parsed.message);
 
   const input = parsed.value;
+  const { data: lifecycle, error: lifecycleError } =
+    await authorization.adminClient.rpc('get_project_lifecycle');
+  if (
+    lifecycleError ||
+    !isCommandEnvelope(lifecycle) ||
+    lifecycle.ok !== true ||
+    typeof lifecycle.data !== 'object' ||
+    lifecycle.data === null
+  ) {
+    return failure(
+      503,
+      'PROJECT_LIFECYCLE_UNAVAILABLE',
+      'Không thể kiểm tra trạng thái môi trường. Vui lòng thử lại.',
+    );
+  }
+  const lifecycleData = lifecycle.data as Record<string, unknown>;
+  if (
+    lifecycleData.mode === 'OWNER_PILOT' &&
+    lifecycleData.authHardeningCompletedAt === null
+  ) {
+    return failure(
+      409,
+      'PRODUCTION_AUTH_HARDENING_REQUIRED',
+      'Pilot chỉ cho phép chủ cửa hàng sử dụng. Hãy bật bảo vệ mật khẩu bị rò rỉ trước khi tạo nhân viên.',
+    );
+  }
+
   let userId = input.pendingUserId;
   try {
     if (userId) {
