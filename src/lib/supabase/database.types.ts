@@ -458,6 +458,54 @@ export type Database = {
           },
         ];
       };
+      payments: {
+        Row: {
+          amount: number;
+          captured_by: string;
+          correlation_id: string;
+          id: string;
+          method: string;
+          paid_at: string;
+          sale_id: string;
+          status: string;
+        };
+        Insert: {
+          amount: number;
+          captured_by: string;
+          correlation_id: string;
+          id?: string;
+          method: string;
+          paid_at?: string;
+          sale_id: string;
+          status: string;
+        };
+        Update: {
+          amount?: number;
+          captured_by?: string;
+          correlation_id?: string;
+          id?: string;
+          method?: string;
+          paid_at?: string;
+          sale_id?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'payments_captured_by_fkey';
+            columns: ['captured_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payments_sale_id_fkey';
+            columns: ['sale_id'];
+            isOneToOne: true;
+            referencedRelation: 'sales';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       product_images: {
         Row: {
           created_at: string;
@@ -815,6 +863,186 @@ export type Database = {
           },
         ];
       };
+      sale_lines: {
+        Row: {
+          allocated_order_discount: number;
+          created_at: string;
+          gross_amount: number;
+          id: string;
+          line_discount_amount: number;
+          line_order: number;
+          net_amount: number;
+          product_id: string;
+          product_name: string;
+          quantity: number;
+          sale_id: string;
+          sku: string;
+          unit_name: string;
+          unit_sale_price: number;
+        };
+        Insert: {
+          allocated_order_discount?: number;
+          created_at?: string;
+          gross_amount: number;
+          id?: string;
+          line_discount_amount?: number;
+          line_order: number;
+          net_amount: number;
+          product_id: string;
+          product_name: string;
+          quantity: number;
+          sale_id: string;
+          sku: string;
+          unit_name: string;
+          unit_sale_price: number;
+        };
+        Update: {
+          allocated_order_discount?: number;
+          created_at?: string;
+          gross_amount?: number;
+          id?: string;
+          line_discount_amount?: number;
+          line_order?: number;
+          net_amount?: number;
+          product_id?: string;
+          product_name?: string;
+          quantity?: number;
+          sale_id?: string;
+          sku?: string;
+          unit_name?: string;
+          unit_sale_price?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'sale_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_catalog_read';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sale_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sale_lines_sale_id_fkey';
+            columns: ['sale_id'];
+            isOneToOne: false;
+            referencedRelation: 'sales';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      sales: {
+        Row: {
+          completed_at: string | null;
+          completed_by: string | null;
+          correlation_id: string;
+          created_at: string;
+          created_by: string;
+          customer_id: string | null;
+          customer_name_snapshot: string | null;
+          customer_phone_snapshot: string | null;
+          discount_total: number;
+          id: string;
+          line_discount_total: number;
+          net_total: number;
+          note: string | null;
+          order_discount_total: number;
+          sale_number: string | null;
+          sales_channel_code_snapshot: string | null;
+          sales_channel_id: string;
+          sales_channel_name_snapshot: string | null;
+          staff_name_snapshot: string | null;
+          status: string;
+          subtotal: number;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          completed_at?: string | null;
+          completed_by?: string | null;
+          correlation_id?: string;
+          created_at?: string;
+          created_by: string;
+          customer_id?: string | null;
+          customer_name_snapshot?: string | null;
+          customer_phone_snapshot?: string | null;
+          discount_total?: number;
+          id?: string;
+          line_discount_total?: number;
+          net_total?: number;
+          note?: string | null;
+          order_discount_total?: number;
+          sale_number?: string | null;
+          sales_channel_code_snapshot?: string | null;
+          sales_channel_id: string;
+          sales_channel_name_snapshot?: string | null;
+          staff_name_snapshot?: string | null;
+          status?: string;
+          subtotal?: number;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          completed_at?: string | null;
+          completed_by?: string | null;
+          correlation_id?: string;
+          created_at?: string;
+          created_by?: string;
+          customer_id?: string | null;
+          customer_name_snapshot?: string | null;
+          customer_phone_snapshot?: string | null;
+          discount_total?: number;
+          id?: string;
+          line_discount_total?: number;
+          net_total?: number;
+          note?: string | null;
+          order_discount_total?: number;
+          sale_number?: string | null;
+          sales_channel_code_snapshot?: string | null;
+          sales_channel_id?: string;
+          sales_channel_name_snapshot?: string | null;
+          staff_name_snapshot?: string | null;
+          status?: string;
+          subtotal?: number;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'sales_completed_by_fkey';
+            columns: ['completed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sales_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sales_customer_id_fkey';
+            columns: ['customer_id'];
+            isOneToOne: false;
+            referencedRelation: 'customers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sales_sales_channel_id_fkey';
+            columns: ['sales_channel_id'];
+            isOneToOne: false;
+            referencedRelation: 'sales_channels';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       sales_channels: {
         Row: {
           code: string;
@@ -1089,6 +1317,56 @@ export type Database = {
           },
         ];
       };
+      store_settings: {
+        Row: {
+          address: string | null;
+          contact_phone: string | null;
+          created_at: string;
+          display_name: string;
+          id: number;
+          invoice_footer: string | null;
+          logo_path: string | null;
+          updated_at: string;
+          updated_by: string | null;
+          version: number;
+          zalo: string | null;
+        };
+        Insert: {
+          address?: string | null;
+          contact_phone?: string | null;
+          created_at?: string;
+          display_name: string;
+          id?: number;
+          invoice_footer?: string | null;
+          logo_path?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+          zalo?: string | null;
+        };
+        Update: {
+          address?: string | null;
+          contact_phone?: string | null;
+          created_at?: string;
+          display_name?: string;
+          id?: number;
+          invoice_footer?: string | null;
+          logo_path?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+          zalo?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'store_settings_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       suppliers: {
         Row: {
           address: string | null;
@@ -1310,6 +1588,15 @@ export type Database = {
         Args: { p_user_id: string };
         Returns: Json;
       };
+      complete_sale: {
+        Args: {
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_payment_method: string;
+          p_sale_id: string;
+        };
+        Returns: Json;
+      };
       create_import_run: {
         Args: {
           p_file_name: string;
@@ -1318,6 +1605,14 @@ export type Database = {
           p_mode: string;
           p_target_type: string;
           p_template_version: number;
+        };
+        Returns: Json;
+      };
+      discard_sale_draft: {
+        Args: {
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_sale_id: string;
         };
         Returns: Json;
       };
@@ -1404,6 +1699,9 @@ export type Database = {
         Args: { p_receipt_id: string };
         Returns: Json;
       };
+      get_sale_detail: { Args: { p_sale_id: string }; Returns: Json };
+      get_sale_invoice: { Args: { p_sale_id: string }; Returns: Json };
+      get_store_settings: { Args: never; Returns: Json };
       list_categories: {
         Args: { p_include_inactive?: boolean };
         Returns: Json;
@@ -1443,6 +1741,15 @@ export type Database = {
         Args: {
           p_cursor_id?: string;
           p_cursor_updated_at?: string;
+          p_filters?: Json;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
+      list_sales: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_sort_at?: string;
           p_filters?: Json;
           p_limit?: number;
         };
@@ -1568,6 +1875,19 @@ export type Database = {
         };
         Returns: Json;
       };
+      save_sale_draft: {
+        Args: {
+          p_customer_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_lines: Json;
+          p_note: string;
+          p_order_discount: string;
+          p_sale_id: string;
+          p_sales_channel_id: string;
+        };
+        Returns: Json;
+      };
       save_sales_channel: {
         Args: {
           p_channel_id: string;
@@ -1576,6 +1896,14 @@ export type Database = {
           p_is_active: boolean;
           p_name: string;
           p_sort_order: number;
+        };
+        Returns: Json;
+      };
+      save_store_settings: {
+        Args: {
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_settings: Json;
         };
         Returns: Json;
       };

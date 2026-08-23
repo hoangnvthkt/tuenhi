@@ -52,3 +52,27 @@ select,
 textarea {
   font: inherit;
 }
+
+@media print {
+  body {
+    background: white;
+  }
+  body > * {
+    visibility: hidden;
+  }
+  #invoice-print,
+  #invoice-print * {
+    visibility: visible;
+  }
+  #invoice-print {
+    position: absolute;
+    inset: 0;
+    width: 80mm;
+    border: 0;
+    box-shadow: none;
+  }
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+}

@@ -5,7 +5,10 @@ export const businessErrorMessages = {
   INVALID_STATE: 'Chứng từ đã thay đổi. Vui lòng tải lại dữ liệu.',
   PRICE_CHANGED:
     'Giá bán đã thay đổi. Vui lòng kiểm tra và xác nhận lại giỏ hàng.',
+  SALES_CHANNEL_INACTIVE: 'Kênh bán đã ngừng sử dụng. Vui lòng chọn kênh khác.',
   INSUFFICIENT_STOCK: 'Tồn kho không đủ để hoàn tất hóa đơn.',
+  LINE_DISCOUNT_EXCEEDED: 'Giảm giá từng dòng không được vượt tiền hàng.',
+  ORDER_DISCOUNT_EXCEEDED: 'Giảm giá toàn đơn vượt số tiền còn lại.',
   RETURN_QTY_EXCEEDED: 'Số lượng trả vượt quá số lượng còn được phép trả.',
   RETURN_NOTHING_ACCEPTED: 'Cần chấp nhận ít nhất một sản phẩm trả lại.',
   ORIGINAL_INVOICE_REQUIRED: 'Vui lòng chọn hóa đơn gốc.',

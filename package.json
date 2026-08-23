@@ -34,6 +34,7 @@
     "cloud:verify:phase1a": "supabase db query --linked --file supabase/tests/phase_1a_identity_assertions.sql && supabase db query --linked --file supabase/tests/phase_1a_password_change_assertions.sql && supabase db query --linked --file supabase/tests/phase_1a_notification_assertions.sql && supabase db query --linked --file supabase/tests/phase_1a_staff_assertions.sql",
     "cloud:verify:phase1b": "supabase db query --linked --file supabase/tests/phase_1b_catalog_assertions.sql && supabase db query --linked --file supabase/tests/phase_1b_storage_realtime_assertions.sql && supabase db query --linked --file supabase/tests/phase_1b_import_assertions.sql && supabase db query --linked --file supabase/tests/phase_1b_legacy_assertions.sql",
     "cloud:verify:phase1c": "supabase db query --linked --file supabase/tests/phase_1c_inventory_assertions.sql",
+    "cloud:verify:phase1d": "supabase db query --linked --file supabase/tests/phase_1d_sales_assertions.sql",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "check:full": "pnpm check && pnpm test:e2e",
     "supabase": "supabase"
@@ -44,6 +45,7 @@
     "@tanstack/react-query": "5.101.4",
     "exceljs": "4.4.0",
     "libphonenumber-js": "1.13.11",
+    "pdfmake": "^0.3.11",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hook-form": "7.85.0",
@@ -61,6 +63,7 @@
     "@testing-library/react": "16.3.2",
     "@testing-library/user-event": "14.6.5",
     "@types/node": "24.13.3",
+    "@types/pdfmake": "^0.3.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@vite-pwa/assets-generator": "1.0.2",

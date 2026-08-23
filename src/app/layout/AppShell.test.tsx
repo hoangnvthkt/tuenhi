@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from '../../features/auth/AuthProvider';
+import { ToastProvider } from '../../components/feedback/ToastProvider';
 import type { SessionApi } from '../../features/auth/session-context';
 import type { NotificationApi } from '../../features/notifications/notification-api';
 import { NotificationApiContext } from '../../features/notifications/notification-context';
@@ -19,7 +20,7 @@ const sessionApi: SessionApi = {
     roleTemplate: 'OWNER',
     isActive: true,
     mustChangePassword: false,
-    permissions: ['catalog.read'],
+    permissions: ['catalog.read', 'sale.draft.manage', 'sale.own.read'],
   }),
   signIn: vi.fn().mockResolvedValue(undefined),
   changePassword: vi.fn().mockResolvedValue(undefined),
@@ -50,7 +51,9 @@ function renderAppRoute(initialEntry: string) {
     <QueryClientProvider client={new QueryClient()}>
       <AuthProvider api={sessionApi}>
         <NotificationApiContext.Provider value={notificationApi}>
-          <RouterProvider router={router} />
+          <ToastProvider>
+            <RouterProvider router={router} />
+          </ToastProvider>
         </NotificationApiContext.Provider>
       </AuthProvider>
     </QueryClientProvider>,
@@ -82,7 +85,7 @@ describe('AppShell', () => {
     }
   });
 
-  it('renders the sales foundation page at /pos', async () => {
+  it('renders the POS page at /pos', async () => {
     renderAppRoute('/pos');
 
     expect(

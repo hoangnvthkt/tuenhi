@@ -18,6 +18,10 @@ import { OpeningListPage } from '../features/inventory/OpeningListPage';
 import { PurchaseDetailPage } from '../features/inventory/PurchaseDetailPage';
 import { PurchaseListPage } from '../features/inventory/PurchaseListPage';
 import { StaffPage } from '../features/staff/StaffPage';
+import { PosPage } from '../features/sales/PosPage';
+import { SalesListPage } from '../features/sales/SalesListPage';
+import { SaleDetailPage } from '../features/sales/SaleDetailPage';
+import { StoreSettingsPage } from '../features/settings/StoreSettingsPage';
 import { AppShell } from './layout/AppShell';
 import { DashboardPage } from './pages/DashboardPage';
 import { FoundationSectionPage } from './pages/FoundationSectionPage';
@@ -72,8 +76,20 @@ export const appRoutes: RouteObject[] = [
               },
             ],
           },
-          { path: 'pos', element: foundationPage('Bán hàng') },
-          { path: 'sales', element: foundationPage('Hóa đơn') },
+          {
+            element: <RequireSession permission="sale.draft.manage" />,
+            children: [
+              { path: 'pos', element: <PosPage /> },
+              { path: 'pos/:saleId', element: <PosPage /> },
+            ],
+          },
+          {
+            element: <RequireSession permission="sale.own.read" />,
+            children: [
+              { path: 'sales', element: <SalesListPage /> },
+              { path: 'sales/:saleId', element: <SaleDetailPage /> },
+            ],
+          },
           { path: 'more', element: <MorePage /> },
           {
             element: (
@@ -182,6 +198,7 @@ export const appRoutes: RouteObject[] = [
                 path: 'more/sales-channels',
                 element: <SalesChannelPage />,
               },
+              { path: 'more/store-settings', element: <StoreSettingsPage /> },
             ],
           },
           {

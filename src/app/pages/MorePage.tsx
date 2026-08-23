@@ -60,6 +60,12 @@ const destinations = [
     description: 'Cấu hình kênh áp dụng cho hóa đơn.',
     permissions: ['settings.manage'],
   },
+  {
+    to: '/more/store-settings',
+    title: 'Cấu hình cửa hàng',
+    description: 'Thông tin hiển thị trên hóa đơn và bản in.',
+    permissions: ['settings.manage'],
+  },
 ] as const;
 
 export function MorePage() {
