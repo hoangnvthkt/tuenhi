@@ -1,0 +1,338 @@
+import { createClient } from '@supabase/supabase-js';
+
+function required(...names) {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+  throw new Error(`Thiếu biến môi trường bắt buộc: ${names.join(' hoặc ')}`);
+}
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
+function envelope(value) {
+  return (
+    typeof value === 'object' && value !== null && typeof value.ok === 'boolean'
+  );
+}
+
+const url = required('VITE_SUPABASE_URL', 'SUPABASE_URL');
+const publishableKey = required(
+  'VITE_SUPABASE_PUBLISHABLE_KEY',
+  'SUPABASE_PUBLISHABLE_KEY',
+);
+const accessToken = required('SUPABASE_ACCESS_TOKEN');
+const projectRef = required('SUPABASE_PROJECT_ID');
+const keyResponse = await fetch(
+  `https://api.supabase.com/v1/projects/${projectRef}/api-keys`,
+  {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  },
+);
+assert(
+  keyResponse.ok,
+  'Không thể lấy service key tạm thời cho Cloud test Phase 1E.',
+);
+const serviceKey = (await keyResponse.json()).find(
+  (item) => item.name === 'service_role',
+)?.api_key;
+assert(serviceKey, 'Project không trả service_role key cho Cloud test.');
+
+const admin = createClient(url, serviceKey, {
+  db: { schema: 'api' },
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+const browser = () =>
+  createClient(url, publishableKey, {
+    db: { schema: 'api' },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+const runId = crypto.randomUUID();
+const marker = runId.replaceAll('-', '').slice(0, 16).toUpperCase();
+const password = `Tn!${crypto.randomUUID()}aA9`;
+const authIds = [];
+const profileIds = [];
+let passed = 0;
+
+async function rpc(client, name, args, ok = true) {
+  const { data, error } = await client.rpc(name, args);
+  assert(
+    !error,
+    `RPC ${name} không trả envelope: ${error?.message ?? 'không rõ lỗi'}`,
+  );
+  assert(envelope(data), `RPC ${name} trả sai envelope.`);
+  assert(data.ok === ok, `RPC ${name} trả trạng thái ngoài dự kiến.`);
+  return data;
+}
+async function pass(name, fn) {
+  await fn();
+  passed += 1;
+  console.log(`PASS ${name}`);
+}
+async function identity(label, role, createdBy = null) {
+  const email = `codex-phase1e-${label}-${runId}@example.invalid`;
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  assert(!error && data.user, `Không thể tạo Auth user ${label}.`);
+  authIds.push(data.user.id);
+  const { error: profileError } = await admin.from('profiles').insert({
+    id: data.user.id,
+    email,
+    display_name: `Phase 1E ${label} ${marker}`,
+    role_template: role,
+    is_active: true,
+    must_change_password: false,
+    created_by: createdBy,
+  });
+  assert(!profileError, `Không thể tạo profile ${label}.`);
+  profileIds.push(data.user.id);
+  const client = browser();
+  const { error: loginError } = await client.auth.signInWithPassword({
+    email,
+    password,
+  });
+  assert(!loginError, `Không thể đăng nhập JWT cho ${label}.`);
+  return { id: data.user.id, client };
+}
+async function cleanup() {
+  let failed = false;
+  if (profileIds.length) {
+    const { data, error } = await admin.rpc('cleanup_phase1e_test_users', {
+      p_user_ids: profileIds,
+    });
+    failed ||= Boolean(error) || !data?.ok || data.data.remainingProfiles !== 0;
+  }
+  for (const id of authIds.reverse()) {
+    const { error } = await admin.auth.admin.deleteUser(id);
+    failed ||= Boolean(error);
+  }
+  if (failed) throw new Error('Dọn dữ liệu Cloud test Phase 1E chưa sạch.');
+}
+
+try {
+  const owner = await identity('owner', 'OWNER');
+  const staff = await identity('staff', 'SALES_WAREHOUSE', owner.id);
+  const product = await rpc(owner.client, 'save_product', {
+    p_product_id: null,
+    p_expected_version: null,
+    p_product: {
+      sku: `P1E-${marker}`,
+      barcode: null,
+      name: `Sản phẩm Phase 1E ${marker}`,
+      categoryId: null,
+      unitName: 'Hộp',
+      description: null,
+      minStockQty: '0',
+      isActive: true,
+    },
+    p_idempotency_key: crypto.randomUUID(),
+  });
+  const productId = product.data.productId;
+  await rpc(owner.client, 'set_product_sale_price', {
+    p_product_id: productId,
+    p_sale_price: '60000',
+    p_change_reason: 'Cloud test Phase 1E',
+    p_idempotency_key: crypto.randomUUID(),
+  });
+  const opening = await rpc(owner.client, 'save_opening_stock_draft', {
+    p_count_id: null,
+    p_expected_version: null,
+    p_note: 'Cloud test Phase 1E',
+    p_lines: [
+      {
+        productId,
+        countedQty: '15',
+        openingUnitCost: '43333.33',
+        sourceSuggestionId: null,
+        confirmedUnverified: false,
+      },
+    ],
+    p_idempotency_key: crypto.randomUUID(),
+  });
+  const openingSubmitted = await rpc(owner.client, 'submit_opening_stock', {
+    p_count_id: opening.data.countId,
+    p_expected_version: opening.data.version,
+    p_idempotency_key: crypto.randomUUID(),
+  });
+  await rpc(owner.client, 'post_opening_stock', {
+    p_count_id: opening.data.countId,
+    p_expected_version: openingSubmitted.data.version,
+    p_idempotency_key: crypto.randomUUID(),
+  });
+  const channels = await rpc(staff.client, 'list_sales_channels', {
+    p_include_inactive: false,
+  });
+  const channelId = channels.data.items[0]?.id;
+  assert(channelId, 'Không có kênh bán hoạt động cho Cloud test.');
+
+  async function sale(quantity) {
+    const draft = await rpc(staff.client, 'save_sale_draft', {
+      p_sale_id: null,
+      p_expected_version: null,
+      p_customer_id: null,
+      p_sales_channel_id: channelId,
+      p_lines: [{ productId, quantity, lineDiscountAmount: '0', lineOrder: 0 }],
+      p_order_discount: '0',
+      p_note: 'Cloud test Phase 1E',
+      p_idempotency_key: crypto.randomUUID(),
+    });
+    return rpc(staff.client, 'complete_sale', {
+      p_sale_id: draft.data.sale.id,
+      p_expected_version: draft.data.sale.version,
+      p_payment_method: 'CASH',
+      p_idempotency_key: crypto.randomUUID(),
+    });
+  }
+  const firstSale = await sale('6');
+
+  await pass(
+    'nhân viên tạo/hoàn tất trả hàng và invoice DTO không có cost',
+    async () => {
+      const lookup = await rpc(staff.client, 'lookup_sale_for_return', {
+        p_full_sale_number: firstSale.data.saleNumber,
+      });
+      const requested = await rpc(staff.client, 'create_sale_return_request', {
+        p_original_sale_id: lookup.data.saleId,
+        p_reason: 'Cloud test trả một phần',
+        p_lines: [
+          { originalSaleLineId: lookup.data.lines[0].id, requestedQty: '1' },
+        ],
+        p_idempotency_key: crypto.randomUUID(),
+      });
+      const detail = await rpc(staff.client, 'get_sale_return', {
+        p_return_id: requested.data.returnId,
+      });
+      const completeArgs = {
+        p_return_id: requested.data.returnId,
+        p_expected_version: detail.data.version,
+        p_lines: [
+          { saleReturnLineId: detail.data.lines[0].id, acceptedQty: '1' },
+        ],
+        p_refund_method: 'BANK_TRANSFER',
+        p_idempotency_key: crypto.randomUUID(),
+      };
+      const [completed, retried] = await Promise.all([
+        rpc(staff.client, 'complete_sale_return', completeArgs),
+        rpc(staff.client, 'complete_sale_return', completeArgs),
+      ]);
+      assert(
+        completed.data.returnNumber.startsWith('TH'),
+        'Phiếu trả không được cấp mã TH.',
+      );
+      assert(
+        completed.data.returnNumber === retried.data.returnNumber,
+        'Retry tạo phiếu trả trùng.',
+      );
+      const valuation = await rpc(owner.client, 'get_inventory_valuation', {
+        p_cursor_name: null,
+        p_cursor_id: null,
+        p_limit: 20,
+      });
+      const line = valuation.data.items.find(
+        (item) => item.productId === productId,
+      );
+      assert(
+        line?.onHandQty === '10.000',
+        'Trả một hàng không khôi phục đúng số lượng tồn.',
+      );
+      assert(
+        line?.inventoryValue === '433333.30',
+        'Trả một hàng không khôi phục đúng giá trị tồn.',
+      );
+      const invoice = await rpc(staff.client, 'get_sale_invoice', {
+        p_sale_id: firstSale.data.saleId,
+      });
+      assert(invoice.data.version === 2, 'Invoice DTO chưa nâng Version 2.');
+      assert(
+        !/cost|profit|inventoryValue|avgUnitCost/i.test(
+          JSON.stringify(invoice.data),
+        ),
+        'Invoice DTO làm lộ giá vốn.',
+      );
+    },
+  );
+
+  await pass('owner hủy sale khác và payment được đảo', async () => {
+    const secondSale = await sale('1');
+    const detail = await rpc(owner.client, 'get_sale_detail', {
+      p_sale_id: secondSale.data.saleId,
+    });
+    const cancelled = await rpc(owner.client, 'cancel_sale', {
+      p_sale_id: secondSale.data.saleId,
+      p_expected_version: detail.data.version,
+      p_reason: 'Cloud test hủy hóa đơn',
+      p_idempotency_key: crypto.randomUUID(),
+    });
+    assert(
+      cancelled.data.status === 'CANCELLED',
+      'Hủy hóa đơn không đổi trạng thái.',
+    );
+    const invoice = await rpc(owner.client, 'get_sale_invoice', {
+      p_sale_id: secondSale.data.saleId,
+    });
+    assert(
+      invoice.data.sale.paymentStatus === 'REVERSED',
+      'Hủy hóa đơn không đảo payment.',
+    );
+  });
+
+  await pass(
+    'nhân viên kiểm kho, owner ghi sổ và bị chặn khỏi cost private',
+    async () => {
+      const count = await rpc(staff.client, 'save_stock_count', {
+        p_count_id: null,
+        p_expected_version: null,
+        p_note: 'Cloud test kiểm kho',
+        p_lines: [{ productId, countedQty: '9' }],
+        p_idempotency_key: crypto.randomUUID(),
+      });
+      const submitted = await rpc(staff.client, 'submit_stock_count', {
+        p_count_id: count.data.countId,
+        p_expected_version: count.data.version,
+        p_idempotency_key: crypto.randomUUID(),
+      });
+      const posted = await rpc(owner.client, 'post_stock_count', {
+        p_count_id: count.data.countId,
+        p_expected_version: submitted.data.version,
+        p_estimated_costs: [],
+        p_idempotency_key: crypto.randomUUID(),
+      });
+      assert(
+        posted.data.status === 'POSTED',
+        'Phiếu kiểm kho không được ghi sổ.',
+      );
+      const valuation = await rpc(
+        staff.client,
+        'get_inventory_valuation',
+        {
+          p_cursor_name: null,
+          p_cursor_id: null,
+          p_limit: 10,
+        },
+        false,
+      );
+      assert(
+        valuation.error.code === 'PERMISSION_DENIED',
+        'Nhân viên xem được valuation.',
+      );
+      const session = await staff.client.auth.getSession();
+      const response = await fetch(
+        `${url}/rest/v1/sale_return_line_costs?select=*`,
+        {
+          headers: {
+            apikey: publishableKey,
+            Authorization: `Bearer ${session.data.session.access_token}`,
+            'Accept-Profile': 'app_private',
+          },
+        },
+      );
+      assert(!response.ok, 'Browser truy cập được private return cost.');
+    },
+  );
+} finally {
+  await cleanup();
+}
+console.log(`Cloud Phase 1E passed ${passed} cases.`);

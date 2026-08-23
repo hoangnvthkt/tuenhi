@@ -1,8 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
+import { useState } from 'react';
+import { useOnlineStatus } from '../../app/use-online-status';
 import { useToast } from '../../components/feedback/use-toast';
 import { createSalesApi, type Invoice } from './sales-api';
 import { getSupabaseClient } from '../../lib/supabase/client';
+import { useSession } from '../auth/use-session';
 const money = (v: string) =>
   new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -45,7 +48,12 @@ async function downloadPdf(invoice: Invoice) {
 }
 export function SaleDetailPage() {
   const { saleId } = useParams();
+  const online = useOnlineStatus();
   const toast = useToast();
+  const queryClient = useQueryClient();
+  const { session } = useSession();
+  const [cancelReason, setCancelReason] = useState('');
+  const [busy, setBusy] = useState(false);
   const query = useQuery({
     queryKey: ['invoice', saleId],
     queryFn: () => createSalesApi().invoice(saleId!),
@@ -59,6 +67,40 @@ export function SaleDetailPage() {
         .storage.from('store-branding')
         .getPublicUrl(invoice.store.logoPath).data.publicUrl
     : null;
+  // Owner is the only role permitted to cancel. The server remains the
+  // authority for every other eligibility rule when the command runs.
+  const canCancel =
+    session?.roleTemplate === 'OWNER' && invoice.sale.status === 'COMPLETED';
+  async function cancelSale() {
+    if (!saleId || !online || busy || cancelReason.trim().length === 0) return;
+    if (
+      !window.confirm(
+        'Xác nhận hủy hóa đơn? Tồn kho và thanh toán sẽ được đảo.',
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      const detail = await createSalesApi().detail(saleId);
+      await createSalesApi().cancelSale(
+        saleId,
+        detail.version,
+        cancelReason.trim(),
+        crypto.randomUUID(),
+      );
+      toast.show({ kind: 'success', title: 'Đã hủy hóa đơn' });
+      await queryClient.invalidateQueries({ queryKey: ['invoice', saleId] });
+      await queryClient.invalidateQueries({ queryKey: ['sales'] });
+    } catch (reason) {
+      toast.show({
+        kind: 'error',
+        title: 'Không thể hủy hóa đơn',
+        message: reason instanceof Error ? reason.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <main className="mx-auto max-w-2xl p-4 sm:p-6">
       <div className="mb-5 flex items-center justify-between">
@@ -91,6 +133,15 @@ export function SaleDetailPage() {
           <p className="mt-1 text-center text-sm">{invoice.store.address}</p>
         ) : null}
         <p className="mt-4 text-center font-semibold">HÓA ĐƠN BÁN HÀNG</p>
+        {invoice.sale.status !== 'COMPLETED' ? (
+          <p className="mt-1 text-center text-sm font-bold text-red-700">
+            {invoice.sale.status === 'CANCELLED'
+              ? 'ĐÃ HỦY'
+              : invoice.sale.status === 'RETURNED'
+                ? 'ĐÃ TRẢ HẾT'
+                : 'ĐÃ TRẢ MỘT PHẦN'}
+          </p>
+        ) : null}
         <p className="text-center text-sm">
           {invoice.sale.saleNumber} · {invoice.sale.channelName}
         </p>
@@ -175,6 +226,53 @@ export function SaleDetailPage() {
           Tải PDF
         </button>
       </div>
+      {invoice.lifecycle.returns.length > 0 ? (
+        <section className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="font-bold">Lịch sử trả hàng</h2>
+          <div className="mt-3 space-y-2">
+            {invoice.lifecycle.returns.map((item) => (
+              <Link
+                key={item.id}
+                to={`/returns/${item.id}`}
+                className="block rounded-lg bg-slate-50 p-3 text-sm hover:bg-slate-100"
+              >
+                {item.returnNumber ?? 'Yêu cầu trả hàng'} · {item.status} ·{' '}
+                {money(item.refundTotal)}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+      {invoice.lifecycle.canReturn &&
+      session?.permissions.includes('return.request.create') ? (
+        <Link
+          to={`/sales/${saleId}/return`}
+          className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-teal-700 px-4 font-semibold text-teal-800"
+        >
+          Tạo yêu cầu trả hàng
+        </Link>
+      ) : null}
+      {canCancel ? (
+        <section className="mt-5 space-y-2 rounded-xl border border-red-200 bg-red-50 p-4">
+          <h2 className="font-bold text-red-950">Hủy hóa đơn</h2>
+          <textarea
+            value={cancelReason}
+            onChange={(event) => setCancelReason(event.target.value)}
+            maxLength={500}
+            placeholder="Lý do hủy hóa đơn"
+            disabled={!online || busy}
+            className="min-h-20 w-full rounded-lg border border-red-200 bg-white p-3"
+          />
+          <button
+            type="button"
+            disabled={!online || busy || cancelReason.trim().length === 0}
+            onClick={() => void cancelSale()}
+            className="min-h-11 rounded-lg border border-red-700 px-4 font-semibold text-red-800 disabled:opacity-50"
+          >
+            Hủy hóa đơn
+          </button>
+        </section>
+      ) : null}
     </main>
   );
 }

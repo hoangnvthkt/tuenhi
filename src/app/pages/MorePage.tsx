@@ -37,6 +37,18 @@ const destinations = [
     permissions: ['inventory.adjustment.post'],
   },
   {
+    to: '/stock-counts',
+    title: 'Kiểm kho',
+    description: 'Đếm từng phần danh mục và chờ owner ghi sổ chênh lệch.',
+    permissions: ['inventory.count.draft'],
+  },
+  {
+    to: '/returns',
+    title: 'Trả hàng',
+    description: 'Tạo yêu cầu trả hàng và kiểm nhận theo quyền.',
+    permissions: ['return.request.create', 'return.complete'],
+  },
+  {
     to: '/more/inventory/valuation',
     title: 'Định giá tồn kho',
     description: 'Tồn, giá vốn bình quân và tổng giá trị hiện tại.',

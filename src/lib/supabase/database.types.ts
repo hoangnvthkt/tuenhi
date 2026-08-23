@@ -466,6 +466,9 @@ export type Database = {
           id: string;
           method: string;
           paid_at: string;
+          reversal_reason: string | null;
+          reversed_at: string | null;
+          reversed_by: string | null;
           sale_id: string;
           status: string;
         };
@@ -476,6 +479,9 @@ export type Database = {
           id?: string;
           method: string;
           paid_at?: string;
+          reversal_reason?: string | null;
+          reversed_at?: string | null;
+          reversed_by?: string | null;
           sale_id: string;
           status: string;
         };
@@ -486,6 +492,9 @@ export type Database = {
           id?: string;
           method?: string;
           paid_at?: string;
+          reversal_reason?: string | null;
+          reversed_at?: string | null;
+          reversed_by?: string | null;
           sale_id?: string;
           status?: string;
         };
@@ -493,6 +502,13 @@ export type Database = {
           {
             foreignKeyName: 'payments_captured_by_fkey';
             columns: ['captured_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payments_reversed_by_fkey';
+            columns: ['reversed_by'];
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
@@ -936,8 +952,232 @@ export type Database = {
           },
         ];
       };
+      sale_return_lines: {
+        Row: {
+          accepted_qty: number | null;
+          created_at: string;
+          id: string;
+          line_order: number;
+          original_sale_line_id: string;
+          product_id: string;
+          product_name: string;
+          refund_amount: number;
+          requested_qty: number;
+          sale_return_id: string;
+          sku: string;
+          unit_name: string;
+        };
+        Insert: {
+          accepted_qty?: number | null;
+          created_at?: string;
+          id?: string;
+          line_order: number;
+          original_sale_line_id: string;
+          product_id: string;
+          product_name: string;
+          refund_amount?: number;
+          requested_qty: number;
+          sale_return_id: string;
+          sku: string;
+          unit_name: string;
+        };
+        Update: {
+          accepted_qty?: number | null;
+          created_at?: string;
+          id?: string;
+          line_order?: number;
+          original_sale_line_id?: string;
+          product_id?: string;
+          product_name?: string;
+          refund_amount?: number;
+          requested_qty?: number;
+          sale_return_id?: string;
+          sku?: string;
+          unit_name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'sale_return_lines_original_sale_line_id_fkey';
+            columns: ['original_sale_line_id'];
+            isOneToOne: false;
+            referencedRelation: 'sale_lines';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sale_return_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_catalog_read';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sale_return_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sale_return_lines_sale_return_id_fkey';
+            columns: ['sale_return_id'];
+            isOneToOne: false;
+            referencedRelation: 'sale_returns';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      sale_return_payments: {
+        Row: {
+          amount: number;
+          correlation_id: string;
+          id: string;
+          method: string;
+          refunded_at: string;
+          refunded_by: string;
+          sale_return_id: string;
+          status: string;
+        };
+        Insert: {
+          amount: number;
+          correlation_id: string;
+          id?: string;
+          method: string;
+          refunded_at?: string;
+          refunded_by: string;
+          sale_return_id: string;
+          status: string;
+        };
+        Update: {
+          amount?: number;
+          correlation_id?: string;
+          id?: string;
+          method?: string;
+          refunded_at?: string;
+          refunded_by?: string;
+          sale_return_id?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'sale_return_payments_refunded_by_fkey';
+            columns: ['refunded_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sale_return_payments_sale_return_id_fkey';
+            columns: ['sale_return_id'];
+            isOneToOne: true;
+            referencedRelation: 'sale_returns';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      sale_returns: {
+        Row: {
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          completed_at: string | null;
+          completed_by: string | null;
+          correlation_id: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          original_sale_id: string;
+          reason: string;
+          refund_total: number;
+          requested_at: string | null;
+          requested_by: string | null;
+          return_number: string | null;
+          status: string;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          correlation_id?: string;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          original_sale_id: string;
+          reason: string;
+          refund_total?: number;
+          requested_at?: string | null;
+          requested_by?: string | null;
+          return_number?: string | null;
+          status?: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          correlation_id?: string;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          original_sale_id?: string;
+          reason?: string;
+          refund_total?: number;
+          requested_at?: string | null;
+          requested_by?: string | null;
+          return_number?: string | null;
+          status?: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'sale_returns_cancelled_by_fkey';
+            columns: ['cancelled_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sale_returns_completed_by_fkey';
+            columns: ['completed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sale_returns_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sale_returns_original_sale_id_fkey';
+            columns: ['original_sale_id'];
+            isOneToOne: false;
+            referencedRelation: 'sales';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sale_returns_requested_by_fkey';
+            columns: ['requested_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       sales: {
         Row: {
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
           completed_at: string | null;
           completed_by: string | null;
           correlation_id: string;
@@ -963,6 +1203,9 @@ export type Database = {
           version: number;
         };
         Insert: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
           completed_at?: string | null;
           completed_by?: string | null;
           correlation_id?: string;
@@ -988,6 +1231,9 @@ export type Database = {
           version?: number;
         };
         Update: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
           completed_at?: string | null;
           completed_by?: string | null;
           correlation_id?: string;
@@ -1013,6 +1259,13 @@ export type Database = {
           version?: number;
         };
         Relationships: [
+          {
+            foreignKeyName: 'sales_cancelled_by_fkey';
+            columns: ['cancelled_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'sales_completed_by_fkey';
             columns: ['completed_by'];
@@ -1102,8 +1355,9 @@ export type Database = {
       };
       stock_count_lines: {
         Row: {
-          counted_qty: number;
+          counted_qty: number | null;
           created_at: string;
+          difference_qty: number | null;
           id: string;
           inventory_version_snapshot: number;
           line_order: number;
@@ -1115,8 +1369,9 @@ export type Database = {
           unit_name: string;
         };
         Insert: {
-          counted_qty: number;
+          counted_qty?: number | null;
           created_at?: string;
+          difference_qty?: number | null;
           id?: string;
           inventory_version_snapshot: number;
           line_order: number;
@@ -1128,8 +1383,9 @@ export type Database = {
           unit_name: string;
         };
         Update: {
-          counted_qty?: number;
+          counted_qty?: number | null;
           created_at?: string;
+          difference_qty?: number | null;
           id?: string;
           inventory_version_snapshot?: number;
           line_order?: number;
@@ -1564,6 +1820,33 @@ export type Database = {
         };
         Returns: Json;
       };
+      cancel_sale: {
+        Args: {
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_reason: string;
+          p_sale_id: string;
+        };
+        Returns: Json;
+      };
+      cancel_sale_return: {
+        Args: {
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_reason: string;
+          p_return_id: string;
+        };
+        Returns: Json;
+      };
+      cancel_stock_count: {
+        Args: {
+          p_count_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_reason: string;
+        };
+        Returns: Json;
+      };
       cleanup_phase1a_test_users: {
         Args: { p_user_ids: string[] };
         Returns: Json;
@@ -1573,6 +1856,10 @@ export type Database = {
         Returns: Json;
       };
       cleanup_phase1c_test_users: {
+        Args: { p_user_ids: string[] };
+        Returns: Json;
+      };
+      cleanup_phase1e_test_users: {
         Args: { p_user_ids: string[] };
         Returns: Json;
       };
@@ -1597,6 +1884,16 @@ export type Database = {
         };
         Returns: Json;
       };
+      complete_sale_return: {
+        Args: {
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_lines: Json;
+          p_refund_method: string;
+          p_return_id: string;
+        };
+        Returns: Json;
+      };
       create_import_run: {
         Args: {
           p_file_name: string;
@@ -1605,6 +1902,15 @@ export type Database = {
           p_mode: string;
           p_target_type: string;
           p_template_version: number;
+        };
+        Returns: Json;
+      };
+      create_sale_return_request: {
+        Args: {
+          p_idempotency_key: string;
+          p_lines: Json;
+          p_original_sale_id: string;
+          p_reason: string;
         };
         Returns: Json;
       };
@@ -1701,6 +2007,8 @@ export type Database = {
       };
       get_sale_detail: { Args: { p_sale_id: string }; Returns: Json };
       get_sale_invoice: { Args: { p_sale_id: string }; Returns: Json };
+      get_sale_return: { Args: { p_return_id: string }; Returns: Json };
+      get_stock_count: { Args: { p_count_id: string }; Returns: Json };
       get_store_settings: { Args: never; Returns: Json };
       list_categories: {
         Args: { p_include_inactive?: boolean };
@@ -1746,6 +2054,15 @@ export type Database = {
         };
         Returns: Json;
       };
+      list_sale_returns: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_updated_at?: string;
+          p_filters?: Json;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
       list_sales: {
         Args: {
           p_cursor_id?: string;
@@ -1767,6 +2084,15 @@ export type Database = {
         };
         Returns: Json;
       };
+      list_stock_counts: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_updated_at?: string;
+          p_filters?: Json;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
       list_suppliers: {
         Args: {
           p_cursor_id?: string;
@@ -1774,6 +2100,10 @@ export type Database = {
           p_limit?: number;
           p_search?: string;
         };
+        Returns: Json;
+      };
+      lookup_sale_for_return: {
+        Args: { p_full_sale_number: string };
         Returns: Json;
       };
       mark_all_notifications_read: { Args: never; Returns: Json };
@@ -1798,11 +2128,28 @@ export type Database = {
         };
         Returns: Json;
       };
+      post_stock_count: {
+        Args: {
+          p_count_id: string;
+          p_estimated_costs: Json;
+          p_expected_version: number;
+          p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
       prepare_staff_password_reset: {
         Args: {
           p_idempotency_key: string;
           p_reason: string;
           p_user_id: string;
+        };
+        Returns: Json;
+      };
+      refresh_stock_count_snapshot: {
+        Args: {
+          p_count_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
         };
         Returns: Json;
       };
@@ -1899,6 +2246,16 @@ export type Database = {
         };
         Returns: Json;
       };
+      save_stock_count: {
+        Args: {
+          p_count_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_lines: Json;
+          p_note: string;
+        };
+        Returns: Json;
+      };
       save_store_settings: {
         Args: {
           p_expected_version: number;
@@ -1966,6 +2323,14 @@ export type Database = {
           p_expected_version: number;
           p_idempotency_key: string;
           p_receipt_id: string;
+        };
+        Returns: Json;
+      };
+      submit_stock_count: {
+        Args: {
+          p_count_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
         };
         Returns: Json;
       };

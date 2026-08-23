@@ -77,8 +77,14 @@ const saleSchema = z.object({
   updatedAt: z.string(),
   lines: z.array(lineSchema),
 });
+const invoiceLineSchema = lineSchema
+  .omit({ lineOrder: true, productId: true })
+  .extend({
+    returnedQty: z.string(),
+    returnableQty: z.string(),
+  });
 const invoiceSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
   store: z.object({
     displayName: z.string(),
     logoPath: z.string().nullable(),
@@ -98,8 +104,11 @@ const invoiceSchema = z.object({
     customerName: z.string().nullable(),
     customerPhone: z.string().nullable(),
     paymentMethod: z.enum(['CASH', 'BANK_TRANSFER']),
+    paymentStatus: z.enum(['CAPTURED', 'REVERSED']),
+    cancelledAt: z.string().nullable(),
+    cancelReason: z.string().nullable(),
   }),
-  lines: z.array(lineSchema.omit({ lineOrder: true })),
+  lines: z.array(invoiceLineSchema),
   totals: z.object({
     subtotal: z.string(),
     lineDiscountTotal: z.string(),
@@ -107,6 +116,89 @@ const invoiceSchema = z.object({
     netTotal: z.string(),
     capturedAmount: z.string(),
   }),
+  lifecycle: z.object({
+    canReturn: z.boolean(),
+    canCancel: z.boolean(),
+    returns: z.array(
+      z.object({
+        id: z.uuid(),
+        returnNumber: z.string().nullable(),
+        status: z.string(),
+        reason: z.string(),
+        refundTotal: z.string(),
+        createdAt: z.string(),
+        completedAt: z.string().nullable(),
+        cancelReason: z.string().nullable(),
+      }),
+    ),
+  }),
+});
+const returnLookupSchema = z.object({
+  saleId: z.uuid(),
+  saleNumber: z.string(),
+  completedAt: z.string(),
+  customerName: z.string().nullable(),
+  lines: z.array(
+    z.object({
+      id: z.uuid(),
+      productId: z.uuid(),
+      productName: z.string(),
+      sku: z.string(),
+      unitName: z.string(),
+      soldQty: z.string(),
+      returnedQty: z.string(),
+      returnableQty: z.string(),
+      netAmount: z.string(),
+    }),
+  ),
+});
+const returnLineSchema = z.object({
+  id: z.uuid(),
+  originalSaleLineId: z.uuid(),
+  productId: z.uuid(),
+  productName: z.string(),
+  sku: z.string(),
+  unitName: z.string(),
+  requestedQty: z.string(),
+  acceptedQty: z.string().nullable(),
+  refundAmount: z.string(),
+  soldQty: z.string(),
+  returnedQtyBefore: z.string(),
+});
+const saleReturnSchema = z.object({
+  id: z.uuid(),
+  returnNumber: z.string().nullable(),
+  saleId: z.uuid(),
+  saleNumber: z.string(),
+  status: z.string(),
+  reason: z.string(),
+  refundTotal: z.string(),
+  version: z.number().int(),
+  createdByName: z.string(),
+  createdAt: z.string(),
+  completedAt: z.string().nullable(),
+  cancelReason: z.string().nullable(),
+  canComplete: z.boolean(),
+  lines: z.array(returnLineSchema),
+});
+const returnPageSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.uuid(),
+      returnNumber: z.string().nullable(),
+      status: z.string(),
+      saleId: z.uuid(),
+      saleNumber: z.string(),
+      reason: z.string(),
+      refundTotal: z.string(),
+      createdByName: z.string(),
+      createdAt: z.string(),
+      completedAt: z.string().nullable(),
+      version: z.number().int(),
+      updatedAt: z.string(),
+    }),
+  ),
+  nextCursor: z.null(),
 });
 const settingsSchema = z.object({
   displayName: z.string(),
@@ -120,6 +212,8 @@ const settingsSchema = z.object({
 export type Sale = z.infer<typeof saleSchema>;
 export type Invoice = z.infer<typeof invoiceSchema>;
 export type StoreSettings = z.infer<typeof settingsSchema>;
+export type ReturnLookup = z.infer<typeof returnLookupSchema>;
+export type SaleReturn = z.infer<typeof saleReturnSchema>;
 export type CartLine = {
   productId: string;
   quantity: string;
@@ -238,6 +332,115 @@ export function createSalesApi() {
       return parse(
         invoiceSchema,
         await rpc('get_sale_invoice', { p_sale_id: saleId }),
+      );
+    },
+    async lookupReturnInvoice(fullSaleNumber: string) {
+      return parse(
+        returnLookupSchema,
+        await rpc('lookup_sale_for_return', {
+          p_full_sale_number: fullSaleNumber,
+        }),
+      );
+    },
+    async createReturn(input: {
+      saleId: string;
+      reason: string;
+      lines: Array<{ originalSaleLineId: string; requestedQty: string }>;
+      idempotencyKey: string;
+    }) {
+      return parse(
+        z.object({
+          returnId: z.uuid(),
+          status: z.literal('REQUESTED'),
+          version: z.number().int(),
+        }),
+        await rpc('create_sale_return_request', {
+          p_original_sale_id: input.saleId,
+          p_reason: input.reason,
+          p_lines: input.lines,
+          p_idempotency_key: input.idempotencyKey,
+        }),
+      );
+    },
+    async listReturns(filters: { status?: string; search?: string } = {}) {
+      return parse(
+        returnPageSchema,
+        await rpc('list_sale_returns', {
+          p_filters: filters,
+          p_cursor_updated_at: null,
+          p_cursor_id: null,
+          p_limit: 50,
+        }),
+      );
+    },
+    async getReturn(returnId: string) {
+      return parse(
+        saleReturnSchema,
+        await rpc('get_sale_return', { p_return_id: returnId }),
+      );
+    },
+    async cancelReturn(
+      returnId: string,
+      expectedVersion: number,
+      reason: string,
+      idempotencyKey: string,
+    ) {
+      return parse(
+        z.object({
+          returnId: z.uuid(),
+          status: z.literal('CANCELLED'),
+          version: z.number().int(),
+        }),
+        await rpc('cancel_sale_return', {
+          p_return_id: returnId,
+          p_expected_version: expectedVersion,
+          p_reason: reason,
+          p_idempotency_key: idempotencyKey,
+        }),
+      );
+    },
+    async completeReturn(input: {
+      returnId: string;
+      expectedVersion: number;
+      lines: Array<{ saleReturnLineId: string; acceptedQty: string }>;
+      refundMethod: 'CASH' | 'BANK_TRANSFER';
+      idempotencyKey: string;
+    }) {
+      return parse(
+        z.object({
+          returnId: z.uuid(),
+          returnNumber: z.string(),
+          status: z.literal('COMPLETED'),
+          refundTotal: z.string(),
+          version: z.number().int(),
+        }),
+        await rpc('complete_sale_return', {
+          p_return_id: input.returnId,
+          p_expected_version: input.expectedVersion,
+          p_lines: input.lines,
+          p_refund_method: input.refundMethod,
+          p_idempotency_key: input.idempotencyKey,
+        }),
+      );
+    },
+    async cancelSale(
+      saleId: string,
+      expectedVersion: number,
+      reason: string,
+      idempotencyKey: string,
+    ) {
+      return parse(
+        z.object({
+          saleId: z.uuid(),
+          status: z.literal('CANCELLED'),
+          version: z.number().int(),
+        }),
+        await rpc('cancel_sale', {
+          p_sale_id: saleId,
+          p_expected_version: expectedVersion,
+          p_reason: reason,
+          p_idempotency_key: idempotencyKey,
+        }),
       );
     },
     async getSettings() {

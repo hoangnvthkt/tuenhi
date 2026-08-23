@@ -24,12 +24,13 @@ function safeErrorMessage(error: unknown) {
 }
 
 export function AuthProvider({
-  api = createSessionApi(),
+  api: providedApi,
   children,
 }: {
   api?: SessionApi;
   children: ReactNode;
 }) {
+  const api = useMemo(() => providedApi ?? createSessionApi(), [providedApi]);
   const queryClient = useQueryClient();
   const mounted = useRef(true);
   const refreshSequence = useRef(0);

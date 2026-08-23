@@ -17,6 +17,7 @@ export const businessErrorMessages = {
   NETWORK_OUTCOME_UNKNOWN:
     'Chưa xác định được kết quả. Hệ thống sẽ kiểm tra lại giao dịch.',
   VALIDATION_ERROR: 'Dữ liệu chưa hợp lệ. Vui lòng kiểm tra lại.',
+  VALIDATION_FAILED: 'Dữ liệu chưa hợp lệ. Vui lòng kiểm tra lại.',
   NOTIFICATION_NOT_FOUND: 'Không tìm thấy thông báo.',
   AUTH_UPDATE_FAILED: 'Không thể cập nhật tài khoản. Vui lòng thử lại.',
   PASSWORD_CHANGE_INCOMPLETE:

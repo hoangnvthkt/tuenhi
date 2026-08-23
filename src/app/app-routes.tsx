@@ -21,6 +21,11 @@ import { StaffPage } from '../features/staff/StaffPage';
 import { PosPage } from '../features/sales/PosPage';
 import { SalesListPage } from '../features/sales/SalesListPage';
 import { SaleDetailPage } from '../features/sales/SaleDetailPage';
+import { ReturnCreatePage } from '../features/returns/ReturnCreatePage';
+import { ReturnDetailPage } from '../features/returns/ReturnDetailPage';
+import { ReturnListPage } from '../features/returns/ReturnListPage';
+import { StockCountDetailPage } from '../features/inventory/StockCountDetailPage';
+import { StockCountListPage } from '../features/inventory/StockCountListPage';
 import { StoreSettingsPage } from '../features/settings/StoreSettingsPage';
 import { AppShell } from './layout/AppShell';
 import { DashboardPage } from './pages/DashboardPage';
@@ -88,6 +93,29 @@ export const appRoutes: RouteObject[] = [
             children: [
               { path: 'sales', element: <SalesListPage /> },
               { path: 'sales/:saleId', element: <SaleDetailPage /> },
+            ],
+          },
+          {
+            element: <RequireSession permission="return.request.create" />,
+            children: [
+              { path: 'returns', element: <ReturnListPage /> },
+              { path: 'returns/new', element: <ReturnCreatePage /> },
+              { path: 'returns/:returnId', element: <ReturnDetailPage /> },
+              { path: 'sales/:saleId/return', element: <ReturnCreatePage /> },
+            ],
+          },
+          {
+            element: <RequireSession permission="inventory.count.draft" />,
+            children: [
+              { path: 'stock-counts', element: <StockCountListPage /> },
+              {
+                path: 'stock-counts/new',
+                element: <StockCountDetailPage mode="create" />,
+              },
+              {
+                path: 'stock-counts/:countId',
+                element: <StockCountDetailPage />,
+              },
             ],
           },
           { path: 'more', element: <MorePage /> },

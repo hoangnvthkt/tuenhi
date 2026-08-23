@@ -8,6 +8,13 @@ const money = (v: string) =>
     currency: 'VND',
     maximumFractionDigits: 0,
   }).format(Number(v));
+const statusLabels: Record<string, string> = {
+  DRAFT: 'Nháp',
+  COMPLETED: 'Hoàn tất',
+  PARTIALLY_RETURNED: 'Trả một phần',
+  RETURNED: 'Đã trả hết',
+  CANCELLED: 'Đã hủy',
+};
 export function SalesListPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -46,6 +53,9 @@ export function SalesListPage() {
           <option value="">Tất cả trạng thái</option>
           <option value="DRAFT">Nháp</option>
           <option value="COMPLETED">Hoàn tất</option>
+          <option value="PARTIALLY_RETURNED">Trả một phần</option>
+          <option value="RETURNED">Đã trả hết</option>
+          <option value="CANCELLED">Đã hủy</option>
         </select>
       </div>
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -67,7 +77,7 @@ export function SalesListPage() {
             <div className="text-right">
               <p className="font-semibold">{money(item.netTotal)}</p>
               <p className="text-xs text-slate-500">
-                {item.status === 'DRAFT' ? 'Nháp' : 'Hoàn tất'}
+                {statusLabels[item.status] ?? item.status}
               </p>
             </div>
           </Link>

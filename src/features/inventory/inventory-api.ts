@@ -212,6 +212,50 @@ const valuationPageSchema = z.object({
   nextCursor: z.object({ name: z.string(), id: z.uuid() }).nullable(),
   totalInventoryValue: z.string(),
 });
+const periodicCountLineSchema = z.object({
+  id: z.uuid(),
+  productId: z.uuid(),
+  productName: z.string(),
+  sku: z.string(),
+  unitName: z.string(),
+  systemQtySnapshot: z.string(),
+  inventoryVersionSnapshot: z.number().int().nonnegative(),
+  countedQty: z.string().nullable(),
+  differenceQty: z.string().nullable(),
+  lineOrder: z.number().int().nonnegative(),
+  requiresEstimatedCost: z.boolean(),
+});
+const periodicCountSchema = z.object({
+  id: z.uuid(),
+  countNumber: z.string().nullable(),
+  status: z.enum(['DRAFT', 'COUNTED', 'POSTED', 'CANCELLED']),
+  note: z.string().nullable(),
+  version: z.number().int().positive(),
+  createdByName: z.string(),
+  createdAt: dateTime,
+  submittedAt: nullableDateTime,
+  postedAt: nullableDateTime,
+  cancelReason: z.string().nullable(),
+  canPost: z.boolean(),
+  lines: z.array(periodicCountLineSchema),
+});
+const periodicCountPageSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.uuid(),
+      countNumber: z.string().nullable(),
+      status: z.enum(['DRAFT', 'COUNTED', 'POSTED', 'CANCELLED']),
+      createdByName: z.string(),
+      lineCount: z.number().int().nonnegative(),
+      createdAt: dateTime,
+      submittedAt: nullableDateTime,
+      postedAt: nullableDateTime,
+      version: z.number().int().positive(),
+      updatedAt: dateTime,
+    }),
+  ),
+  nextCursor: z.null(),
+});
 
 const mutationSchema = z.record(z.string(), z.unknown());
 export type PurchaseReceipt = z.infer<typeof receiptSchema>;
@@ -221,6 +265,7 @@ export type OpeningSuggestion = z.infer<
   typeof suggestionPageSchema
 >['items'][number];
 export type ValuationPage = z.infer<typeof valuationPageSchema>;
+export type PeriodicStockCount = z.infer<typeof periodicCountSchema>;
 
 function nullable<T>(value: T | undefined): T {
   return (value ?? null) as T;
@@ -410,6 +455,85 @@ export function createInventoryApi() {
           p_cursor_name: null,
           p_cursor_id: null,
           p_limit: 100,
+        }),
+      );
+    },
+    async listStockCounts(status?: string) {
+      return parse(
+        periodicCountPageSchema,
+        await rpc('list_stock_counts', {
+          p_filters: status ? { status } : {},
+          p_cursor_updated_at: null,
+          p_cursor_id: null,
+          p_limit: 100,
+        }),
+      );
+    },
+    async getStockCount(id: string) {
+      return parse(
+        periodicCountSchema,
+        await rpc('get_stock_count', { p_count_id: id }),
+      );
+    },
+    async saveStockCount(input: {
+      id?: string;
+      expectedVersion?: number;
+      note: string;
+      lines: Array<{ productId: string; countedQty: string | null }>;
+      idempotencyKey: string;
+    }) {
+      return parse(
+        mutationSchema,
+        await rpc('save_stock_count', {
+          p_count_id: nullable(input.id),
+          p_expected_version: nullable(input.expectedVersion),
+          p_note: input.note || null,
+          p_lines: input.lines.map((line) => ({
+            productId: line.productId,
+            countedQty: line.countedQty,
+          })),
+          p_idempotency_key: input.idempotencyKey,
+        }),
+      );
+    },
+    async commandStockCount(
+      command: 'submit' | 'refresh' | 'cancel',
+      id: string,
+      version: number,
+      reason = '',
+    ) {
+      const names = {
+        submit: 'submit_stock_count',
+        refresh: 'refresh_stock_count_snapshot',
+        cancel: 'cancel_stock_count',
+      } as const;
+      const args =
+        command === 'cancel'
+          ? {
+              p_count_id: id,
+              p_expected_version: version,
+              p_reason: reason,
+              p_idempotency_key: crypto.randomUUID(),
+            }
+          : {
+              p_count_id: id,
+              p_expected_version: version,
+              p_idempotency_key: crypto.randomUUID(),
+            };
+      return parse(mutationSchema, await rpc(names[command], args));
+    },
+    async postStockCount(
+      id: string,
+      version: number,
+      estimates: Array<{ stockCountLineId: string; estimatedUnitCost: string }>,
+    ) {
+      return parse(
+        mutationSchema,
+        await rpc('post_stock_count', {
+          p_count_id: id,
+          p_expected_version: version,
+          p_estimated_costs: estimates,
+          p_idempotency_key: crypto.randomUUID(),
         }),
       );
     },
