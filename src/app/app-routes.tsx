@@ -1,21 +1,22 @@
 import type { RouteObject } from 'react-router';
 import { ChangePasswordPage, LoginPage, RequireSession } from '@/features/auth';
-import { CategoryManagerPage } from '../features/catalog/CategoryManagerPage';
-import { ProductDetailPage } from '../features/catalog/ProductDetailPage';
-import { ProductListPage } from '../features/catalog/ProductListPage';
-import { CustomerPage } from '../features/directories/CustomerPage';
-import { SupplierPage } from '../features/directories/SupplierPage';
+import {
+  CategoryManagerPage,
+  ProductDetailPage,
+  ProductListPage,
+} from '@/features/catalog';
+import { CustomerPage, SupplierPage } from '@/features/directories';
 import { ImportHistoryPage } from '../features/imports/ImportHistoryPage';
 import { ImportPage } from '../features/imports/ImportPage';
 import { LegacySaleDetailPage } from '../features/legacy-sales/LegacySaleDetailPage';
 import { LegacySalesPage } from '../features/legacy-sales/LegacySalesPage';
-import { SalesChannelPage } from '../features/settings/SalesChannelPage';
+import { SalesChannelPage, StoreSettingsPage } from '@/features/settings';
 import { InventoryValuationPage } from '../features/inventory/InventoryValuationPage';
 import { OpeningDetailPage } from '../features/inventory/OpeningDetailPage';
 import { OpeningListPage } from '../features/inventory/OpeningListPage';
 import { PurchaseDetailPage } from '../features/inventory/PurchaseDetailPage';
 import { PurchaseListPage } from '../features/inventory/PurchaseListPage';
-import { StaffPage } from '../features/staff/StaffPage';
+import { StaffPage } from '@/features/staff';
 import { PosPage } from '../features/sales/PosPage';
 import { SalesListPage } from '../features/sales/SalesListPage';
 import { SaleDetailPage } from '../features/sales/SaleDetailPage';
@@ -24,7 +25,6 @@ import { ReturnDetailPage } from '../features/returns/ReturnDetailPage';
 import { ReturnListPage } from '../features/returns/ReturnListPage';
 import { StockCountDetailPage } from '../features/inventory/StockCountDetailPage';
 import { StockCountListPage } from '../features/inventory/StockCountListPage';
-import { StoreSettingsPage } from '../features/settings/StoreSettingsPage';
 import { ReportPage } from '@/features/reports';
 import { AppShell } from './layout/AppShell';
 import { DashboardPage } from '@/features/dashboard';

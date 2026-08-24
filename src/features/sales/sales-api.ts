@@ -200,18 +200,8 @@ const returnPageSchema = z.object({
   ),
   nextCursor: z.null(),
 });
-const settingsSchema = z.object({
-  displayName: z.string(),
-  logoPath: z.string().nullable(),
-  address: z.string().nullable(),
-  contactPhone: z.string().nullable(),
-  zalo: z.string().nullable(),
-  invoiceFooter: z.string().nullable(),
-  version: z.number().int(),
-});
 export type Sale = z.infer<typeof saleSchema>;
 export type Invoice = z.infer<typeof invoiceSchema>;
-export type StoreSettings = z.infer<typeof settingsSchema>;
 export type ReturnLookup = z.infer<typeof returnLookupSchema>;
 export type SaleReturn = z.infer<typeof saleReturnSchema>;
 export type CartLine = {
@@ -439,23 +429,6 @@ export function createSalesApi() {
           p_sale_id: saleId,
           p_expected_version: expectedVersion,
           p_reason: reason,
-          p_idempotency_key: idempotencyKey,
-        }),
-      );
-    },
-    async getSettings() {
-      return parse(settingsSchema, await rpc('get_store_settings', {}));
-    },
-    async saveSettings(
-      expectedVersion: number,
-      settings: Omit<StoreSettings, 'version'>,
-      idempotencyKey: string,
-    ) {
-      return parse(
-        z.object({ version: z.number().int() }),
-        await rpc('save_store_settings', {
-          p_expected_version: expectedVersion,
-          p_settings: settings,
           p_idempotency_key: idempotencyKey,
         }),
       );

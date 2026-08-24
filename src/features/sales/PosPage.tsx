@@ -5,8 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
-import { createCatalogApi } from '../catalog/catalog-api';
-import { createDirectoryApi } from '../directories/directory-api';
+import { createCatalogApi } from '@/features/catalog';
+import { createDirectoryApi } from '@/features/directories';
+import { createSettingsApi } from '@/features/settings';
 import { useSession } from '@/features/auth';
 import { createSalesApi, type CartLine, type Sale } from './sales-api';
 
@@ -50,7 +51,7 @@ export function PosPage() {
   });
   const channels = useQuery({
     queryKey: ['pos-channels'],
-    queryFn: () => createDirectoryApi().listSalesChannels(false),
+    queryFn: () => createSettingsApi().listSalesChannels(false),
   });
   const customers = useQuery({
     queryKey: ['pos-customers'],

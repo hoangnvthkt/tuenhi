@@ -4,7 +4,7 @@ import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
-import { createCatalogApi } from '../catalog/catalog-api';
+import { createCatalogApi } from '@/features/catalog';
 import { createInventoryApi, type PeriodicStockCount } from './inventory-api';
 import {
   formatNumber,

@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router';
 import { useSession } from '@/features/auth';
-import { useCatalogRealtime } from '../../features/catalog/use-catalog-realtime';
+import { useCatalogRealtime } from '@/features/catalog';
 import { NotificationCenter } from '@/features/notifications';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { navigationItems } from './navigation-items';

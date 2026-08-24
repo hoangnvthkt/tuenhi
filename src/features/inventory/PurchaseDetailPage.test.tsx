@@ -5,8 +5,8 @@ import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import { SessionContextValue } from '@/features/auth';
 import { PurchaseDetailPage } from './PurchaseDetailPage';
 import type { createInventoryApi, PurchaseReceipt } from './inventory-api';
-import type { createCatalogApi } from '../catalog/catalog-api';
-import type { createDirectoryApi } from '../directories/directory-api';
+import type { createCatalogApi } from '@/features/catalog';
+import type { createDirectoryApi } from '@/features/directories';
 
 const receipt: PurchaseReceipt = {
   id: '10000000-0000-4000-8000-000000000001',

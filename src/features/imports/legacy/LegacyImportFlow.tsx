@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useToast } from '@/shared/ui/feedback/use-toast';
-import { createCatalogApi } from '../../catalog/catalog-api';
-import { createDirectoryApi } from '../../directories/directory-api';
+import { createCatalogApi } from '@/features/catalog';
+import { createDirectoryApi } from '@/features/directories';
+import { createSettingsApi } from '@/features/settings';
 import {
   createLegacySalesApi,
   LegacySalesApiError,
@@ -10,7 +11,7 @@ import {
   type LegacySalesApi,
   type LegacyStagedRow,
 } from '../../legacy-sales/legacy-sales-api';
-import { createStaffApi } from '../../staff/staff-api';
+import { createStaffApi } from '@/features/staff';
 import { LegacyMappingPanel } from './LegacyMappingPanel';
 import {
   proposeLegacyResolutions,
@@ -40,11 +41,12 @@ function safeLegacyError(error: unknown, fallback: string) {
 async function loadMappingTargets(): Promise<LegacyTargets> {
   const staffApi = createStaffApi();
   const directoryApi = createDirectoryApi();
+  const settingsApi = createSettingsApi();
   const catalogApi = createCatalogApi();
   const [staff, customers, channels, products] = await Promise.all([
     staffApi.list(),
     directoryApi.listCustomers({ limit: 100 }),
-    directoryApi.listSalesChannels(true),
+    settingsApi.listSalesChannels(true),
     catalogApi.list({ includeInactive: true, limit: 100 }),
   ]);
   return {
