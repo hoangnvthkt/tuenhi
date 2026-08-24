@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 export default async function globalSetup() {
+  if (process.env.E2E_SKIP_CLOUD_LIFECYCLE_CHECK === '1') return;
+
   const url = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
   const projectRef = process.env.SUPABASE_PROJECT_ID;
   const accessToken = process.env.SUPABASE_ACCESS_TOKEN;

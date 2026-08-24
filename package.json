@@ -20,6 +20,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:e2e:ci": "E2E_SKIP_CLOUD_LIFECYCLE_CHECK=1 playwright test e2e/app-shell.spec.ts",
     "test:e2e:phase1b": "playwright test e2e/catalog-import.spec.ts e2e/legacy-archive.spec.ts",
     "test:e2e:phase1c": "playwright test e2e/inventory-cost.spec.ts",
     "test:e2e:phase1e": "node --env-file=.env node_modules/@playwright/test/cli.js test e2e/phase-1e-returns-stock-count.spec.ts",
