@@ -32,4 +32,57 @@ export default tseslint.config(
       globals: globals.browser,
     },
   },
+  {
+    files: ['src/shared/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/app', '@/app/*', '@/features', '@/features/*'],
+              message: 'Shared modules cannot depend on app or features.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/features/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/app', '@/app/*'],
+              message: 'Features cannot depend on the app composition layer.',
+            },
+            {
+              group: ['@/features/*/*'],
+              message:
+                'Cross-feature imports must use the target feature public index.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/app/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/features/*/*'],
+              message: 'App modules must use feature public indexes.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
