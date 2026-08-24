@@ -1,20 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
-import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createCatalogApi } from '@/features/catalog';
 import { createDirectoryApi } from '@/features/directories';
 import { useSession } from '@/features/auth';
 import { createPurchaseApi } from '../api/purchase-api';
 import type { PurchaseReceipt } from '../api/purchase-schemas';
+import { PurchaseActions } from '../components/PurchaseActions';
+import { PurchaseLineEditor } from '../components/PurchaseLineEditor';
+import type { PurchaseDraftLine } from '../model/purchase-draft';
 import {
   formatMoney,
   safeInventoryMessage,
   statusLabel,
 } from '../../model/inventory-ui';
-
-type DraftLine = { productId: string; receivedQty: string };
 
 export function PurchaseDetailPage({
   mode,
@@ -52,7 +52,7 @@ export function PurchaseDetailPage({
     new Date().toISOString().slice(0, 16),
   );
   const [note, setNote] = useState('');
-  const [lines, setLines] = useState<DraftLine[]>([
+  const [lines, setLines] = useState<PurchaseDraftLine[]>([
     { productId: '', receivedQty: '1' },
   ]);
   const [costs, setCosts] = useState<Record<string, string>>({});
@@ -246,198 +246,29 @@ export function PurchaseDetailPage({
           />
         </label>
       </div>
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="font-bold">Sản phẩm nhận</h2>
-        {lines.map((line, index) => {
-          const persistedLine = receipt?.lines[index];
-          return (
-            <div
-              key={`${index}-${persistedLine?.id ?? 'new'}`}
-              className="grid gap-3 rounded-lg bg-slate-50 p-3 md:grid-cols-[1fr_11rem_11rem_auto]"
-            >
-              <select
-                aria-label={`Sản phẩm dòng ${index + 1}`}
-                disabled={!editable}
-                value={line.productId}
-                onChange={(e) =>
-                  setLines((current) =>
-                    current.map((item, i) =>
-                      i === index
-                        ? { ...item, productId: e.target.value }
-                        : item,
-                    ),
-                  )
-                }
-                className="min-h-11 rounded-lg border border-slate-300 px-3"
-              >
-                <option value="">Chọn sản phẩm</option>
-                {products.map((product) => (
-                  <option
-                    disabled={
-                      lineProductIds.has(product.id) &&
-                      product.id !== line.productId
-                    }
-                    key={product.id}
-                    value={product.id}
-                  >
-                    {product.sku} — {product.name}
-                  </option>
-                ))}
-              </select>
-              <NumericField
-                label="Số lượng nhận"
-                disabled={!editable}
-                kind="quantity"
-                precision={18}
-                positive
-                value={line.receivedQty}
-                onChange={(value) =>
-                  setLines((current) =>
-                    current.map((item, i) =>
-                      i === index ? { ...item, receivedQty: value } : item,
-                    ),
-                  )
-                }
-              />
-              {canPost &&
-              receipt?.status === 'AWAITING_COST' &&
-              persistedLine ? (
-                <NumericField
-                  label={`Đơn giá ${persistedLine.productName}`}
-                  kind="money"
-                  precision={20}
-                  value={costs[persistedLine.id] ?? ''}
-                  onChange={(value) =>
-                    setCosts((current) => ({
-                      ...current,
-                      [persistedLine.id]: value,
-                    }))
-                  }
-                />
-              ) : (
-                <span />
-              )}
-              {editable && lines.length > 1 ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setLines((current) => current.filter((_, i) => i !== index))
-                  }
-                  className="min-h-11 px-3 text-sm font-semibold text-red-700"
-                >
-                  Xóa
-                </button>
-              ) : null}
-            </div>
-          );
-        })}
-        {editable ? (
-          <button
-            type="button"
-            onClick={() =>
-              setLines((current) => [
-                ...current,
-                { productId: '', receivedQty: '1' },
-              ])
-            }
-            className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold"
-          >
-            Thêm dòng
-          </button>
-        ) : null}
-      </div>
-      <div className="sticky bottom-20 z-20 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-lg lg:static lg:border-0 lg:bg-slate-50 lg:p-0 lg:py-2 lg:shadow-none">
-        {editable && canDraft ? (
-          <button
-            disabled={!online || busy}
-            onClick={() => void save()}
-            className="min-h-11 rounded-lg bg-teal-700 px-5 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            Lưu nháp
-          </button>
-        ) : null}
-        {receipt?.status === 'DRAFT' && canDraft ? (
-          <button
-            disabled={!online || busy}
-            onClick={() =>
-              void perform(
-                () => api.command('submit', receipt.id, receipt.version),
-                'Đã gửi phiếu chờ nhập giá',
-              )
-            }
-            className="min-h-11 rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            Gửi owner nhập giá
-          </button>
-        ) : null}
-        {receipt?.status === 'AWAITING_COST' && canPost ? (
-          <button
-            disabled={
-              !online || busy || receipt.lines.some((line) => !costs[line.id])
-            }
-            onClick={() =>
-              void perform(
-                () =>
-                  api.post(
-                    receipt.id,
-                    receipt.version,
-                    receipt.lines.map((line) => ({
-                      lineId: line.id,
-                      unitCost: costs[line.id] ?? '',
-                    })),
-                  ),
-                'Đã ghi sổ phiếu nhập',
-              )
-            }
-            className="min-h-11 rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            Ghi sổ
-          </button>
-        ) : null}
-        {receipt?.status === 'POSTED' && canPost ? (
-          <button
-            disabled={!online || busy}
-            onClick={() =>
-              void perform(
-                () =>
-                  api.command(
-                    'reverse',
-                    receipt.id,
-                    receipt.version,
-                    'Owner đảo phiếu',
-                  ),
-                'Đã đảo phiếu nhập',
-              )
-            }
-            className="min-h-11 rounded-lg border border-red-300 px-5 text-sm font-semibold text-red-800 disabled:opacity-50"
-          >
-            Đảo phiếu
-          </button>
-        ) : null}
-        {receipt &&
-        ['DRAFT', 'AWAITING_COST'].includes(receipt.status) &&
-        canDraft ? (
-          <button
-            disabled={!online || busy}
-            onClick={() =>
-              void perform(
-                () =>
-                  api.command(
-                    'cancel',
-                    receipt.id,
-                    receipt.version,
-                    'Người dùng hủy phiếu',
-                  ),
-                'Đã hủy phiếu nhập',
-                true,
-              )
-            }
-            className="min-h-11 px-5 text-sm font-semibold text-red-700 disabled:opacity-50"
-          >
-            Hủy phiếu
-          </button>
-        ) : null}
-      </div>
+      <PurchaseLineEditor
+        lines={lines}
+        products={products}
+        receipt={receipt}
+        costs={costs}
+        editable={editable}
+        canPost={Boolean(canPost)}
+        lineProductIds={lineProductIds}
+        setLines={setLines}
+        setCosts={setCosts}
+      />
+      <PurchaseActions
+        api={api}
+        receipt={receipt}
+        costs={costs}
+        editable={editable}
+        canDraft={Boolean(canDraft)}
+        canPost={Boolean(canPost)}
+        online={online}
+        busy={busy}
+        onSave={save}
+        onPerform={perform}
+      />
     </section>
   );
 }
