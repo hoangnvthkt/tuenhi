@@ -95,7 +95,7 @@ describe('ChangePasswordPage', () => {
     await user.click(screen.getByRole('button', { name: 'Đổi mật khẩu' }));
 
     expect(await screen.findByText('Ứng dụng bán hàng')).toBeInTheDocument();
-    expect(changePassword).toHaveBeenCalledWith('Matkhaumoi1');
+    expect(changePassword).toHaveBeenCalledWith('Matkhaumoi1', true);
     expect(router.state.location.pathname).toBe('/');
   });
 });

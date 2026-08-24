@@ -136,7 +136,10 @@ export function AuthProvider({
         await refresh();
       },
       changePassword: async (password) => {
-        await api.changePassword(password);
+        await api.changePassword(
+          password,
+          session?.mustChangePassword ?? false,
+        );
         await refresh();
       },
       signOut: async () => {

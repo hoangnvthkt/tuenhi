@@ -18,7 +18,10 @@ export interface SessionApi {
   getAuthSession(): Promise<AuthSession | null>;
   getSessionContext(): Promise<SessionContext>;
   signIn(email: string, password: string): Promise<void>;
-  changePassword(password: string): Promise<void>;
+  changePassword(
+    password: string,
+    isInitialPasswordChange: boolean,
+  ): Promise<void>;
   signOut(): Promise<void>;
   subscribe(listener: () => void): () => void;
 }

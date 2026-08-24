@@ -27,7 +27,7 @@ type PasswordChangeValues = z.infer<typeof passwordChangeSchema>;
 
 export function ChangePasswordPage() {
   const navigate = useNavigate();
-  const { changePassword, signOut } = useSession();
+  const { changePassword, session, signOut } = useSession();
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
@@ -59,7 +59,9 @@ export function ChangePasswordPage() {
             Tạo mật khẩu mới
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Bạn cần đổi mật khẩu tạm trước khi sử dụng hệ thống.
+            {session?.mustChangePassword
+              ? 'Bạn cần đổi mật khẩu tạm trước khi sử dụng hệ thống.'
+              : 'Đổi mật khẩu để bảo vệ tài khoản của bạn.'}
           </p>
         </div>
 

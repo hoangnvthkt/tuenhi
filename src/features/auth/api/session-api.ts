@@ -104,7 +104,15 @@ export function createSessionApi(): SessionApi {
       }
     },
 
-    async changePassword(password) {
+    async changePassword(password, isInitialPasswordChange) {
+      if (!isInitialPasswordChange) {
+        const { error } = await client.auth.updateUser({ password });
+        if (error) {
+          throw safeFailure('Không thể đổi mật khẩu. Vui lòng thử lại.');
+        }
+        return;
+      }
+
       const { data, error } = await client.functions.invoke(
         'change-initial-password',
         { body: { password } },
