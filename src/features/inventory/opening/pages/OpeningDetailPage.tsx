@@ -4,12 +4,16 @@ import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createCatalogApi } from '@/features/catalog';
+import { createOpeningApi } from '../api/opening-api';
+import type {
+  OpeningDocument,
+  OpeningSuggestion,
+} from '../api/opening-schemas';
 import {
-  createInventoryApi,
-  type OpeningDocument,
-  type OpeningSuggestion,
-} from './inventory-api';
-import { formatMoney, safeInventoryMessage, statusLabel } from './inventory-ui';
+  formatMoney,
+  safeInventoryMessage,
+  statusLabel,
+} from '../../model/inventory-ui';
 
 type OpeningLine = {
   productId: string;
@@ -24,7 +28,7 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
   const navigate = useNavigate();
   const online = useOnlineStatus();
   const toast = useToast();
-  const [api] = useState(createInventoryApi);
+  const [api] = useState(createOpeningApi);
   const [catalogApi] = useState(createCatalogApi);
   const [document, setDocument] = useState<OpeningDocument | null>(null);
   const [products, setProducts] = useState<
@@ -51,12 +55,12 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
       .then((page) => active && setProducts(page.items))
       .catch(() => undefined);
     api
-      .listSuggestions()
+      .suggestions()
       .then((page) => active && setSuggestions(page.items))
       .catch(() => undefined);
     if (!isCreate && countId)
       api
-        .getOpening(countId)
+        .detail(countId)
         .then((data) => {
           if (!active) return;
           setDocument(data);
@@ -113,7 +117,7 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
       await action();
       toast.show({ kind: 'success', title, message: title });
       if (redirect) navigate('/more/inventory/opening');
-      else if (countId) setDocument(await api.getOpening(countId));
+      else if (countId) setDocument(await api.detail(countId));
     } catch (reason) {
       const message = safeInventoryMessage(reason);
       setError(message);
@@ -140,7 +144,7 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
       return;
     }
     await perform(async () => {
-      const result = await api.saveOpening({
+      const result = await api.save({
         id: document?.id,
         expectedVersion: document?.version,
         note,
@@ -353,8 +357,7 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
             disabled={!online || busy}
             onClick={() =>
               void perform(
-                () =>
-                  api.commandOpening('submit', document.id, document.version),
+                () => api.command('submit', document.id, document.version),
                 'Đã hoàn tất kiểm đếm',
               )
             }
@@ -368,7 +371,7 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
             disabled={!online || busy}
             onClick={() =>
               void perform(
-                () => api.commandOpening('post', document.id, document.version),
+                () => api.command('post', document.id, document.version),
                 'Đã ghi sổ tồn đầu kỳ',
               )
             }
@@ -383,7 +386,7 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
             onClick={() =>
               void perform(
                 () =>
-                  api.commandOpening(
+                  api.command(
                     'cancel',
                     document.id,
                     document.version,

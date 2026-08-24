@@ -1,23 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { createInventoryApi } from './inventory-api';
+import { createOpeningApi } from '../api/opening-api';
 import {
   formatMoney,
   formatNumber,
   safeInventoryMessage,
   statusLabel,
-} from './inventory-ui';
+} from '../../model/inventory-ui';
 
 export function OpeningListPage() {
-  const [api] = useState(createInventoryApi);
+  const [api] = useState(createOpeningApi);
   const [items, setItems] = useState<
-    Awaited<ReturnType<typeof api.listOpenings>>['items']
+    Awaited<ReturnType<typeof api.list>>['items']
   >([]);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
     api
-      .listOpenings()
+      .list()
       .then((page) => active && setItems(page.items))
       .catch(
         (reason: unknown) => active && setError(safeInventoryMessage(reason)),

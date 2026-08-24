@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useSession } from '@/features/auth';
-import { createInventoryApi } from './inventory-api';
+import { createPurchaseApi } from '../api/purchase-api';
 import {
   formatNumber,
   safeInventoryMessage,
   statusLabel,
-} from './inventory-ui';
+} from '../../model/inventory-ui';
 
 export function PurchaseListPage() {
-  const [api] = useState(createInventoryApi);
+  const [api] = useState(createPurchaseApi);
   const { session } = useSession();
   const [items, setItems] = useState<
-    Awaited<ReturnType<typeof api.listPurchases>>['items']
+    Awaited<ReturnType<typeof api.list>>['items']
   >([]);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
     api
-      .listPurchases()
+      .list()
       .then((page) => active && setItems(page.items))
       .catch(
         (reason: unknown) => active && setError(safeInventoryMessage(reason)),

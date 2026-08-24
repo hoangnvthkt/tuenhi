@@ -11,11 +11,15 @@ import { ImportPage } from '../features/imports/ImportPage';
 import { LegacySaleDetailPage } from '../features/legacy-sales/LegacySaleDetailPage';
 import { LegacySalesPage } from '../features/legacy-sales/LegacySalesPage';
 import { SalesChannelPage, StoreSettingsPage } from '@/features/settings';
-import { InventoryValuationPage } from '../features/inventory/InventoryValuationPage';
-import { OpeningDetailPage } from '../features/inventory/OpeningDetailPage';
-import { OpeningListPage } from '../features/inventory/OpeningListPage';
-import { PurchaseDetailPage } from '../features/inventory/PurchaseDetailPage';
-import { PurchaseListPage } from '../features/inventory/PurchaseListPage';
+import {
+  InventoryValuationPage,
+  OpeningDetailPage,
+  OpeningListPage,
+  PurchaseDetailPage,
+  PurchaseListPage,
+  StockCountDetailPage,
+  StockCountListPage,
+} from '@/features/inventory';
 import { StaffPage } from '@/features/staff';
 import { PosPage, SaleDetailPage, SalesListPage } from '@/features/sales';
 import {
@@ -23,8 +27,6 @@ import {
   ReturnDetailPage,
   ReturnListPage,
 } from '@/features/returns';
-import { StockCountDetailPage } from '../features/inventory/StockCountDetailPage';
-import { StockCountListPage } from '../features/inventory/StockCountListPage';
 import { ReportPage } from '@/features/reports';
 import { AppShell } from './layout/AppShell';
 import { DashboardPage } from '@/features/dashboard';

@@ -4,7 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import { SessionContextValue } from '@/features/auth';
 import { PurchaseDetailPage } from './PurchaseDetailPage';
-import type { createInventoryApi, PurchaseReceipt } from './inventory-api';
+import type { createPurchaseApi } from '../api/purchase-api';
+import type { PurchaseReceipt } from '../api/purchase-schemas';
 import type { createCatalogApi } from '@/features/catalog';
 import type { createDirectoryApi } from '@/features/directories';
 
@@ -47,9 +48,9 @@ const receipt: PurchaseReceipt = {
 function renderPage(permissions: string[], online = true) {
   const getPurchaseCost = vi.fn();
   const inventoryApi = {
-    getPurchase: vi.fn().mockResolvedValue(receipt),
-    getPurchaseCost,
-  } as unknown as ReturnType<typeof createInventoryApi>;
+    detail: vi.fn().mockResolvedValue(receipt),
+    cost: getPurchaseCost,
+  } as unknown as ReturnType<typeof createPurchaseApi>;
   const catalogApi = {
     list: vi.fn().mockResolvedValue({
       items: [

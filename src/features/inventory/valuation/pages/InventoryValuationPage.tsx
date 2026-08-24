@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import { createInventoryApi, type ValuationPage } from './inventory-api';
+import { createValuationApi } from '../api/valuation-api';
+import type { ValuationPage } from '../api/valuation-schemas';
 import {
   formatMoney,
   formatNumber,
   safeInventoryMessage,
-} from './inventory-ui';
+} from '../../model/inventory-ui';
 
 export function InventoryValuationPage() {
-  const [api] = useState(createInventoryApi);
+  const [api] = useState(createValuationApi);
   const [page, setPage] = useState<ValuationPage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -15,7 +16,7 @@ export function InventoryValuationPage() {
   useEffect(() => {
     let active = true;
     api
-      .valuation(search)
+      .list(search)
       .then((data) => active && setPage(data))
       .catch(
         (reason: unknown) => active && setError(safeInventoryMessage(reason)),
@@ -28,7 +29,7 @@ export function InventoryValuationPage() {
     if (!page?.nextCursor) return;
     setLoadingMore(true);
     try {
-      const next = await api.valuation(search, page.nextCursor);
+      const next = await api.list(search, page.nextCursor);
       setPage((current) =>
         current ? { ...next, items: [...current.items, ...next.items] } : next,
       );

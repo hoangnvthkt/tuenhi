@@ -6,8 +6,13 @@ import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createCatalogApi } from '@/features/catalog';
 import { createDirectoryApi } from '@/features/directories';
 import { useSession } from '@/features/auth';
-import { createInventoryApi, type PurchaseReceipt } from './inventory-api';
-import { formatMoney, safeInventoryMessage, statusLabel } from './inventory-ui';
+import { createPurchaseApi } from '../api/purchase-api';
+import type { PurchaseReceipt } from '../api/purchase-schemas';
+import {
+  formatMoney,
+  safeInventoryMessage,
+  statusLabel,
+} from '../../model/inventory-ui';
 
 type DraftLine = { productId: string; receivedQty: string };
 
@@ -19,7 +24,7 @@ export function PurchaseDetailPage({
   online: onlineProp,
 }: {
   mode?: 'create';
-  api?: ReturnType<typeof createInventoryApi>;
+  api?: ReturnType<typeof createPurchaseApi>;
   catalogApi?: ReturnType<typeof createCatalogApi>;
   directoryApi?: ReturnType<typeof createDirectoryApi>;
   online?: boolean;
@@ -30,7 +35,7 @@ export function PurchaseDetailPage({
   const online = onlineProp ?? detectedOnline;
   const toast = useToast();
   const { session } = useSession();
-  const [api] = useState(() => apiProp ?? createInventoryApi());
+  const [api] = useState(() => apiProp ?? createPurchaseApi());
   const [catalogApi] = useState(() => catalogApiProp ?? createCatalogApi());
   const [directoryApi] = useState(
     () => directoryApiProp ?? createDirectoryApi(),
@@ -71,7 +76,7 @@ export function PurchaseDetailPage({
       .catch(() => undefined);
     if (!isCreate && receiptId) {
       api
-        .getPurchase(receiptId)
+        .detail(receiptId)
         .then((data) => {
           if (!active) return;
           setReceipt(data);
@@ -90,7 +95,7 @@ export function PurchaseDetailPage({
         );
       if (canReadCost) {
         api
-          .getPurchaseCost(receiptId)
+          .cost(receiptId)
           .then((detail) => {
             if (!active) return;
             const serverCosts = Object.fromEntries(
@@ -123,7 +128,7 @@ export function PurchaseDetailPage({
       await action();
       toast.show({ kind: 'success', title: success, message: success });
       if (redirect) navigate('/more/purchases');
-      else if (receiptId) setReceipt(await api.getPurchase(receiptId));
+      else if (receiptId) setReceipt(await api.detail(receiptId));
     } catch (reason) {
       const message = safeInventoryMessage(reason);
       setError(message);
@@ -147,7 +152,7 @@ export function PurchaseDetailPage({
       return;
     }
     await perform(async () => {
-      const result = await api.savePurchase({
+      const result = await api.save({
         id: receipt?.id,
         expectedVersion: receipt?.version,
         supplierId: supplierId || undefined,
@@ -356,8 +361,7 @@ export function PurchaseDetailPage({
             disabled={!online || busy}
             onClick={() =>
               void perform(
-                () =>
-                  api.commandPurchase('submit', receipt.id, receipt.version),
+                () => api.command('submit', receipt.id, receipt.version),
                 'Đã gửi phiếu chờ nhập giá',
               )
             }
@@ -374,7 +378,7 @@ export function PurchaseDetailPage({
             onClick={() =>
               void perform(
                 () =>
-                  api.postPurchase(
+                  api.post(
                     receipt.id,
                     receipt.version,
                     receipt.lines.map((line) => ({
@@ -396,7 +400,7 @@ export function PurchaseDetailPage({
             onClick={() =>
               void perform(
                 () =>
-                  api.commandPurchase(
+                  api.command(
                     'reverse',
                     receipt.id,
                     receipt.version,
@@ -418,7 +422,7 @@ export function PurchaseDetailPage({
             onClick={() =>
               void perform(
                 () =>
-                  api.commandPurchase(
+                  api.command(
                     'cancel',
                     receipt.id,
                     receipt.version,

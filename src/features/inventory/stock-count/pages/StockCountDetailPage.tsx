@@ -5,12 +5,13 @@ import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
 import { createCatalogApi } from '@/features/catalog';
-import { createInventoryApi, type PeriodicStockCount } from './inventory-api';
+import { createStockCountApi } from '../api/stock-count-api';
+import type { PeriodicStockCount } from '../api/stock-count-schemas';
 import {
   formatNumber,
   safeInventoryMessage,
   statusLabel,
-} from './inventory-ui';
+} from '../../model/inventory-ui';
 
 type CountLine = { productId: string; countedQty: string | null };
 
@@ -19,7 +20,7 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
   const navigate = useNavigate();
   const online = useOnlineStatus();
   const toast = useToast();
-  const [api] = useState(createInventoryApi);
+  const [api] = useState(createStockCountApi);
   const [catalogApi] = useState(createCatalogApi);
   const [document, setDocument] = useState<PeriodicStockCount | null>(null);
   const [products, setProducts] = useState<
@@ -43,7 +44,7 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
       .catch(() => undefined);
     if (!isCreate && countId) {
       api
-        .getStockCount(countId)
+        .detail(countId)
         .then((value) => {
           if (!active) return;
           setDocument(value);
@@ -73,7 +74,7 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
     products.find((product) => product.id === id);
 
   async function reload() {
-    if (countId) setDocument(await api.getStockCount(countId));
+    if (countId) setDocument(await api.detail(countId));
   }
   async function perform(
     action: () => Promise<unknown>,
@@ -121,7 +122,7 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
       return;
     }
     await perform(async () => {
-      const result = await api.saveStockCount({
+      const result = await api.save({
         id: document?.id,
         expectedVersion: document?.version,
         note,
@@ -138,13 +139,7 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
       return;
     }
     await perform(
-      () =>
-        api.commandStockCount(
-          command,
-          document.id,
-          document.version,
-          reason.trim(),
-        ),
+      () => api.command(command, document.id, document.version, reason.trim()),
       command === 'submit'
         ? 'Đã gửi phiếu kiểm kho'
         : command === 'refresh'
@@ -183,7 +178,7 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
     )
       return;
     await perform(
-      () => api.postStockCount(document.id, document.version, values),
+      () => api.post(document.id, document.version, values),
       'Đã ghi sổ phiếu kiểm kho',
     );
   }

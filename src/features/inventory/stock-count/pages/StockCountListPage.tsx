@@ -1,14 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { useState } from 'react';
-import { createInventoryApi } from './inventory-api';
-import { statusLabel } from './inventory-ui';
+import { createStockCountApi } from '../api/stock-count-api';
+import { statusLabel } from '../../model/inventory-ui';
 
 export function StockCountListPage() {
+  const [api] = useState(createStockCountApi);
   const [status, setStatus] = useState('');
   const query = useQuery({
     queryKey: ['stock-counts', status],
-    queryFn: () => createInventoryApi().listStockCounts(status || undefined),
+    queryFn: () => api.list(status || undefined),
   });
   return (
     <main className="mx-auto max-w-6xl p-4 sm:p-6">
