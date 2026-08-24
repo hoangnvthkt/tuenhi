@@ -84,14 +84,14 @@ export function PosPage() {
           note: string;
         };
         setItems(value.items);
-        setChannelId(value.channelId || channelId);
+        if (value.channelId) setChannelId(value.channelId);
         setCustomerId(value.customerId);
         setOrderDiscount(value.orderDiscount);
         setNote(value.note);
       } catch {
         /* ignore damaged local cart */
       }
-  }, [channelId, session?.userId, saleId]);
+  }, [session?.userId, saleId]);
   useEffect(() => {
     if (!session?.userId || saleId) return;
     localStorage.setItem(
