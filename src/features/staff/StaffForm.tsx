@@ -44,8 +44,12 @@ export function StaffForm({
     try {
       await onSubmit(values);
       reset();
-    } catch {
-      setServerError('Không thể tạo tài khoản. Vui lòng thử lại.');
+    } catch (error) {
+      setServerError(
+        error instanceof Error
+          ? error.message
+          : 'Không thể tạo tài khoản. Vui lòng thử lại.',
+      );
     }
   });
 

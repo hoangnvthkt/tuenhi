@@ -232,7 +232,9 @@ test('nhân viên trả hàng, kiểm kho; owner ghi sổ và hủy hóa đơn',
   await page.getByLabel('Số lượng chấp nhận').fill('1');
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Hoàn tất trả hàng' }).click();
-  await expect(page.getByText(/Đã hoàn/)).toBeVisible();
+  await expect(
+    page.getByText('Đã hoàn tất trả hàng', { exact: true }),
+  ).toBeVisible();
 
   await page.goto('/stock-counts/new');
   await page.getByRole('combobox').selectOption(productId);

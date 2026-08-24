@@ -1,3 +1,4 @@
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { getBusinessErrorMessage } from '../../lib/errors/command-error';
 import { getSupabaseClient } from '../../lib/supabase/client';
@@ -117,6 +118,24 @@ function assertMutation(data: unknown) {
   if (!parsed.data.ok) throw safeCommandFailure(parsed.data.error.code);
 }
 
+async function safeFunctionFailure(error: unknown) {
+  if (
+    error instanceof FunctionsHttpError &&
+    error.context instanceof Response
+  ) {
+    try {
+      const data = await error.context.clone().json();
+      const parsed = mutationEnvelopeSchema.safeParse(data);
+      if (parsed.success && !parsed.data.ok) {
+        return safeCommandFailure(parsed.data.error.code);
+      }
+    } catch {
+      // Fall through to the generic safe message.
+    }
+  }
+  return safeCommandFailure();
+}
+
 export function createStaffApi(): StaffApi {
   const client = getSupabaseClient();
 
@@ -134,7 +153,7 @@ export function createStaffApi(): StaffApi {
       const { data, error } = await client.functions.invoke('create-employee', {
         body: { ...input, idempotencyKey: crypto.randomUUID() },
       });
-      if (error) throw safeCommandFailure();
+      if (error) throw await safeFunctionFailure(error);
       assertMutation(data);
     },
 

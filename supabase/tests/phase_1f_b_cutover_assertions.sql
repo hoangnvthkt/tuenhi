@@ -44,7 +44,13 @@ begin
   if position('PRODUCTION_AUTH_HARDENING_REQUIRED' in pg_get_functiondef(
     'app_private.finalize_staff_profile_impl(uuid,text,text,text,uuid,uuid)'::regprocedure
   )) = 0 then
-    raise exception 'staff finalization missing owner-pilot hardening guard';
+    raise exception 'staff finalization missing pre-hardening guard';
+  end if;
+
+  if position('lifecycle.mode = ''OWNER_PILOT''' in pg_get_functiondef(
+    'app_private.finalize_staff_profile_impl(uuid,text,text,text,uuid,uuid)'::regprocedure
+  )) > 0 then
+    raise exception 'staff finalization guard must also apply in PRE_PRODUCTION';
   end if;
 end;
 $$;

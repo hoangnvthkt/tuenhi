@@ -37,14 +37,11 @@ Deno.serve(async (request) => {
     );
   }
   const lifecycleData = lifecycle.data as Record<string, unknown>;
-  if (
-    lifecycleData.mode === 'OWNER_PILOT' &&
-    lifecycleData.authHardeningCompletedAt === null
-  ) {
+  if (typeof lifecycleData.authHardeningCompletedAt !== 'string') {
     return failure(
       409,
       'PRODUCTION_AUTH_HARDENING_REQUIRED',
-      'Pilot chỉ cho phép chủ cửa hàng sử dụng. Hãy bật bảo vệ mật khẩu bị rò rỉ trước khi tạo nhân viên.',
+      'Chỉ chủ cửa hàng được sử dụng trước khi hoàn tất bảo vệ mật khẩu.',
     );
   }
 

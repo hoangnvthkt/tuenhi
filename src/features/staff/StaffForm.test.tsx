@@ -46,4 +46,28 @@ describe('StaffForm', () => {
     );
     expect(screen.queryByText('Matkhau123')).not.toBeInTheDocument();
   });
+
+  it('shows the safe actionable message returned by the staff API', async () => {
+    const user = userEvent.setup();
+    render(
+      <StaffForm
+        onSubmit={vi
+          .fn()
+          .mockRejectedValue(
+            new Error(
+              'Chưa thể tạo nhân viên. Hãy hoàn tất bảo vệ mật khẩu trước khi mở tài khoản nhân viên.',
+            ),
+          )}
+      />,
+    );
+
+    await user.type(screen.getByLabelText('Email nhân viên'), 'nv@example.com');
+    await user.type(screen.getByLabelText('Tên hiển thị'), 'Nhân viên A');
+    await user.type(screen.getByLabelText('Mật khẩu tạm'), 'Matkhau123');
+    await user.click(screen.getByRole('button', { name: 'Tạo tài khoản' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Chưa thể tạo nhân viên. Hãy hoàn tất bảo vệ mật khẩu trước khi mở tài khoản nhân viên.',
+    );
+  });
 });

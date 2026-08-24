@@ -57,7 +57,6 @@ const phaseLabel = process.env.PHASE_TEST_LABEL ?? 'Phase 1E';
 const cleanupRpc =
   process.env.PHASE_TEST_CLEANUP_RPC ?? 'cleanup_phase1e_test_users';
 const authIds = [];
-const profileIds = [];
 let passed = 0;
 
 async function rpc(client, name, args, ok = true) {
@@ -94,7 +93,6 @@ async function identity(label, role, createdBy = null) {
     created_by: createdBy,
   });
   assert(!profileError, `Không thể tạo profile ${label}.`);
-  profileIds.push(data.user.id);
   const client = browser();
   const { error: loginError } = await client.auth.signInWithPassword({
     email,
@@ -103,11 +101,55 @@ async function identity(label, role, createdBy = null) {
   assert(!loginError, `Không thể đăng nhập JWT cho ${label}.`);
   return { id: data.user.id, client };
 }
+async function authIdentity(label) {
+  const email = `codex-${testPrefix}-${label}-${runId}@example.invalid`;
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  assert(!error && data.user, `Không thể tạo Auth user ${label}.`);
+  authIds.push(data.user.id);
+  return { id: data.user.id, email };
+}
+async function bootstrapOwnerIdentity(label) {
+  const auth = await authIdentity(label);
+  const result = await rpc(admin, 'finalize_staff_profile', {
+    p_user_id: auth.id,
+    p_email: auth.email,
+    p_display_name: `${phaseLabel} owner ${marker}`,
+    p_role_template: 'OWNER',
+    p_created_by: auth.id,
+    p_idempotency_key: crypto.randomUUID(),
+  });
+  assert(result.data?.created === true, 'Bootstrap owner không tạo profile.');
+  const { error: updateError } = await admin
+    .from('profiles')
+    .update({ must_change_password: false })
+    .eq('id', auth.id);
+  assert(!updateError, 'Không thể hoàn tất profile owner test.');
+  const client = browser();
+  const { error: loginError } = await client.auth.signInWithPassword({
+    email: auth.email,
+    password,
+  });
+  assert(!loginError, 'Không thể đăng nhập JWT owner bootstrap.');
+  return { id: auth.id, client };
+}
 async function cleanup() {
   let failed = false;
-  if (profileIds.length) {
+  let cleanupProfileIds = [];
+  if (authIds.length) {
+    const { data, error } = await admin
+      .from('profiles')
+      .select('id')
+      .in('id', authIds);
+    failed ||= Boolean(error);
+    cleanupProfileIds = data?.map((profile) => profile.id) ?? [];
+  }
+  if (cleanupProfileIds.length) {
     const { data, error } = await admin.rpc(cleanupRpc, {
-      p_user_ids: profileIds,
+      p_user_ids: cleanupProfileIds,
     });
     failed ||= Boolean(error) || !data?.ok || data.data.remainingProfiles !== 0;
   }
@@ -120,8 +162,70 @@ async function cleanup() {
 }
 
 try {
-  const owner = await identity('owner', 'OWNER');
+  let owner;
+  await pass('bootstrap owner đầu tiên vẫn được phép', async () => {
+    owner = await bootstrapOwnerIdentity('owner');
+  });
   const staff = await identity('staff', 'SALES_WAREHOUSE', owner.id);
+
+  await pass(
+    'owner không thể lách Auth hardening bằng finalize_staff_profile',
+    async () => {
+      const guarded = await authIdentity('hardening-rpc');
+      const result = await rpc(
+        admin,
+        'finalize_staff_profile',
+        {
+          p_user_id: guarded.id,
+          p_email: guarded.email,
+          p_display_name: `${phaseLabel} hardening RPC ${marker}`,
+          p_role_template: 'SALES_WAREHOUSE',
+          p_created_by: owner.id,
+          p_idempotency_key: crypto.randomUUID(),
+        },
+        false,
+      );
+      assert(
+        result.error?.code === 'PRODUCTION_AUTH_HARDENING_REQUIRED',
+        'PRE_PRODUCTION vẫn cho phép tạo profile nhân viên trực tiếp.',
+      );
+    },
+  );
+
+  await pass(
+    'owner không thể tạo nhân viên qua Edge Function trước Auth hardening',
+    async () => {
+      const email = `codex-${testPrefix}-hardening-edge-${runId}@example.invalid`;
+      const { data, error } = await owner.client.functions.invoke(
+        'create-employee',
+        {
+          body: {
+            email,
+            displayName: `${phaseLabel} hardening Edge ${marker}`,
+            roleTemplate: 'SALES_WAREHOUSE',
+            temporaryPassword: password,
+            idempotencyKey: crypto.randomUUID(),
+          },
+        },
+      );
+
+      if (envelope(data) && data.ok === true && data.data?.userId) {
+        authIds.push(data.data.userId);
+      }
+
+      let result = data;
+      if (error?.context instanceof Response) {
+        result = await error.context.clone().json();
+      }
+      assert(
+        envelope(result) &&
+          result.ok === false &&
+          result.error?.code === 'PRODUCTION_AUTH_HARDENING_REQUIRED',
+        'PRE_PRODUCTION vẫn cho phép Edge Function tạo nhân viên.',
+      );
+    },
+  );
+
   const product = await rpc(owner.client, 'save_product', {
     p_product_id: null,
     p_expected_version: null,

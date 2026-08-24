@@ -38,6 +38,8 @@ export const businessErrorMessages = {
   REPORT_DATE_RANGE_INVALID: 'Khoảng thời gian báo cáo chưa hợp lệ.',
   REPORT_SCOPE_DENIED: 'Bạn không có quyền xem phạm vi báo cáo này.',
   REPORT_LIMIT_INVALID: 'Phân trang báo cáo chưa hợp lệ.',
+  PRODUCTION_AUTH_HARDENING_REQUIRED:
+    'Chưa thể tạo nhân viên. Hãy hoàn tất bảo vệ mật khẩu trước khi mở tài khoản nhân viên.',
 } as const;
 
 export type BusinessErrorCode = keyof typeof businessErrorMessages;

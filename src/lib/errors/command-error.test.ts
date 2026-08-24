@@ -8,6 +8,12 @@ describe('getBusinessErrorMessage', () => {
     );
   });
 
+  it('maps the pre-hardening staff guard to actionable Vietnamese copy', () => {
+    expect(getBusinessErrorMessage('PRODUCTION_AUTH_HARDENING_REQUIRED')).toBe(
+      'Chưa thể tạo nhân viên. Hãy hoàn tất bảo vệ mật khẩu trước khi mở tài khoản nhân viên.',
+    );
+  });
+
   it('uses safe generic copy for an unknown server code', () => {
     expect(getBusinessErrorMessage('SERVER_DETAIL_NOT_FOR_USERS')).toBe(
       'Không thể hoàn tất thao tác. Vui lòng thử lại.',
