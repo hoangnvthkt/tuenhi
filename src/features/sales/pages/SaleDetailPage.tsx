@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router';
 import { useState } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
-import { createSalesApi, type Invoice } from './sales-api';
+import { createSalesApi } from '../api/sales-api';
+import type { Invoice } from '../api/sales-schemas';
 import { getSupabaseClient } from '@/shared/supabase/client';
 import { useSession } from '@/features/auth';
 const money = (v: string) =>
@@ -52,11 +53,12 @@ export function SaleDetailPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { session } = useSession();
+  const [api] = useState(createSalesApi);
   const [cancelReason, setCancelReason] = useState('');
   const [busy, setBusy] = useState(false);
   const query = useQuery({
     queryKey: ['invoice', saleId],
-    queryFn: () => createSalesApi().invoice(saleId!),
+    queryFn: () => api.invoice(saleId!),
     enabled: Boolean(saleId),
   });
   const invoice = query.data;
@@ -81,8 +83,8 @@ export function SaleDetailPage() {
       return;
     setBusy(true);
     try {
-      const detail = await createSalesApi().detail(saleId);
-      await createSalesApi().cancelSale(
+      const detail = await api.detail(saleId);
+      await api.cancelSale(
         saleId,
         detail.version,
         cancelReason.trim(),

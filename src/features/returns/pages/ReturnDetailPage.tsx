@@ -5,7 +5,7 @@ import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
-import { createSalesApi } from '../sales/sales-api';
+import { createReturnsApi } from '../api/returns-api';
 
 const money = (value: string) =>
   new Intl.NumberFormat('vi-VN', {
@@ -19,10 +19,10 @@ export function ReturnDetailPage() {
   const online = useOnlineStatus();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const [api] = useState(createSalesApi);
+  const [api] = useState(createReturnsApi);
   const query = useQuery({
     queryKey: ['sale-return', returnId],
-    queryFn: () => api.getReturn(returnId!),
+    queryFn: () => api.detail(returnId!),
     enabled: Boolean(returnId),
   });
   const [accepted, setAccepted] = useState<Record<string, string>>({});
@@ -80,7 +80,7 @@ export function ReturnDetailPage() {
       return;
     setBusy(true);
     try {
-      await api.completeReturn({
+      await api.complete({
         returnId: document.id,
         expectedVersion: document.version,
         lines,
@@ -105,7 +105,7 @@ export function ReturnDetailPage() {
       return;
     setBusy(true);
     try {
-      await api.cancelReturn(
+      await api.cancel(
         document.id,
         document.version,
         cancelReason.trim(),

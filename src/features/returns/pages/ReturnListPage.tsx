@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { useState } from 'react';
-import { createSalesApi } from '../sales/sales-api';
+import { createReturnsApi } from '../api/returns-api';
 
 const money = (value: string) =>
   new Intl.NumberFormat('vi-VN', {
@@ -18,11 +18,12 @@ const label: Record<string, string> = {
 };
 
 export function ReturnListPage() {
+  const [api] = useState(createReturnsApi);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const query = useQuery({
     queryKey: ['sale-returns', search, status],
-    queryFn: () => createSalesApi().listReturns({ search, status }),
+    queryFn: () => api.list({ search, status }),
   });
 
   return (

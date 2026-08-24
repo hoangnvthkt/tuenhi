@@ -17,12 +17,12 @@ import { OpeningListPage } from '../features/inventory/OpeningListPage';
 import { PurchaseDetailPage } from '../features/inventory/PurchaseDetailPage';
 import { PurchaseListPage } from '../features/inventory/PurchaseListPage';
 import { StaffPage } from '@/features/staff';
-import { PosPage } from '../features/sales/PosPage';
-import { SalesListPage } from '../features/sales/SalesListPage';
-import { SaleDetailPage } from '../features/sales/SaleDetailPage';
-import { ReturnCreatePage } from '../features/returns/ReturnCreatePage';
-import { ReturnDetailPage } from '../features/returns/ReturnDetailPage';
-import { ReturnListPage } from '../features/returns/ReturnListPage';
+import { PosPage, SaleDetailPage, SalesListPage } from '@/features/sales';
+import {
+  ReturnCreatePage,
+  ReturnDetailPage,
+  ReturnListPage,
+} from '@/features/returns';
 import { StockCountDetailPage } from '../features/inventory/StockCountDetailPage';
 import { StockCountListPage } from '../features/inventory/StockCountListPage';
 import { ReportPage } from '@/features/reports';

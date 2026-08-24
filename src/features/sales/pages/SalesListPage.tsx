@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { createSalesApi } from './sales-api';
+import { createSalesApi } from '../api/sales-api';
 const money = (v: string) =>
   new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -16,11 +16,12 @@ const statusLabels: Record<string, string> = {
   CANCELLED: 'Đã hủy',
 };
 export function SalesListPage() {
+  const [api] = useState(createSalesApi);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const query = useQuery({
     queryKey: ['sales', search, status],
-    queryFn: () => createSalesApi().list({ search, status }),
+    queryFn: () => api.list({ search, status }),
   });
   return (
     <main className="mx-auto max-w-6xl p-4 sm:p-6">

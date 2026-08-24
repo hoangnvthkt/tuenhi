@@ -4,13 +4,13 @@ import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
-import { createSalesApi, type ReturnLookup } from '../sales/sales-api';
+import { createSalesApi, type Invoice } from '@/features/sales';
+import { createReturnsApi } from '../api/returns-api';
+import type { ReturnLookup } from '../api/returns-schemas';
 
 type RequestedLine = { originalSaleLineId: string; requestedQty: string };
 
-function toLookup(
-  invoice: Awaited<ReturnType<ReturnType<typeof createSalesApi>['invoice']>>,
-): ReturnLookup {
+function toLookup(invoice: Invoice): ReturnLookup {
   return {
     saleId: invoice.sale.id,
     saleNumber: invoice.sale.saleNumber,
@@ -35,7 +35,8 @@ export function ReturnCreatePage() {
   const navigate = useNavigate();
   const online = useOnlineStatus();
   const toast = useToast();
-  const [api] = useState(createSalesApi);
+  const [salesApi] = useState(createSalesApi);
+  const [returnsApi] = useState(createReturnsApi);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [lookup, setLookup] = useState<ReturnLookup | null>(null);
   const [lines, setLines] = useState<RequestedLine[]>([]);
@@ -46,7 +47,7 @@ export function ReturnCreatePage() {
   useEffect(() => {
     if (!saleId) return;
     let active = true;
-    api
+    salesApi
       .invoice(saleId)
       .then((invoice) => {
         if (!active) return;
@@ -65,7 +66,7 @@ export function ReturnCreatePage() {
     return () => {
       active = false;
     };
-  }, [api, saleId]);
+  }, [saleId, salesApi]);
 
   const selected = useMemo(
     () =>
@@ -85,7 +86,7 @@ export function ReturnCreatePage() {
     setBusy(true);
     setError(null);
     try {
-      const value = await api.lookupReturnInvoice(invoiceNumber);
+      const value = await returnsApi.lookupInvoice(invoiceNumber);
       setLookup(value);
       setLines(
         value.lines.map((line) => ({
@@ -141,7 +142,7 @@ export function ReturnCreatePage() {
     setBusy(true);
     setError(null);
     try {
-      const result = await api.createReturn({
+      const result = await returnsApi.create({
         saleId: lookup.saleId,
         reason: reason.trim(),
         lines: selected,
