@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { z } from 'zod';
 import { useSession } from '../hooks/use-session';
 
@@ -122,6 +122,12 @@ export function LoginPage() {
           >
             {isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
           </button>
+          <Link
+            to="/forgot-password"
+            className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+          >
+            Quên mật khẩu?
+          </Link>
         </form>
       </section>
     </main>

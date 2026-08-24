@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { NavLink, Outlet } from 'react-router';
+import { Link, NavLink, Outlet } from 'react-router';
 import { useSession } from '@/features/auth';
 import { NotificationCenter } from '@/features/notifications';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
@@ -109,6 +109,12 @@ export function AppShell() {
                   </span>
                 </summary>
                 <div className="absolute right-0 z-20 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                  <Link
+                    to="/change-password"
+                    className="flex min-h-11 items-center rounded-lg px-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+                  >
+                    Đổi mật khẩu
+                  </Link>
                   <button
                     type="button"
                     onClick={() => void signOut()}

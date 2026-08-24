@@ -50,6 +50,14 @@ function renderLogin(api: SessionApi) {
 }
 
 describe('LoginPage', () => {
+  it('links anonymous users to password recovery', () => {
+    renderLogin(createApi());
+
+    expect(
+      screen.getByRole('link', { name: 'Quên mật khẩu?' }),
+    ).toHaveAttribute('href', '/forgot-password');
+  });
+
   it('shows field-level Vietnamese validation', async () => {
     const user = userEvent.setup();
     renderLogin(createApi());

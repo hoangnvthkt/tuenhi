@@ -9,4 +9,5 @@ export type {
 } from './model/session-context';
 export { SessionContextValue, type SessionValue } from './model/session-store';
 export { ChangePasswordPage } from './pages/ChangePasswordPage';
+export { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 export { LoginPage } from './pages/LoginPage';

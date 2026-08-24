@@ -5,7 +5,11 @@ import { AppShell } from './layout/AppShell';
 import { FoundationSectionPage } from './pages/FoundationSectionPage';
 import { MorePage } from './pages/MorePage';
 import { administrationRoutes } from './routes/administration-routes';
-import { changePasswordRoute, loginRoute } from './routes/auth-routes';
+import {
+  changePasswordRoute,
+  forgotPasswordRoute,
+  loginRoute,
+} from './routes/auth-routes';
 import { catalogRoutes } from './routes/catalog-routes';
 import { operationRoutes } from './routes/operation-routes';
 import { reportRoutes } from './routes/report-routes';
@@ -22,6 +26,7 @@ function foundationPage(title: string) {
 
 export const appRoutes: RouteObject[] = [
   loginRoute,
+  forgotPasswordRoute,
   {
     element: <RequireSession />,
     children: [
