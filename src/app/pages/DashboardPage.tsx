@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router';
-import { useOnlineStatus } from '../use-online-status';
+import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useSession } from '../../features/auth/use-session';
 import { createReportsApi } from '../../features/reports/reports-api';
 import {

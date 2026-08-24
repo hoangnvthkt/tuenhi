@@ -41,7 +41,7 @@
     "cutover:export-images": "node --env-file=.env scripts/cutover-export-images.mjs",
     "cutover:verify": "node --env-file=.env scripts/cutover-verify.mjs",
     "cutover:lifecycle": "node --env-file=.env scripts/cutover-lifecycle.mjs",
-    "supabase:types": "supabase gen types --linked --lang typescript --schema api > src/lib/supabase/database.types.ts",
+    "supabase:types": "supabase gen types --linked --lang typescript --schema api > src/shared/supabase/database.types.ts",
     "cloud:verify:phase1a": "supabase db query --linked --file supabase/tests/phase_1a_identity_assertions.sql && supabase db query --linked --file supabase/tests/phase_1a_password_change_assertions.sql && supabase db query --linked --file supabase/tests/phase_1a_notification_assertions.sql && supabase db query --linked --file supabase/tests/phase_1a_staff_assertions.sql",
     "cloud:verify:phase1b": "supabase db query --linked --file supabase/tests/phase_1b_catalog_assertions.sql && supabase db query --linked --file supabase/tests/phase_1b_storage_realtime_assertions.sql && supabase db query --linked --file supabase/tests/phase_1b_import_assertions.sql && supabase db query --linked --file supabase/tests/phase_1b_legacy_assertions.sql",
     "cloud:verify:phase1c": "supabase db query --linked --file supabase/tests/phase_1c_inventory_assertions.sql",

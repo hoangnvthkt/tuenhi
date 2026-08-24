@@ -1,4 +1,4 @@
-import { normalizePhone } from '../../lib/phone/normalize-phone';
+import { normalizePhone } from '@/shared/lib/phone/normalize-phone';
 
 export type SupplierFormValues = {
   code: string;

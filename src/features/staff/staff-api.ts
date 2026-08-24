@@ -1,7 +1,7 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { getBusinessErrorMessage } from '../../lib/errors/command-error';
-import { getSupabaseClient } from '../../lib/supabase/client';
+import { getBusinessErrorMessage } from '@/shared/api/command-error';
+import { getSupabaseClient } from '@/shared/supabase/client';
 
 const overrideSchema = z.object({
   permissionCode: z.string().min(1),

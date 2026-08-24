@@ -1,5 +1,5 @@
-import { validateCanonicalNumber } from '../../lib/numeric/canonical-number';
-import { normalizePhone } from '../../lib/phone/normalize-phone';
+import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
+import { normalizePhone } from '@/shared/lib/phone/normalize-phone';
 import type { ImportTarget } from './contracts';
 import { normalizeImportHeader } from './header-normalization';
 import { getTemplateContract } from './template-contracts';

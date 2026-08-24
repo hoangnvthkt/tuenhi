@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { formatViNumber } from '../../lib/numeric/canonical-number';
+import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
 import { createLegacySalesApi, type LegacySalesApi } from './legacy-sales-api';
 
 function money(value: string | null) {

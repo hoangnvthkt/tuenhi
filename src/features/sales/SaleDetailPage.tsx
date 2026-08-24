@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
 import { useState } from 'react';
-import { useOnlineStatus } from '../../app/use-online-status';
-import { useToast } from '../../components/feedback/use-toast';
+import { useOnlineStatus } from '@/shared/hooks/use-online-status';
+import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createSalesApi, type Invoice } from './sales-api';
-import { getSupabaseClient } from '../../lib/supabase/client';
+import { getSupabaseClient } from '@/shared/supabase/client';
 import { useSession } from '../auth/use-session';
 const money = (v: string) =>
   new Intl.NumberFormat('vi-VN', {

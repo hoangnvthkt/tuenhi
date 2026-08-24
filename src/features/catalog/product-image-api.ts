@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getSupabaseClient } from '../../lib/supabase/client';
+import { getSupabaseClient } from '@/shared/supabase/client';
 import { CatalogApiError, parseMutationEnvelope } from './catalog-api';
 
 const BUCKET = 'product-images';

@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from '../../features/auth/AuthProvider';
-import { ToastProvider } from '../../components/feedback/ToastProvider';
+import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import type { SessionApi } from '../../features/auth/session-context';
 import type { NotificationApi } from '../../features/notifications/notification-api';
 import { NotificationApiContext } from '../../features/notifications/notification-context';

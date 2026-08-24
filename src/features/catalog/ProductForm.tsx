@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { NumericField } from '../../components/forms/NumericField';
+import { NumericField } from '@/shared/ui/forms/NumericField';
 import { CatalogApiError } from './catalog-api';
 import type { CategoryOption, ProductFormValues } from './catalog-types';
 import { validateProductForm } from './catalog-validation';

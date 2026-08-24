@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { useOnlineStatus } from '../../app/use-online-status';
-import { NumericField } from '../../components/forms/NumericField';
-import { useToast } from '../../components/feedback/use-toast';
+import { useOnlineStatus } from '@/shared/hooks/use-online-status';
+import { NumericField } from '@/shared/ui/forms/NumericField';
+import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createCatalogApi } from '../catalog/catalog-api';
 import {
   createInventoryApi,

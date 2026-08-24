@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { useToast } from '../../components/feedback/use-toast';
-import { useOnlineStatus } from '../../app/use-online-status';
+import { useToast } from '@/shared/ui/feedback/use-toast';
+import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useSession } from '../auth/use-session';
 import { CommitStage } from './CommitStage';
 import { FileStage } from './FileStage';

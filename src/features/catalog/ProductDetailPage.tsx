@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { useOnlineStatus } from '../../app/use-online-status';
-import { useToast } from '../../components/feedback/use-toast';
-import { formatViNumber } from '../../lib/numeric/canonical-number';
+import { useOnlineStatus } from '@/shared/hooks/use-online-status';
+import { useToast } from '@/shared/ui/feedback/use-toast';
+import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
 import { useSession } from '../auth/use-session';
 import {
   CatalogApiError,

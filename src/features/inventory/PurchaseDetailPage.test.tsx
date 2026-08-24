@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { ToastProvider } from '../../components/feedback/ToastProvider';
+import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import { SessionContextValue } from '../auth/session-store';
 import { PurchaseDetailPage } from './PurchaseDetailPage';
 import type { createInventoryApi, PurchaseReceipt } from './inventory-api';

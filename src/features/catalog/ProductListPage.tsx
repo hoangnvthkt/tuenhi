@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { formatViNumber } from '../../lib/numeric/canonical-number';
+import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
 import { useSession } from '../auth/use-session';
 import {
   CatalogApiError,

@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { getBusinessErrorMessage } from '../../lib/errors/command-error';
-import { getSupabaseClient } from '../../lib/supabase/client';
-import type { Json } from '../../lib/supabase/database.types';
+import { getBusinessErrorMessage } from '@/shared/api/command-error';
+import { getSupabaseClient } from '@/shared/supabase/client';
+import type { Json } from '@/shared/supabase/database.types';
 
 const errorSchema = z.object({
   code: z.string(),

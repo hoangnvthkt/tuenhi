@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState, type FormEvent } from 'react';
-import { useOnlineStatus } from '../../app/use-online-status';
-import { useToast } from '../../components/feedback/use-toast';
+import { useOnlineStatus } from '@/shared/hooks/use-online-status';
+import { useToast } from '@/shared/ui/feedback/use-toast';
 import {
   createDirectoryApi,
   DirectoryApiError,

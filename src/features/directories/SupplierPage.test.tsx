@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { ToastProvider } from '../../components/feedback/ToastProvider';
+import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import { SessionContextValue } from '../auth/session-store';
 import type { DirectoryApi, SupplierItem } from './directory-api';
 import { SupplierPage } from './SupplierPage';

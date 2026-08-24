@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { validateCanonicalNumber } from '../../lib/numeric/canonical-number';
+import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
 import type { ProductFormValues } from './catalog-types';
 
 const productFormSchema = z.object({

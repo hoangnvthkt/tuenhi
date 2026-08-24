@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useToast } from '../../components/feedback/use-toast';
+import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createSalesApi } from '../sales/sales-api';
-import { getSupabaseClient } from '../../lib/supabase/client';
+import { getSupabaseClient } from '@/shared/supabase/client';
 const imageExtensions: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',

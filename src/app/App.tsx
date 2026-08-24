@@ -1,8 +1,8 @@
 import { createBrowserRouter, RouterProvider } from 'react-router';
-import type { SessionApi } from '../features/auth/session-context';
-import type { NotificationApi } from '../features/notifications/notification-api';
+import type { SessionApi } from '@/features/auth';
+import type { NotificationApi } from '@/features/notifications';
 import { appRoutes } from './app-routes';
-import { AppProviders } from './AppProviders';
+import { AppProviders } from './providers/AppProviders';
 
 const router = createBrowserRouter(appRoutes);
 

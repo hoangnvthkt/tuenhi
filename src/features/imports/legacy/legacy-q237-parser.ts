@@ -1,6 +1,6 @@
 import type * as XLSX from 'xlsx';
-import { validateCanonicalNumber } from '../../../lib/numeric/canonical-number';
-import { normalizePhone } from '../../../lib/phone/normalize-phone';
+import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
+import { normalizePhone } from '@/shared/lib/phone/normalize-phone';
 import { validateClientRows } from '../client-validation';
 import { normalizeImportHeader } from '../header-normalization';
 import {

@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { ToastContext } from '../../../components/feedback/toast-context';
+import { ToastContext } from '@/shared/ui/feedback/toast-context';
 import type { LegacySalesApi } from '../../legacy-sales/legacy-sales-api';
 import { LegacyImportFlow } from './LegacyImportFlow';
 import type { LegacyParseResult } from './legacy-q237-parser';

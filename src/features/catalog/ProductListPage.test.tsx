@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { ToastProvider } from '../../components/feedback/ToastProvider';
+import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import { SessionContextValue } from '../auth/session-store';
 import { CatalogApiError, type CatalogApi } from './catalog-api';
 import type { CatalogPage } from './catalog-types';

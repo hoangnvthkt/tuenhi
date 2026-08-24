@@ -1,9 +1,9 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getSupabaseClient } from '../../lib/supabase/client';
+import { getSupabaseClient } from '@/shared/supabase/client';
 import { createStaffApi } from './staff-api';
 
-vi.mock('../../lib/supabase/client', () => ({
+vi.mock('@/shared/supabase/client', () => ({
   getSupabaseClient: vi.fn(),
 }));
 

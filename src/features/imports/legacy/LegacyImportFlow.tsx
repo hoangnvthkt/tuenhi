@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { useToast } from '../../../components/feedback/use-toast';
+import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createCatalogApi } from '../../catalog/catalog-api';
 import { createDirectoryApi } from '../../directories/directory-api';
 import {

@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
 import { useState } from 'react';
-import { useOnlineStatus } from '../../app/use-online-status';
-import { NumericField } from '../../components/forms/NumericField';
-import { useToast } from '../../components/feedback/use-toast';
-import { validateCanonicalNumber } from '../../lib/numeric/canonical-number';
+import { useOnlineStatus } from '@/shared/hooks/use-online-status';
+import { NumericField } from '@/shared/ui/forms/NumericField';
+import { useToast } from '@/shared/ui/feedback/use-toast';
+import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
 import { createSalesApi } from '../sales/sales-api';
 
 const money = (value: string) =>

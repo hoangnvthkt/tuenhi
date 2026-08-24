@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 import { useSession } from '../auth/use-session';
-import { useOnlineStatus } from '../../app/use-online-status';
+import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { buildReportWorkbook, downloadReportWorkbook } from './report-workbook';
 import { createReportsApi, type ProfitPage } from './reports-api';
 import {
