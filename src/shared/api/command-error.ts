@@ -10,6 +10,8 @@ export const businessErrorMessages = {
   LINE_DISCOUNT_EXCEEDED: 'Giảm giá từng dòng không được vượt tiền hàng.',
   ORDER_DISCOUNT_EXCEEDED: 'Giảm giá toàn đơn vượt số tiền còn lại.',
   RETURN_QTY_EXCEEDED: 'Số lượng trả vượt quá số lượng còn được phép trả.',
+  RETURN_REQUEST_LINES_INVALID:
+    'Dòng hàng trả chưa hợp lệ. Hãy tải lại hóa đơn rồi thử lại.',
   RETURN_NOTHING_ACCEPTED: 'Cần chấp nhận ít nhất một sản phẩm trả lại.',
   ORIGINAL_INVOICE_REQUIRED: 'Vui lòng chọn hóa đơn gốc.',
   STALE_STOCK_COUNT: 'Tồn kho đã thay đổi. Vui lòng kiểm tra và đếm lại.',

@@ -20,6 +20,12 @@ describe('getBusinessErrorMessage', () => {
     );
   });
 
+  it('explains invalid return request lines without exposing server details', () => {
+    expect(getBusinessErrorMessage('RETURN_REQUEST_LINES_INVALID')).toBe(
+      'Dòng hàng trả chưa hợp lệ. Hãy tải lại hóa đơn rồi thử lại.',
+    );
+  });
+
   it.each(['toString', 'constructor'])(
     'uses safe generic copy for inherited property code %s',
     (code) => {
