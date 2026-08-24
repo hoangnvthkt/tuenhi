@@ -1,4 +1,4 @@
-export { StaffPage } from './components/StaffPage';
+export { StaffPage } from './pages/StaffPage';
 export {
   createStaffApi,
   type CreateStaffInput,
