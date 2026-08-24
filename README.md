@@ -142,7 +142,9 @@ Phase 1F-B (dữ liệu thật, backup, bật leaked-password protection và go-
 
 ### Cutover Phase 1F-B
 
-Trước giờ cutover, chạy `pnpm cutover:preflight` và `pnpm cutover:cleanup-tests` không kèm `--confirm`. Chỉ sau khi owner duyệt danh sách test thì chạy lại cleanup với `--confirm`, rồi tạo baseline bằng `pnpm cutover:backup`. Các lệnh backup cần đường dẫn tuyệt đối ngoài repository, PostgreSQL native 17 và không in credential/mật khẩu mã hóa. Xem [runbook cutover](docs/runbooks/phase-1f-production-cutover.md).
+Trước điểm chuyển lifecycle, chạy `pnpm cutover:preflight`; nếu có dữ liệu test, chỉ dọn sau dry-run và phê duyệt Owner. Sau khi chuyển `OWNER_PILOT`, không chạy lại preflight, cleanup hay Cloud runner. Owner nhập dữ liệu trực tiếp trên Preview, tạo baseline 1 sau danh mục/ảnh và baseline 2 sau mở sổ/đối soát, trước giao dịch bán thật.
+
+`cutover:backup` và `cutover:export-images` chỉ nhận thư mục tuyệt đối ngoài repository, dùng PostgreSQL native 17/AES-256 và nhận passphrase qua terminal tương tác. Mỗi archive có receipt SHA-256; xác minh bằng `pnpm cutover:verify-backup -- --archive <file.enc> --receipt <file.receipt.json> --confirm`. Archive, receipt và bản sao trên ổ ngoài phải được kiểm trước khi đi tiếp. Xem [runbook cutover](docs/runbooks/phase-1f-production-cutover.md).
 
 Không chuyển `OWNER_PILOT` hoặc `PRODUCTION` khi chưa có phê duyệt go-live riêng. Sau `OWNER_PILOT`, runner tổng hợp bị chặn ở script và database. Tài khoản nhân viên chỉ mở lại sau khi owner bật leaked-password protection, smoke test Auth và ghi nhận `AUTH_HARDENED` qua runbook.
 

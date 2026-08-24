@@ -39,6 +39,7 @@
     "cutover:cleanup-tests": "node --env-file=.env scripts/cutover-cleanup-tests.mjs",
     "cutover:backup": "node --env-file=.env scripts/cutover-backup.mjs",
     "cutover:export-images": "node --env-file=.env scripts/cutover-export-images.mjs",
+    "cutover:verify-backup": "node --env-file=.env scripts/cutover-verify-backup.mjs",
     "cutover:verify": "node --env-file=.env scripts/cutover-verify.mjs",
     "cutover:lifecycle": "node --env-file=.env scripts/cutover-lifecycle.mjs",
     "supabase:types": "supabase gen types --linked --lang typescript --schema api > src/shared/supabase/database.types.ts",

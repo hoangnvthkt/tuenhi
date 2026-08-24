@@ -1,11 +1,14 @@
-# Runbook cutover Phase 1F-B
+# Runbook Phase 1F-B3 — Owner pilot và baseline backup
 
-Chưa thực hiện tài liệu này nếu owner chưa mở Phase 1F-B.
+Chỉ thực hiện khi Owner đã duyệt UAT Preview. Không nhập workbook cũ, không tạo nhân viên, không merge `main` hoặc deploy Production trong runbook này.
 
-1. Dừng toàn bộ runner tổng hợp, chạy `pnpm cutover:preflight`, sau đó chạy `pnpm cutover:cleanup-tests` ở chế độ dry-run. Chỉ khi owner duyệt danh sách mới chạy lại cùng lệnh với `--confirm` và xác nhận không còn profile/dữ liệu `codex-phase*`.
-2. Tạo backup database bằng `pnpm cutover:backup` vào thư mục tuyệt đối ngoài repository, sao chép encrypted archive sang ổ ngoài; export riêng `product-images` bằng `pnpm cutover:export-images` khi cần. Kiểm manifest, checksum và `pg_restore --list` trước khi nhập dữ liệu thật.
-3. Bật leaked-password protection trong Supabase Auth, smoke test login, đổi mật khẩu ban đầu và reset mật khẩu.
-4. Owner nhập danh mục thật, ảnh, mở sổ tồn/cost; sau đó mới nhập dữ liệu cũ vào kho archive chỉ đọc.
-5. Đối soát balance, movement, financial events và báo cáo; owner ký checklist UAT.
-6. Chỉ sau quyết định riêng về Vercel mới tạo Preview/Production deployment. Không đưa service-role/secret vào bundle hoặc environment client. Sau phê duyệt go-live, chạy `CUTOVER_LIFECYCLE_ACTION=OWNER_PILOT pnpm cutover:lifecycle -- --cutover-at <ISO> --confirm`; tuyệt đối không chạy lại runner tổng hợp.
-7. Trong 7 ngày pilot owner, không tạo nhân viên. Khi owner đã bật leaked-password protection và hoàn tất smoke test Auth, chạy `CUTOVER_LIFECYCLE_ACTION=AUTH_HARDENED pnpm cutover:lifecycle -- --confirm`, rồi `CUTOVER_LIFECYCLE_ACTION=PRODUCTION pnpm cutover:lifecycle -- --confirm`.
+1. Khi lifecycle vẫn là `PRE_PRODUCTION`, dừng toàn bộ runner tổng hợp và chạy `pnpm cutover:preflight`. Nếu có dữ liệu `codex-phase*`, chạy `pnpm cutover:cleanup-tests` ở dry-run; Owner duyệt danh sách chính xác trước khi chạy lại với `--confirm`. Xác nhận Cloud có đúng một Owner, không có dữ liệu vận hành/test và không có chứng từ chờ.
+2. Ghi thời điểm chốt theo `Asia/Ho_Chi_Minh`, đổi sang ISO UTC, rồi chạy `CUTOVER_LIFECYCLE_ACTION=OWNER_PILOT pnpm cutover:lifecycle -- --cutover-at <ISO-UTC> --confirm`. Xác nhận bằng `pnpm cutover:verify`. Đây là điểm khóa runner: không chạy lại preflight, cleanup hoặc Cloud runner sau đó.
+3. Owner smoke test Preview: đăng nhập, đổi/reset mật khẩu, logout/login và thử tạo nhân viên. Tạo nhân viên phải bị chặn với `PRODUCTION_AUTH_HARDENING_REQUIRED`.
+4. Owner nhập trực tiếp: cài đặt/kênh bán → nhóm hàng → nhà cung cấp → sản phẩm, giá và ngưỡng tồn → khách hàng → ảnh. Đối soát SKU, barcode, số ảnh và dữ liệu hiển thị.
+5. Tạo baseline 1 bằng `pnpm cutover:backup` và export độc lập ảnh bằng `pnpm cutover:export-images`. `CUTOVER_BACKUP_DIR` và `CUTOVER_IMAGE_EXPORT_DIR` phải là thư mục tuyệt đối ngoài repository. Passphrase chỉ được nhập tại terminal tương tác, không truyền qua chat, biến môi trường, CLI argument hay log.
+6. Mỗi lệnh tạo archive AES-256, receipt SHA-256 và manifest nằm trong archive; plaintext staging được xóa cả khi lỗi. Với từng archive trên máy và bản sao ở ổ ngoài, chạy `pnpm cutover:verify-backup -- --archive <file.enc> --receipt <file.receipt.json> --confirm`. Lệnh kiểm receipt, giải mã tạm, manifest/SHA-256 từng ảnh và `pg_restore --list` nếu có dump, rồi xóa dữ liệu giải mã.
+7. Owner tạo và ghi sổ mở sổ tồn/giá vốn qua ứng dụng. Đối soát SKU, quantity, inventory valuation và opening movements. Trước bán thật, financial events, revenue và profit report phải bằng 0.
+8. Tạo và xác minh baseline 2 trên máy cùng ổ ngoài. Owner ký xác nhận đối soát trước giao dịch bán đầu tiên.
+
+Trong pilot tối đa 7 ngày chỉ Owner dùng ứng dụng. Nếu có lỗi trước giao dịch bán đầu tiên, dừng thao tác và chỉ restore baseline sau phê duyệt Owner; sau giao dịch đầu tiên chỉ dùng command nghiệp vụ để điều chỉnh. Auth hardening, tạo nhân viên, merge `main` và deploy Production cần phê duyệt/phase riêng.
