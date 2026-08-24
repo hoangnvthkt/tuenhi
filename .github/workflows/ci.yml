@@ -11,6 +11,9 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      VITE_SUPABASE_URL: https://ci-smoke.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_smoke
     steps:
       - name: Checkout
         uses: actions/checkout@v6
