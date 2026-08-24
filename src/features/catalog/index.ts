@@ -1,6 +1,7 @@
 export { CategoryManagerPage } from './pages/CategoryManagerPage';
 export { ProductDetailPage } from './pages/ProductDetailPage';
 export { ProductListPage } from './pages/ProductListPage';
+export { CatalogRealtimeBridge } from './components/CatalogRealtimeBridge';
 export {
   CatalogApiError,
   catalogKeys,
@@ -14,4 +15,3 @@ export type {
   ProductFormValues,
   ProductCatalogItem,
 } from './model/catalog-types';
-export { useCatalogRealtime } from './hooks/use-catalog-realtime';

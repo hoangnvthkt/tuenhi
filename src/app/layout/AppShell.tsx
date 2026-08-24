@@ -1,6 +1,6 @@
+import { lazy, Suspense } from 'react';
 import { NavLink, Outlet } from 'react-router';
 import { useSession } from '@/features/auth';
-import { useCatalogRealtime } from '@/features/catalog';
 import { NotificationCenter } from '@/features/notifications';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { navigationItems } from './navigation-items';
@@ -10,6 +10,12 @@ const roleLabels = {
   BUSINESS: 'Kinh doanh',
   OWNER: 'Chủ cửa hàng',
 } as const;
+
+const CatalogRealtimeBridge = lazy(() =>
+  import('@/features/catalog').then((module) => ({
+    default: module.CatalogRealtimeBridge,
+  })),
+);
 
 function NavigationLinks({
   mobile,
@@ -65,10 +71,12 @@ function NavigationLinks({
 export function AppShell() {
   const isOnline = useOnlineStatus();
   const { session, signOut } = useSession();
-  useCatalogRealtime({ isOnline });
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+      <Suspense fallback={null}>
+        <CatalogRealtimeBridge isOnline={isOnline} />
+      </Suspense>
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-3 sm:px-6">
           <div>
