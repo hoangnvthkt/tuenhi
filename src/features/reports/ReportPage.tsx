@@ -6,38 +6,17 @@ import { useOnlineStatus } from '../../app/use-online-status';
 import { buildReportWorkbook, downloadReportWorkbook } from './report-workbook';
 import { createReportsApi, type ProfitPage } from './reports-api';
 import {
+  isIsoDate,
+  presetReportRange,
+  type ReportPeriod,
+} from './report-period';
+import {
   eventLabel,
   formatReportMoney,
   formatReportNumber,
   paymentLabel,
 } from './report-ui';
 
-type Period = 'today' | 'week' | 'month' | 'custom';
-function inVietnamNow() {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts();
-  const value = (name: string) =>
-    parts.find((part) => part.type === name)?.value ?? '';
-  return `${value('year')}-${value('month')}-${value('day')}`;
-}
-function addDays(value: string, offset: number) {
-  const date = new Date(`${value}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + offset);
-  return date.toISOString().slice(0, 10);
-}
-function presetRange(period: Period) {
-  const today = inVietnamNow();
-  if (period === 'today') return { from: today, to: today };
-  if (period === 'week') {
-    const weekday = new Date(`${today}T12:00:00Z`).getUTCDay() || 7;
-    return { from: addDays(today, 1 - weekday), to: today };
-  }
-  return { from: `${today.slice(0, 7)}-01`, to: today };
-}
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -70,10 +49,18 @@ export function ReportPage() {
     session?.permissions.includes('report.all_revenue.read') ?? false;
   const canProfit =
     session?.permissions.includes('report.cost_profit.read') ?? false;
-  const period = (params.get('period') as Period) || 'month';
-  const fallback = presetRange(period === 'custom' ? 'month' : period);
-  const from = params.get('from') ?? fallback.from;
-  const to = params.get('to') ?? fallback.to;
+  const requestedPeriod = params.get('period');
+  const period: ReportPeriod =
+    requestedPeriod === 'today' ||
+    requestedPeriod === 'week' ||
+    requestedPeriod === 'custom'
+      ? requestedPeriod
+      : 'month';
+  const fallback = presetReportRange(period === 'custom' ? 'month' : period);
+  const requestedFrom = params.get('from');
+  const requestedTo = params.get('to');
+  const from = isIsoDate(requestedFrom) ? requestedFrom : fallback.from;
+  const to = isIsoDate(requestedTo) ? requestedTo : fallback.to;
   const scope = canAll && params.get('scope') !== 'OWN' ? 'ALL' : 'OWN';
   const queryOptions = {
     refetchInterval: () =>
@@ -106,8 +93,8 @@ export function ReportPage() {
   }>({ key: '', pages: [] });
   const [loadingMoreProfit, setLoadingMoreProfit] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  const setPeriod = (next: Period) => {
-    const range = presetRange(next === 'custom' ? 'month' : next);
+  const setPeriod = (next: ReportPeriod) => {
+    const range = presetReportRange(next === 'custom' ? 'month' : next);
     setParams({ period: next, from: range.from, to: range.to, scope });
   };
   const refresh = () => {

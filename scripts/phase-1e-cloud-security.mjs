@@ -136,6 +136,36 @@ async function bootstrapOwnerIdentity(label) {
   assert(!loginError, 'Không thể đăng nhập JWT owner bootstrap.');
   return { id: auth.id, client };
 }
+async function activeOwnerExists() {
+  const { data, error } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('role_template', 'OWNER')
+    .eq('is_active', true)
+    .limit(1);
+  assert(!error, 'Không thể kiểm tra owner hiện có trước Cloud test.');
+  return (data?.length ?? 0) > 0;
+}
+async function assertSecondBootstrapDenied() {
+  const auth = await authIdentity('second-bootstrap');
+  const result = await rpc(
+    admin,
+    'finalize_staff_profile',
+    {
+      p_user_id: auth.id,
+      p_email: auth.email,
+      p_display_name: `${phaseLabel} second bootstrap ${marker}`,
+      p_role_template: 'OWNER',
+      p_created_by: auth.id,
+      p_idempotency_key: crypto.randomUUID(),
+    },
+    false,
+  );
+  assert(
+    result.error?.code === 'PERMISSION_DENIED',
+    'Môi trường đã có owner vẫn cho phép bootstrap owner thứ hai.',
+  );
+}
 async function cleanup() {
   let failed = false;
   let cleanupProfileIds = [];
@@ -163,9 +193,19 @@ async function cleanup() {
 
 try {
   let owner;
-  await pass('bootstrap owner đầu tiên vẫn được phép', async () => {
-    owner = await bootstrapOwnerIdentity('owner');
-  });
+  if (await activeOwnerExists()) {
+    await pass(
+      'môi trường đã có owner chặn bootstrap owner thứ hai',
+      async () => {
+        await assertSecondBootstrapDenied();
+      },
+    );
+    owner = await identity('owner', 'OWNER');
+  } else {
+    await pass('bootstrap owner đầu tiên vẫn được phép', async () => {
+      owner = await bootstrapOwnerIdentity('owner');
+    });
+  }
   const staff = await identity('staff', 'SALES_WAREHOUSE', owner.id);
 
   await pass(
