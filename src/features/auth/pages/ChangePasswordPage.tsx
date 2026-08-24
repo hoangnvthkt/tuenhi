@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
-import { useSession } from './use-session';
+import { useSession } from '../hooks/use-session';
 
 const passwordPolicyMessage =
   'Mật khẩu phải có ít nhất 10 ký tự, gồm chữ thường, chữ hoa và số.';

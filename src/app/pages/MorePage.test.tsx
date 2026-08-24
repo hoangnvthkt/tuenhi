@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { SessionContextValue } from '../../features/auth/session-store';
+import { SessionContextValue } from '@/features/auth';
 import { MorePage } from './MorePage';
 
 function renderPage(permissions: string[]) {

@@ -2,9 +2,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import type { SessionApi, SessionContext } from './session-context';
+import type { SessionApi, SessionContext } from '../model/session-context';
 import { AuthProvider } from './AuthProvider';
-import { useSession } from './use-session';
+import { useSession } from '../hooks/use-session';
 
 const ownerSession: SessionContext = {
   userId: '00000000-0000-4000-8000-000000000001',

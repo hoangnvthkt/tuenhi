@@ -7,7 +7,7 @@ import { useToast } from '@/shared/ui/feedback/use-toast';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { createCatalogApi } from '../catalog/catalog-api';
 import { createDirectoryApi } from '../directories/directory-api';
-import { useSession } from '../auth/use-session';
+import { useSession } from '@/features/auth';
 import { createSalesApi, type CartLine, type Sale } from './sales-api';
 
 type CartItem = CartLine & {

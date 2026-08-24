@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { useSession } from '../auth/use-session';
+import { useSession } from '@/features/auth';
 import { createInventoryApi } from './inventory-api';
 import {
   formatNumber,

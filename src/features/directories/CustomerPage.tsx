@@ -3,7 +3,7 @@ import { parsePhoneNumber } from 'libphonenumber-js';
 import { useRef, useState, type FormEvent } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
-import { useSession } from '../auth/use-session';
+import { useSession } from '@/features/auth';
 import {
   createDirectoryApi,
   DirectoryApiError,

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
-import { SessionContextValue } from '../auth/session-store';
+import { SessionContextValue } from '@/features/auth';
 import type { DirectoryApi, SupplierItem } from './directory-api';
 import { SupplierPage } from './SupplierPage';
 

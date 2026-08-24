@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { SessionContextValue } from './session-store';
+import { SessionContextValue } from '../model/session-store';
 
 export function useSession() {
   const value = useContext(SessionContextValue);

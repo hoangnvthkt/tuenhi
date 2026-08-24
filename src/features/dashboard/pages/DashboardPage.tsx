@@ -1,18 +1,13 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
-import { useSession } from '../../features/auth/use-session';
-import { createReportsApi } from '../../features/reports/reports-api';
+import { useSession } from '@/features/auth';
 import {
   isIsoDate,
   presetReportRange,
   type ReportPeriod,
-} from '../../features/reports/report-period';
-import {
-  formatReportMoney,
-  formatReportNumber,
-} from '../../features/reports/report-ui';
+} from '@/features/reports';
+import { useDashboardData } from '../hooks/use-dashboard-data';
+import { formatReportMoney, formatReportNumber } from '@/features/reports';
 
 function Card({ label, value }: { label: string; value: string }) {
   return (
@@ -28,7 +23,6 @@ export function DashboardPage() {
   const { session } = useSession();
   const online = useOnlineStatus();
   const [params, setParams] = useSearchParams();
-  const [api] = useState(createReportsApi);
   const requestedPeriod = params.get('period');
   const period: ReportPeriod =
     requestedPeriod === 'week' ||
@@ -45,37 +39,17 @@ export function DashboardPage() {
     session?.permissions.includes('report.all_revenue.read') ?? false;
   const canProfit =
     session?.permissions.includes('report.cost_profit.read') ?? false;
-  const refresh = {
-    refetchInterval: () =>
-      online && document.visibilityState === 'visible' ? 60_000 : false,
-    refetchOnWindowFocus: true,
-  };
-  const operational = useQuery({
-    queryKey: ['operational-dashboard', period, from, to],
-    queryFn: () => api.operational(from, to),
-    ...refresh,
-  });
-  const revenue = useQuery({
-    queryKey: ['dashboard-revenue', period, from, to, canAll],
-    queryFn: () =>
-      canAll ? api.revenue(from, to, 'ALL') : api.mySummary(from, to),
-    ...refresh,
-  });
-  const owner = useQuery({
-    queryKey: ['dashboard-owner', period, from, to],
-    queryFn: () => api.owner(from, to),
-    enabled: canProfit,
-    gcTime: 0,
-    ...refresh,
+  const { operational, revenue, owner, refresh } = useDashboardData({
+    period,
+    from,
+    to,
+    canAll,
+    canProfit,
+    online,
   });
   const setPeriod = (next: ReportPeriod) => {
     const range = presetReportRange(next === 'custom' ? 'month' : next);
     setParams({ period: next, from: range.from, to: range.to });
-  };
-  const refreshDashboard = () => {
-    void operational.refetch();
-    void revenue.refetch();
-    if (canProfit) void owner.refetch();
   };
   const lastUpdatedAt = Math.max(
     operational.dataUpdatedAt,
@@ -111,7 +85,7 @@ export function DashboardPage() {
           ) : null}
           <button
             type="button"
-            onClick={refreshDashboard}
+            onClick={refresh}
             disabled={!online || isLoading}
             className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 disabled:opacity-50"
           >

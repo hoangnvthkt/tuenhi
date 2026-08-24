@@ -3,9 +3,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { AuthProvider } from './AuthProvider';
+import { AuthProvider } from '../components/AuthProvider';
 import { ChangePasswordPage } from './ChangePasswordPage';
-import type { SessionApi, SessionContext } from './session-context';
+import type { SessionApi, SessionContext } from '../model/session-context';
 
 const mustChangeSession: SessionContext = {
   userId: '00000000-0000-4000-8000-000000000001',

@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router';
-import { useSession } from '../../features/auth/use-session';
+import { useSession } from '@/features/auth';
 import { useCatalogRealtime } from '../../features/catalog/use-catalog-realtime';
-import { NotificationCenter } from '../../features/notifications/NotificationCenter';
+import { NotificationCenter } from '@/features/notifications';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { navigationItems } from './navigation-items';
 

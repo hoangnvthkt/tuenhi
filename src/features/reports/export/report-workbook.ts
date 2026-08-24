@@ -1,4 +1,4 @@
-import type { ProfitPage, RevenueReport } from './reports-api';
+import type { ProfitPage, RevenueReport } from '../api/reports-api';
 
 const mime =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';

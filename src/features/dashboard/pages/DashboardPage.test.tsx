@@ -3,12 +3,17 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { SessionContextValue } from '../../features/auth/session-store';
-import { createReportsApi } from '../../features/reports/reports-api';
+import { SessionContextValue } from '@/features/auth';
+import {
+  createOwnerReportsApi,
+  createRevenueReportsApi,
+} from '@/features/reports';
 import { DashboardPage } from './DashboardPage';
 
-vi.mock('../../features/reports/reports-api', () => ({
-  createReportsApi: vi.fn(),
+vi.mock('@/features/reports', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/reports')>()),
+  createOwnerReportsApi: vi.fn(),
+  createRevenueReportsApi: vi.fn(),
 }));
 
 const operational = {
@@ -65,7 +70,15 @@ function renderPage() {
     owner: vi.fn().mockResolvedValue(owner),
     profit: vi.fn(),
   };
-  vi.mocked(createReportsApi).mockReturnValue(api);
+  vi.mocked(createRevenueReportsApi).mockReturnValue({
+    operational: api.operational,
+    mySummary: api.mySummary,
+    revenue: api.revenue,
+  });
+  vi.mocked(createOwnerReportsApi).mockReturnValue({
+    owner: api.owner,
+    profit: api.profit,
+  });
 
   render(
     <QueryClientProvider

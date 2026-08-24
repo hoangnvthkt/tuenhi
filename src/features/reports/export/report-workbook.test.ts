@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
 import { buildReportWorkbook } from './report-workbook';
-import type { ProfitPage, RevenueReport } from './reports-api';
+import type { ProfitPage, RevenueReport } from '../api/reports-api';
 
 const report: RevenueReport = {
   version: 1,

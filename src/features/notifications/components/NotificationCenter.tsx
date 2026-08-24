@@ -1,9 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useContext, useEffect, useState } from 'react';
-import { NotificationApiContext } from './notification-context';
-import type { NotificationApi, UserNotification } from './notification-api';
+import { NotificationApiContext } from '../model/notification-context';
+import type {
+  NotificationApi,
+  UserNotification,
+} from '../api/notification-api';
 
-export type { NotificationApi, NotificationFeed } from './notification-api';
+export type {
+  NotificationApi,
+  NotificationFeed,
+} from '../api/notification-api';
 
 const notificationQueryKey = ['notifications', 'mine'] as const;
 

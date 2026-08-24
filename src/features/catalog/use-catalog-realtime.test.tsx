@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { SessionContextValue, type SessionValue } from '../auth/session-store';
+import { SessionContextValue, type SessionValue } from '@/features/auth';
 import {
   useCatalogRealtime,
   type CatalogRealtimeEvent,

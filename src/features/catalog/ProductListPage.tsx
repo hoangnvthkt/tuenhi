@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
-import { useSession } from '../auth/use-session';
+import { useSession } from '@/features/auth';
 import {
   CatalogApiError,
   catalogKeys,

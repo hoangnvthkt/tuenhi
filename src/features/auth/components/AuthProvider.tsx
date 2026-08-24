@@ -7,13 +7,13 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { createSessionApi } from './session-api';
+import { createSessionApi } from '../api/session-api';
 import type {
   SessionApi,
   SessionContext,
   SessionStatus,
-} from './session-context';
-import { SessionContextValue, type SessionValue } from './session-store';
+} from '../model/session-context';
+import { SessionContextValue, type SessionValue } from '../model/session-store';
 
 function safeErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {

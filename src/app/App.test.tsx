@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import type { SessionApi } from '../features/auth/session-context';
-import type { NotificationApi } from '../features/notifications/notification-api';
+import type { SessionApi } from '@/features/auth';
+import type { NotificationApi } from '@/features/notifications';
 import { App } from './App';
 
 const sessionApi: SessionApi = {

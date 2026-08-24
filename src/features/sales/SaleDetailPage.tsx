@@ -5,7 +5,7 @@ import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createSalesApi, type Invoice } from './sales-api';
 import { getSupabaseClient } from '@/shared/supabase/client';
-import { useSession } from '../auth/use-session';
+import { useSession } from '@/features/auth';
 const money = (v: string) =>
   new Intl.NumberFormat('vi-VN', {
     style: 'currency',

@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router';
-import { useSession } from './use-session';
+import { useSession } from '../hooks/use-session';
 
 export function RequireSession({
   permission,

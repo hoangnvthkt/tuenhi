@@ -5,7 +5,7 @@ import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createCatalogApi } from '../catalog/catalog-api';
 import { createDirectoryApi } from '../directories/directory-api';
-import { useSession } from '../auth/use-session';
+import { useSession } from '@/features/auth';
 import { createInventoryApi, type PurchaseReceipt } from './inventory-api';
 import { formatMoney, safeInventoryMessage, statusLabel } from './inventory-ui';
 

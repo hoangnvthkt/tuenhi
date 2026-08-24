@@ -1,5 +1,7 @@
 export {
   createNotificationApi,
   type NotificationApi,
-} from './notification-api';
-export { NotificationApiContext } from './notification-context';
+  type NotificationFeed,
+} from './api/notification-api';
+export { NotificationCenter } from './components/NotificationCenter';
+export { NotificationApiContext } from './model/notification-context';

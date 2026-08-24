@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { getBusinessErrorMessage } from '@/shared/api/command-error';
 import { getSupabaseClient } from '@/shared/supabase/client';
-import type { SessionApi } from './session-context';
+import type { SessionApi } from '../model/session-context';
 
 const sessionContextSchema = z.object({
   userId: z.uuid(),

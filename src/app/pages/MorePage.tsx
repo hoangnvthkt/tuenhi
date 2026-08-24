@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { useSession } from '../../features/auth/use-session';
+import { useSession } from '@/features/auth';
 
 const destinations = [
   {

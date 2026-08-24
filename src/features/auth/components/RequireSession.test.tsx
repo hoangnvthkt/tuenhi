@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from './AuthProvider';
 import { RequireSession } from './RequireSession';
-import type { SessionApi, SessionContext } from './session-context';
+import type { SessionApi, SessionContext } from '../model/session-context';
 
 const session: SessionContext = {
   userId: '00000000-0000-4000-8000-000000000001',

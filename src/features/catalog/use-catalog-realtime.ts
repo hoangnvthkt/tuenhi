@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { getSupabaseClient } from '@/shared/supabase/client';
-import { useSession } from '../auth/use-session';
+import { useSession } from '@/features/auth';
 import { catalogKeys } from './catalog-api';
 
 export type CatalogRealtimeEvent = {

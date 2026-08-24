@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
-import { useSession } from '../auth/use-session';
+import { useSession } from '@/features/auth';
 import {
   CatalogApiError,
   catalogKeys,

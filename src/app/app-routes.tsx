@@ -1,7 +1,5 @@
 import type { RouteObject } from 'react-router';
-import { ChangePasswordPage } from '../features/auth/ChangePasswordPage';
-import { LoginPage } from '../features/auth/LoginPage';
-import { RequireSession } from '../features/auth/RequireSession';
+import { ChangePasswordPage, LoginPage, RequireSession } from '@/features/auth';
 import { CategoryManagerPage } from '../features/catalog/CategoryManagerPage';
 import { ProductDetailPage } from '../features/catalog/ProductDetailPage';
 import { ProductListPage } from '../features/catalog/ProductListPage';
@@ -27,9 +25,9 @@ import { ReturnListPage } from '../features/returns/ReturnListPage';
 import { StockCountDetailPage } from '../features/inventory/StockCountDetailPage';
 import { StockCountListPage } from '../features/inventory/StockCountListPage';
 import { StoreSettingsPage } from '../features/settings/StoreSettingsPage';
-import { ReportPage } from '../features/reports/ReportPage';
+import { ReportPage } from '@/features/reports';
 import { AppShell } from './layout/AppShell';
-import { DashboardPage } from './pages/DashboardPage';
+import { DashboardPage } from '@/features/dashboard';
 import { FoundationSectionPage } from './pages/FoundationSectionPage';
 import { MorePage } from './pages/MorePage';
 
