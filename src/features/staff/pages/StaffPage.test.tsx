@@ -11,6 +11,20 @@ const emptyFeed: StaffFeed = {
   nextCursor: null,
 };
 
+const blockedCapability = {
+  canCreate: false,
+  policy: 'BLOCKED' as const,
+  message:
+    'Chưa được phê duyệt tạo nhân viên. Chủ cửa hàng cần xác nhận chính sách tài khoản trước.',
+};
+
+const ownerWaiverCapability = {
+  canCreate: true,
+  policy: 'OWNER_WAIVER' as const,
+  message:
+    'Đang dùng ngoại lệ Owner: Supabase Free không kiểm tra mật khẩu đã bị rò rỉ.',
+};
+
 const staffFeed: StaffFeed = {
   nextCursor: null,
   items: [
@@ -41,6 +55,7 @@ const staffFeed: StaffFeed = {
 function createApi(overrides: Partial<StaffApi> = {}): StaffApi {
   return {
     list: vi.fn().mockResolvedValue(emptyFeed),
+    getAccessCapability: vi.fn().mockResolvedValue(blockedCapability),
     create: vi.fn().mockResolvedValue(undefined),
     setActive: vi.fn().mockResolvedValue(undefined),
     setRole: vi.fn().mockResolvedValue(undefined),
@@ -109,7 +124,13 @@ describe('StaffPage', () => {
     const user = userEvent.setup();
     const create = vi.fn().mockResolvedValue(undefined);
     const list = vi.fn().mockResolvedValue(emptyFeed);
-    renderPage(createApi({ create, list }));
+    renderPage(
+      createApi({
+        create,
+        list,
+        getAccessCapability: vi.fn().mockResolvedValue(ownerWaiverCapability),
+      }),
+    );
 
     await user.click(screen.getByRole('button', { name: 'Thêm nhân viên' }));
     await user.type(screen.getByLabelText('Email nhân viên'), 'nv@example.com');
@@ -119,6 +140,36 @@ describe('StaffPage', () => {
 
     await waitFor(() => expect(create).toHaveBeenCalledOnce());
     await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+  });
+
+  it('keeps employee creation blocked until a staff access policy is approved', async () => {
+    renderPage(createApi());
+
+    expect(
+      await screen.findByText(blockedCapability.message),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Thêm nhân viên' }),
+    ).toBeDisabled();
+  });
+
+  it('opens employee creation under the Owner waiver and shows the Free-plan warning', async () => {
+    const user = userEvent.setup();
+    renderPage(
+      createApi({
+        getAccessCapability: vi.fn().mockResolvedValue(ownerWaiverCapability),
+      }),
+    );
+
+    expect(
+      await screen.findByText(ownerWaiverCapability.message),
+    ).toBeInTheDocument();
+    const createButton = screen.getByRole('button', {
+      name: 'Thêm nhân viên',
+    });
+    expect(createButton).toBeEnabled();
+    await user.click(createButton);
+    expect(screen.getByText('Tạo tài khoản mới')).toBeInTheDocument();
   });
 
   it('locks owner-only permissions and can deactivate an employee with a reason', async () => {

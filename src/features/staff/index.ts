@@ -6,6 +6,7 @@ export {
   type PermissionDefinition,
   type PermissionEffect,
   type StaffApi,
+  type StaffAccessCapability,
   type StaffFeed,
   type StaffMember,
 } from './api/staff-api';

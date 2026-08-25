@@ -7,6 +7,7 @@ import {
   readJson,
 } from '../_shared/http.ts';
 import { parseCreateEmployeeInput } from '../_shared/staff-validation.ts';
+import { canCreateStaff } from '../_shared/staff-access-policy.ts';
 
 Deno.serve(async (request) => {
   const earlyResponse = preflightOrMethodError(request);
@@ -37,11 +38,11 @@ Deno.serve(async (request) => {
     );
   }
   const lifecycleData = lifecycle.data as Record<string, unknown>;
-  if (typeof lifecycleData.authHardeningCompletedAt !== 'string') {
+  if (!canCreateStaff(lifecycleData.staffAccessPolicy)) {
     return failure(
       409,
-      'PRODUCTION_AUTH_HARDENING_REQUIRED',
-      'Chỉ chủ cửa hàng được sử dụng trước khi hoàn tất bảo vệ mật khẩu.',
+      'STAFF_ACCESS_POLICY_REQUIRED',
+      'Chưa được phê duyệt tạo tài khoản nhân viên.',
     );
   }
 

@@ -37,6 +37,12 @@ const staffFeedSchema = z.object({
     .nullable(),
 });
 
+const staffAccessCapabilitySchema = z.object({
+  canCreate: z.boolean(),
+  policy: z.enum(['BLOCKED', 'OWNER_WAIVER', 'LEAKED_PASSWORD_PROTECTED']),
+  message: z.string().min(1).max(500),
+});
+
 const commandErrorSchema = z.object({
   code: z.string().min(1).max(100),
   message: z.string().max(500),
@@ -61,6 +67,9 @@ function envelopeSchema<T extends z.ZodType>(data: T) {
 }
 
 const feedEnvelopeSchema = envelopeSchema(staffFeedSchema);
+const staffAccessCapabilityEnvelopeSchema = envelopeSchema(
+  staffAccessCapabilitySchema,
+);
 const mutationEnvelopeSchema = envelopeSchema(
   z.record(z.string(), z.unknown()),
 );
@@ -68,6 +77,7 @@ const mutationEnvelopeSchema = envelopeSchema(
 export type StaffMember = z.infer<typeof staffMemberSchema>;
 export type PermissionDefinition = z.infer<typeof permissionDefinitionSchema>;
 export type StaffFeed = z.infer<typeof staffFeedSchema>;
+export type StaffAccessCapability = z.infer<typeof staffAccessCapabilitySchema>;
 export type EmployeeRole = 'SALES_WAREHOUSE' | 'BUSINESS';
 export type PermissionEffect = 'DEFAULT' | 'GRANT' | 'REVOKE';
 
@@ -80,6 +90,7 @@ export type CreateStaffInput = {
 
 export interface StaffApi {
   list(): Promise<StaffFeed>;
+  getAccessCapability(): Promise<StaffAccessCapability>;
   create(input: CreateStaffInput): Promise<void>;
   setActive(input: {
     userId: string;
@@ -144,6 +155,15 @@ export function createStaffApi(): StaffApi {
       const { data, error } = await client.rpc('list_staff', { p_limit: 50 });
       if (error) throw safeCommandFailure();
       const parsed = feedEnvelopeSchema.safeParse(data);
+      if (!parsed.success) throw safeCommandFailure();
+      if (!parsed.data.ok) throw safeCommandFailure(parsed.data.error.code);
+      return parsed.data.data;
+    },
+
+    async getAccessCapability() {
+      const { data, error } = await client.rpc('get_staff_access_capability');
+      if (error) throw safeCommandFailure();
+      const parsed = staffAccessCapabilityEnvelopeSchema.safeParse(data);
       if (!parsed.success) throw safeCommandFailure();
       if (!parsed.data.ok) throw safeCommandFailure(parsed.data.error.code);
       return parsed.data.data;

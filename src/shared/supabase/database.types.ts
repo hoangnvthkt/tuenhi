@@ -2025,6 +2025,7 @@ export type Database = {
         Returns: Json;
       };
       get_project_lifecycle: { Args: never; Returns: Json };
+      get_staff_access_capability: { Args: never; Returns: Json };
       get_purchase_receipt_cost_detail: {
         Args: { p_receipt_id: string };
         Returns: Json;
@@ -2178,6 +2179,10 @@ export type Database = {
         Returns: Json;
       };
       record_auth_hardening: { Args: never; Returns: Json };
+      record_staff_access_waiver: {
+        Args: { p_reason: string };
+        Returns: Json;
+      };
       refresh_stock_count_snapshot: {
         Args: {
           p_count_id: string;

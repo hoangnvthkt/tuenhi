@@ -27,6 +27,19 @@ if (action === 'OWNER_PILOT') {
   if (!hasFlag('--confirm'))
     throw new Error('Cần --confirm để ghi nhận Auth hardening.');
   result = await admin.rpc('record_auth_hardening');
+} else if (action === 'STAFF_ACCESS_WAIVER') {
+  const reason = valueForFlag('--reason');
+  if (!reason?.trim()) {
+    throw new Error(
+      'Cần truyền --reason với lý do vận hành, không chứa thông tin bí mật.',
+    );
+  }
+  if (!hasFlag('--confirm')) {
+    throw new Error('Cần --confirm để cấp ngoại lệ tạo nhân viên.');
+  }
+  result = await admin.rpc('record_staff_access_waiver', {
+    p_reason: reason.trim(),
+  });
 } else if (action === 'PRODUCTION') {
   if (!hasFlag('--confirm'))
     throw new Error('Cần --confirm để chuyển lifecycle sang PRODUCTION.');
@@ -35,7 +48,7 @@ if (action === 'OWNER_PILOT') {
   });
 } else {
   throw new Error(
-    'CUTOVER_LIFECYCLE_ACTION chỉ nhận OWNER_PILOT, AUTH_HARDENED hoặc PRODUCTION.',
+    'CUTOVER_LIFECYCLE_ACTION chỉ nhận OWNER_PILOT, AUTH_HARDENED, STAFF_ACCESS_WAIVER hoặc PRODUCTION.',
   );
 }
 if (result.error || result.data?.ok !== true) {

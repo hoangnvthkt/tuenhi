@@ -42,6 +42,8 @@ export const businessErrorMessages = {
   REPORT_LIMIT_INVALID: 'Phân trang báo cáo chưa hợp lệ.',
   PRODUCTION_AUTH_HARDENING_REQUIRED:
     'Chưa thể tạo nhân viên. Hãy hoàn tất bảo vệ mật khẩu trước khi mở tài khoản nhân viên.',
+  STAFF_ACCESS_POLICY_REQUIRED:
+    'Chưa được phê duyệt tạo nhân viên. Chủ cửa hàng cần xác nhận chính sách tài khoản trước.',
 } as const;
 
 export type BusinessErrorCode = keyof typeof businessErrorMessages;

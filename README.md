@@ -146,7 +146,7 @@ Trước điểm chuyển lifecycle, chạy `pnpm cutover:preflight`; nếu có 
 
 `cutover:backup` và `cutover:export-images` chỉ nhận thư mục tuyệt đối ngoài repository, dùng PostgreSQL native 17/AES-256 và nhận passphrase qua terminal tương tác. Mỗi archive có receipt SHA-256; xác minh bằng `pnpm cutover:verify-backup -- --archive <file.enc> --receipt <file.receipt.json> --confirm`. Archive, receipt và bản sao trên ổ ngoài phải được kiểm trước khi đi tiếp. Xem [runbook cutover](docs/runbooks/phase-1f-production-cutover.md).
 
-Không chuyển `OWNER_PILOT` hoặc `PRODUCTION` khi chưa có phê duyệt go-live riêng. Sau `OWNER_PILOT`, runner tổng hợp bị chặn ở script và database. Tài khoản nhân viên chỉ mở lại sau khi owner bật leaked-password protection, smoke test Auth và ghi nhận `AUTH_HARDENED` qua runbook.
+Không chuyển `OWNER_PILOT` hoặc `PRODUCTION` khi chưa có phê duyệt go-live riêng. Sau `OWNER_PILOT`, runner tổng hợp bị chặn ở script và database. Tài khoản nhân viên chỉ mở sau `AUTH_HARDENED` khi có leaked-password protection, hoặc sau `STAFF_ACCESS_WAIVER` được Owner chấp thuận qua service command. Waiver Free không phải Auth hardening: Supabase không kiểm tra mật khẩu đã bị rò rỉ; vẫn bắt buộc mật khẩu tối thiểu 10 ký tự gồm chữ hoa/chữ thường/số, đổi mật khẩu tạm ở lần đăng nhập đầu và dùng reset mật khẩu khi cần.
 
 ## Tài liệu đã phê duyệt
 

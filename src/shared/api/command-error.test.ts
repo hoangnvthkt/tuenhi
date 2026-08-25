@@ -14,6 +14,12 @@ describe('getBusinessErrorMessage', () => {
     );
   });
 
+  it('maps the staff access policy guard without claiming leaked-password protection', () => {
+    expect(getBusinessErrorMessage('STAFF_ACCESS_POLICY_REQUIRED')).toBe(
+      'Chưa được phê duyệt tạo nhân viên. Chủ cửa hàng cần xác nhận chính sách tài khoản trước.',
+    );
+  });
+
   it('uses safe generic copy for an unknown server code', () => {
     expect(getBusinessErrorMessage('SERVER_DETAIL_NOT_FOR_USERS')).toBe(
       'Không thể hoàn tất thao tác. Vui lòng thử lại.',
