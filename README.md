@@ -148,6 +148,10 @@ Trước điểm chuyển lifecycle, chạy `pnpm cutover:preflight`; nếu có 
 
 Không chuyển `OWNER_PILOT` hoặc `PRODUCTION` khi chưa có phê duyệt go-live riêng. Sau `OWNER_PILOT`, runner tổng hợp bị chặn ở script và database. Tài khoản nhân viên chỉ mở sau `AUTH_HARDENED` khi có leaked-password protection, hoặc sau `STAFF_ACCESS_WAIVER` được Owner chấp thuận qua service command. Waiver Free không phải Auth hardening: Supabase không kiểm tra mật khẩu đã bị rò rỉ; vẫn bắt buộc mật khẩu tối thiểu 10 ký tự gồm chữ hoa/chữ thường/số, đổi mật khẩu tạm ở lần đăng nhập đầu và dùng reset mật khẩu khi cần.
 
+### Owner pilot B5
+
+Khi Cloud đã ở `OWNER_PILOT`, dùng [runbook B5](docs/runbooks/phase-1f-b5-owner-pilot-readiness.md) để nghiệm thu Preview với dữ liệu mock. B5 chỉ chạy quality gate local và kiểm tra Cloud read-only (`cutover:verify`, migration list, DB lint/advisor); không chạy preflight, cleanup, Cloud runner, backup/restore hoặc lệnh lifecycle. Báo cáo readiness phải ghi rõ dữ liệu mock vẫn còn; dọn mock và nhập dữ liệu thật chỉ được lập trong phase cutover được Owner duyệt riêng.
+
 ## Tài liệu đã phê duyệt
 
 - [Đặc tả thiết kế](docs/superpowers/specs/2026-08-21-internal-single-store-pos-design.md)
