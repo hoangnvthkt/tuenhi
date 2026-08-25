@@ -1,6 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { useNavigate } from 'react-router';
 import { useToast } from '@/shared/ui/feedback/use-toast';
+import { createPaymentProofApi } from '@/features/payments';
 import type { SalesApi } from '../api/sales-api';
 import type { Sale } from '../api/sales-schemas';
 import type { PosCartItem, PosPaymentMethod } from '../model/pos-types';
@@ -42,6 +43,7 @@ export function usePosCommands({
   const navigate = useNavigate();
   const toast = useToast();
   const [saving, setSaving] = useState(false);
+  const [paymentProofApi] = useState(createPaymentProofApi);
 
   const save = async () => {
     if (!online) {
@@ -106,7 +108,7 @@ export function usePosCommands({
     }
   };
 
-  const pay = async () => {
+  const pay = async (proofFile?: File) => {
     if (!payment) return;
     if (!online) {
       toast.show({
@@ -116,15 +118,33 @@ export function usePosCommands({
       });
       return;
     }
+    if (payment === 'BANK_TRANSFER' && !proofFile) {
+      toast.show({
+        kind: 'error',
+        title: 'Thiếu ảnh chứng từ',
+        message: 'Cần ảnh chứng từ chuyển khoản để xác nhận.',
+      });
+      return;
+    }
     const saved = await save();
     if (!saved) return;
     setSaving(true);
+    let transferProofPath: string | undefined;
     try {
+      if (payment === 'BANK_TRANSFER' && proofFile) {
+        transferProofPath = (
+          await paymentProofApi.upload({
+            transaction: { kind: 'sale', id: saved.id },
+            file: proofFile,
+          })
+        ).objectPath;
+      }
       const completed = await api.complete(
         saved.id,
         saved.version,
         payment,
         crypto.randomUUID(),
+        transferProofPath,
       );
       if (userId) localStorage.removeItem(posCartStorageKey(userId));
       toast.show({
@@ -134,6 +154,13 @@ export function usePosCommands({
       });
       navigate(`/sales/${completed.saleId}`);
     } catch (error) {
+      if (transferProofPath) {
+        try {
+          await paymentProofApi.remove(transferProofPath);
+        } catch {
+          // A later protected cleanup may delete only an unattached proof.
+        }
+      }
       toast.show({
         kind: 'error',
         title: 'Chưa thể thanh toán',

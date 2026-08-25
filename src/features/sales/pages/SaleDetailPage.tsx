@@ -7,6 +7,7 @@ import { createSalesApi } from '../api/sales-api';
 import type { Invoice } from '../api/sales-schemas';
 import { getSupabaseClient } from '@/shared/supabase/client';
 import { useSession } from '@/features/auth';
+import { PaymentProofLink } from '@/features/payments';
 const money = (v: string) =>
   new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -203,6 +204,9 @@ export function SaleDetailPage() {
               ? 'Tiền mặt'
               : 'Chuyển khoản'}
           </p>
+          {invoice.sale.paymentMethod === 'BANK_TRANSFER' ? (
+            <PaymentProofLink objectPath={invoice.sale.transferProofPath} />
+          ) : null}
         </div>
         {invoice.store.invoiceFooter ? (
           <p className="mt-5 text-center text-sm text-slate-600">

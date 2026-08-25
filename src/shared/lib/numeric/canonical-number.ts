@@ -112,3 +112,31 @@ export function formatViNumber(value: string) {
 
   return fraction ? `${groupedInteger},${fraction}` : groupedInteger;
 }
+
+export function normalizeCanonicalNumber(value: string) {
+  if (!CANONICAL_WITH_UNBOUNDED_SCALE.test(value)) {
+    throw new Error('Giá trị canonical không hợp lệ.');
+  }
+
+  const [integer = '', rawFraction] = value.split('.');
+  const fraction = rawFraction?.replace(/0+$/, '') ?? '';
+  return fraction ? `${integer}.${fraction}` : integer;
+}
+
+export function compareCanonicalNumbers(left: string, right: string) {
+  const normalizedLeft = normalizeCanonicalNumber(left);
+  const normalizedRight = normalizeCanonicalNumber(right);
+  const [leftInteger = '', leftFraction = ''] = normalizedLeft.split('.');
+  const [rightInteger = '', rightFraction = ''] = normalizedRight.split('.');
+
+  if (leftInteger.length !== rightInteger.length) {
+    return leftInteger.length > rightInteger.length ? 1 : -1;
+  }
+  if (leftInteger !== rightInteger) return leftInteger > rightInteger ? 1 : -1;
+
+  const precision = Math.max(leftFraction.length, rightFraction.length);
+  const paddedLeft = leftFraction.padEnd(precision, '0');
+  const paddedRight = rightFraction.padEnd(precision, '0');
+  if (paddedLeft === paddedRight) return 0;
+  return paddedLeft > paddedRight ? 1 : -1;
+}

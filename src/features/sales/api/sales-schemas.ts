@@ -63,6 +63,7 @@ export const invoiceSchema = z.object({
     customerPhone: z.string().nullable(),
     paymentMethod: z.enum(['CASH', 'BANK_TRANSFER']),
     paymentStatus: z.enum(['CAPTURED', 'REVERSED']),
+    transferProofPath: z.string().nullable(),
     cancelledAt: z.string().nullable(),
     cancelReason: z.string().nullable(),
   }),

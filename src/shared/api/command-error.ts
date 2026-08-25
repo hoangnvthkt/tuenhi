@@ -44,6 +44,10 @@ export const businessErrorMessages = {
     'Chưa thể tạo nhân viên. Hãy hoàn tất bảo vệ mật khẩu trước khi mở tài khoản nhân viên.',
   STAFF_ACCESS_POLICY_REQUIRED:
     'Chưa được phê duyệt tạo nhân viên. Chủ cửa hàng cần xác nhận chính sách tài khoản trước.',
+  TRANSFER_PROOF_REQUIRED:
+    'Cần ảnh chứng từ hợp lệ để xác nhận giao dịch chuyển khoản.',
+  TRANSFER_PROOF_INVALID:
+    'Ảnh chứng từ không hợp lệ cho giao dịch này. Vui lòng thử lại.',
 } as const;
 
 export type BusinessErrorCode = keyof typeof businessErrorMessages;

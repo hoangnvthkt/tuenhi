@@ -25,6 +25,7 @@ tự tạo dữ liệu hoặc dọn dữ liệu sau khi thử.
 | Danh mục     | Kênh bán, khách hàng, nhà cung cấp, sản phẩm, ảnh, giá, ngưỡng tồn   | Lưu và hiển thị đúng; lỗi validation không mất dữ liệu đã nhập           |
 | Tồn kho      | Mở sổ, mua hàng, kiểm kho, valuation                                 | Quantity, movement và giá trị tồn khớp chứng từ                          |
 | POS          | Chọn điểm bán, thêm hàng, hoàn tất bán và xem hóa đơn                | Điểm bán không nhấp nháy; hóa đơn và tồn kho được cập nhật một lần       |
+| Chuyển khoản | Bán/chuyển khoản và hoàn tiền/chuyển khoản                           | Bắt buộc ảnh JPEG/PNG/WebP ≤ 5 MiB; chụp/tải ảnh, signed URL riêng tư    |
 | Ngoại lệ bán | Hủy hóa đơn và trả hàng                                              | Chứng từ, hoàn tồn và event tài chính ghi nhận tại ngày sự kiện          |
 | Báo cáo      | Dashboard, `/reports`, XLSX và event ledger                          | Số server trả về là authoritative; export không chứa dữ liệu ngoài quyền |
 | Ứng dụng     | Desktop/mobile, refresh/deep-link, offline/loading/error, PWA assets | Route không 404; trạng thái tiếng Việt; asset PWA tải trực tiếp          |

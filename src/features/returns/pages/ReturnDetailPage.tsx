@@ -4,8 +4,13 @@ import { useState } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
-import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
+import {
+  compareCanonicalNumbers,
+  normalizeCanonicalNumber,
+  validateCanonicalNumber,
+} from '@/shared/lib/numeric/canonical-number';
 import { createReturnsApi } from '../api/returns-api';
+import { createPaymentProofApi, PaymentProofLink } from '@/features/payments';
 
 const money = (value: string) =>
   new Intl.NumberFormat('vi-VN', {
@@ -20,6 +25,7 @@ export function ReturnDetailPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const [api] = useState(createReturnsApi);
+  const [paymentProofApi] = useState(createPaymentProofApi);
   const query = useQuery({
     queryKey: ['sale-return', returnId],
     queryFn: () => api.detail(returnId!),
@@ -31,6 +37,7 @@ export function ReturnDetailPage() {
   );
   const [cancelReason, setCancelReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const document = query.data;
 
   const refresh = async () => {
@@ -43,13 +50,15 @@ export function ReturnDetailPage() {
     });
   };
   const acceptedValue = (id: string, fallback: string) =>
-    accepted[id] ?? fallback;
+    accepted[id] ?? normalizeCanonicalNumber(fallback);
 
   async function complete() {
     if (!document || !online || busy) return;
     const lines = document.lines.map((line) => ({
       saleReturnLineId: line.id,
-      acceptedQty: acceptedValue(line.id, line.requestedQty),
+      acceptedQty: normalizeCanonicalNumber(
+        acceptedValue(line.id, line.requestedQty),
+      ),
     }));
     const invalid = lines.some((line) => {
       const original = document.lines.find(
@@ -60,15 +69,27 @@ export function ReturnDetailPage() {
         precision: 18,
       });
       return (
-        !valid.ok || Number(line.acceptedQty) > Number(original.requestedQty)
+        !valid.ok ||
+        compareCanonicalNumbers(line.acceptedQty, original.requestedQty) > 0
       );
     });
-    if (invalid || !lines.some((line) => Number(line.acceptedQty) > 0)) {
+    if (
+      invalid ||
+      !lines.some((line) => compareCanonicalNumbers(line.acceptedQty, '0') > 0)
+    ) {
       toast.show({
         kind: 'error',
         title: 'Số lượng kiểm nhận chưa hợp lệ',
         message:
           'Số lượng phải từ 0 đến số lượng yêu cầu; cần chấp nhận ít nhất một dòng.',
+      });
+      return;
+    }
+    if (refundMethod === 'BANK_TRANSFER' && !proofFile) {
+      toast.show({
+        kind: 'error',
+        title: 'Thiếu ảnh chứng từ',
+        message: 'Cần ảnh chứng từ chuyển khoản để xác nhận.',
       });
       return;
     }
@@ -79,17 +100,34 @@ export function ReturnDetailPage() {
     )
       return;
     setBusy(true);
+    let transferProofPath: string | undefined;
     try {
+      if (refundMethod === 'BANK_TRANSFER' && proofFile) {
+        transferProofPath = (
+          await paymentProofApi.upload({
+            transaction: { kind: 'return', id: document.id },
+            file: proofFile,
+          })
+        ).objectPath;
+      }
       await api.complete({
         returnId: document.id,
         expectedVersion: document.version,
         lines,
         refundMethod,
         idempotencyKey: crypto.randomUUID(),
+        transferProofPath,
       });
       toast.show({ kind: 'success', title: 'Đã hoàn tất trả hàng' });
       await refresh();
     } catch (reason) {
+      if (transferProofPath) {
+        try {
+          await paymentProofApi.remove(transferProofPath);
+        } catch {
+          // A later protected cleanup may delete only an unattached proof.
+        }
+      }
       toast.show({
         kind: 'error',
         title: 'Không thể hoàn tất trả hàng',
@@ -180,9 +218,14 @@ export function ReturnDetailPage() {
           </div>
         ))}
         {document.status === 'COMPLETED' ? (
-          <p className="text-lg font-bold">
-            Đã hoàn {money(document.refundTotal)}
-          </p>
+          <div>
+            <p className="text-lg font-bold">
+              Đã hoàn {money(document.refundTotal)}
+            </p>
+            {document.refundMethod === 'BANK_TRANSFER' ? (
+              <PaymentProofLink objectPath={document.transferProofPath} />
+            ) : null}
+          </div>
         ) : null}
       </section>
       {pending ? (
@@ -205,9 +248,57 @@ export function ReturnDetailPage() {
                   <option value="BANK_TRANSFER">Chuyển khoản</option>
                 </select>
               </label>
+              {refundMethod === 'BANK_TRANSFER' ? (
+                <div className="rounded-lg border border-teal-100 bg-teal-50 p-3">
+                  <p className="text-sm font-semibold text-teal-950">
+                    Ảnh chứng từ hoàn tiền
+                  </p>
+                  <p className="mt-1 text-sm text-teal-900">
+                    Bắt buộc cho mọi giao dịch chuyển khoản mới.
+                  </p>
+                  <label className="mt-3 block text-sm font-medium text-slate-900">
+                    Tải ảnh chứng từ hoàn tiền
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={!online || busy}
+                      onChange={(event) =>
+                        setProofFile(event.target.files?.[0] ?? null)
+                      }
+                      className="mt-2 block w-full text-sm"
+                    />
+                  </label>
+                  <label className="mt-3 block text-sm font-medium text-slate-900">
+                    Chụp ảnh chứng từ hoàn tiền
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      capture="environment"
+                      disabled={!online || busy}
+                      onChange={(event) =>
+                        setProofFile(event.target.files?.[0] ?? null)
+                      }
+                      className="mt-2 block w-full text-sm"
+                    />
+                  </label>
+                  {proofFile ? (
+                    <p className="mt-2 text-sm text-teal-950">
+                      Đã chọn: {proofFile.name}
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-sm font-medium text-red-800">
+                      Cần ảnh chứng từ chuyển khoản để xác nhận.
+                    </p>
+                  )}
+                </div>
+              ) : null}
               <button
                 type="button"
-                disabled={!online || busy}
+                disabled={
+                  !online ||
+                  busy ||
+                  (refundMethod === 'BANK_TRANSFER' && !proofFile)
+                }
                 onClick={() => void complete()}
                 className="min-h-11 rounded-lg bg-teal-700 px-4 font-semibold text-white disabled:opacity-50"
               >

@@ -91,6 +91,14 @@ Bucket `product-images` là private, giới hạn 5 MiB và chỉ nhận JPEG/PN
 
 Realtime publication chỉ phát tín hiệu thay đổi cho `products`, `product_images` và `inventory_balances`. Client nhận tín hiệu rồi invalidate/refetch dữ liệu authoritative; payload Realtime không được dùng như sổ dữ liệu thay thế.
 
+## Chứng từ chuyển khoản
+
+Mọi giao dịch chuyển khoản mới — thanh toán hóa đơn và hoàn tiền trả hàng — bắt
+buộc một ảnh JPEG, PNG hoặc WebP không quá 5 MiB. Bucket `payment-proofs` là
+private; client upload object bất biến trước command, server kiểm tra quyền sở
+hữu/đường dẫn rồi gắn metadata chỉ khi command thành công. Ảnh chỉ mở qua signed
+URL ngắn hạn. Giao dịch cũ không bị hồi tố và có thể không có chứng từ ảnh.
+
 ## Import Excel và thời hạn lưu
 
 Workbook generic và workbook cũ được parse trong bộ nhớ trình duyệt; file gốc không upload lên Storage hoặc server. Dữ liệu được gửi theo gói tối đa 250 dòng, kiểm tra trước và commit nguyên tử/idempotent. Raw row và lỗi nhập được giữ tối đa 30 ngày rồi job Cloud xóa; record nghiệp vụ đã commit không bị xóa theo raw payload.

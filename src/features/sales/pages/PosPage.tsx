@@ -245,7 +245,7 @@ export function PosPage() {
           saving={saving}
           onPaymentChange={setPayment}
           onCancel={() => setPayment(null)}
-          onConfirm={() => void pay()}
+          onConfirm={(proofFile) => void pay(proofFile)}
         />
       ) : null}
     </main>

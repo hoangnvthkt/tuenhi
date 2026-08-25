@@ -21,12 +21,24 @@ Chưa đủ điều kiện Production.
 
 | Hạng mục               | Kết quả                             | Bằng chứng                                                          |
 | ---------------------- | ----------------------------------- | ------------------------------------------------------------------- |
-| Local quality gate     | Đạt baseline; chạy lại trước commit | `pnpm check`: 66 files / 272 tests                                  |
+| Local quality gate     | Đạt baseline; chạy lại trước commit | `pnpm check`: 68 files / 285 tests                                  |
 | App-shell E2E          | Đạt                                 | `pnpm test:e2e:ci`: 2/2 desktop/mobile                              |
 | Preview route/PWA      | Chờ Owner kiểm trong phiên Vercel   | HTTP ẩn danh bị Vercel SSO chuyển về login                          |
 | Browser-safe config    | Đạt trên build local                | Không source map/server credential; contract chỉ nhận hai `VITE_*`  |
 | Cloud lifecycle/policy | Đạt                                 | `cutover:verify`: `OWNER_PILOT`, `OWNER_WAIVER`, audit còn hiệu lực |
-| DB state               | Đạt                                 | 31 migrations khớp; DB lint và advisors không có lỗi                |
+| DB state               | Đạt                                 | 35 migrations khớp; DB lint và advisors không có lỗi                |
+
+## B5 bổ sung — chứng từ chuyển khoản
+
+Hai migration B5 (`20260825075636`, `20260825080119`) đã tạo bucket private
+`payment-proofs`, metadata immutable cho thanh toán/hoàn tiền và guard RPC.
+Mọi giao dịch chuyển khoản mới phải có ảnh JPEG/PNG/WebP ≤ 5 MiB; cash không
+được đính kèm ảnh. Object chỉ được liên kết sau command thành công và chỉ xem
+qua signed URL. Lịch sử/mock cũ không bị hồi tố.
+
+Owner cần UAT thêm: bán chuyển khoản và hoàn tiền chuyển khoản không thể xác
+nhận khi thiếu ảnh; có thể chụp/tải ảnh, hoàn tất và xem lại chứng từ. Khi trả
+hàng, số lượng `1.000` phải được gửi canonical thành `1` và hoàn tất được.
 
 ## UAT Owner
 

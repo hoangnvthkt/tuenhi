@@ -48,6 +48,8 @@ export const saleReturnSchema = z.object({
   completedAt: z.string().nullable(),
   cancelReason: z.string().nullable(),
   canComplete: z.boolean(),
+  refundMethod: z.enum(['CASH', 'BANK_TRANSFER']).nullable(),
+  transferProofPath: z.string().nullable(),
   lines: z.array(returnLineSchema),
 });
 

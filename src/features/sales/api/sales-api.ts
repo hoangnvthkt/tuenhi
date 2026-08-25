@@ -89,6 +89,7 @@ export function createSalesApi() {
       expectedVersion: number,
       method: 'CASH' | 'BANK_TRANSFER',
       idempotencyKey: string,
+      transferProofPath?: string,
     ) {
       return parseSalesRpc(
         z.object({
@@ -102,6 +103,7 @@ export function createSalesApi() {
           p_expected_version: expectedVersion,
           p_payment_method: method,
           p_idempotency_key: idempotencyKey,
+          p_transfer_proof_path: transferProofPath ?? null,
         }),
       );
     },

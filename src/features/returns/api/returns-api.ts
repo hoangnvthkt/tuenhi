@@ -116,6 +116,7 @@ export function createReturnsApi() {
       lines: Array<{ saleReturnLineId: string; acceptedQty: string }>;
       refundMethod: 'CASH' | 'BANK_TRANSFER';
       idempotencyKey: string;
+      transferProofPath?: string;
     }) {
       return parseReturnsRpc(
         z.object({
@@ -131,6 +132,7 @@ export function createReturnsApi() {
           p_lines: input.lines,
           p_refund_method: input.refundMethod,
           p_idempotency_key: input.idempotencyKey,
+          p_transfer_proof_path: input.transferProofPath ?? null,
         }),
       );
     },

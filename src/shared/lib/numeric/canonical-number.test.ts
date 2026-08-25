@@ -5,7 +5,9 @@ import {
   MONEY_FINAL,
   QUANTITY_EDITING,
   QUANTITY_FINAL,
+  compareCanonicalNumbers,
   formatViNumber,
+  normalizeCanonicalNumber,
   validateCanonicalNumber,
 } from './canonical-number';
 
@@ -116,4 +118,32 @@ describe('formatViNumber', () => {
       '123.456.789.012.345.678,5',
     );
   });
+});
+
+describe('normalizeCanonicalNumber', () => {
+  it.each([
+    ['1.000', '1'],
+    ['1.500', '1.5'],
+    ['1000', '1000'],
+    ['0.000', '0'],
+  ])(
+    'removes only insignificant trailing zeroes from %s',
+    (value, expected) => {
+      expect(normalizeCanonicalNumber(value)).toBe(expected);
+    },
+  );
+});
+
+describe('compareCanonicalNumbers', () => {
+  it.each([
+    ['1.000', '1', 0],
+    ['1.500', '1.499', 1],
+    ['0.001', '0.010', -1],
+    ['100000000000000.001', '99999999999999.999', 1],
+  ])(
+    'compares canonical decimals without converting %s and %s to Number',
+    (left, right, expected) => {
+      expect(compareCanonicalNumbers(left, right)).toBe(expected);
+    },
+  );
 });
