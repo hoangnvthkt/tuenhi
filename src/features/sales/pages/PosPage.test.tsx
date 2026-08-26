@@ -112,4 +112,38 @@ describe('PosPage', () => {
       expect(select).toHaveValue(channels[1]!.id);
     });
   });
+
+  it('drops a persisted cart line with a fractional quantity instead of restoring it', async () => {
+    localStorage.setItem(
+      'tuenhi:pos:cart:10000000-0000-4000-8000-000000000099',
+      JSON.stringify({
+        items: [
+          {
+            productId: '10000000-0000-4000-8000-000000000001',
+            productName: 'Cũ',
+            sku: 'CU-001',
+            unitName: 'Cái',
+            quantity: '1.5',
+            unitSalePrice: '150000',
+            lineDiscountAmount: '0',
+            lineOrder: 0,
+            onHandQty: '10',
+          },
+        ],
+        channelId: channels[0]!.id,
+        customerId: '',
+        orderDiscount: '0',
+        note: '',
+      }),
+    );
+
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        'Một số dòng trong giỏ cũ có số lượng lẻ nên đã được bỏ.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Cũ')).not.toBeInTheDocument();
+  });
 });

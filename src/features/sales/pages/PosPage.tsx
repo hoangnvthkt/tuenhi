@@ -13,8 +13,16 @@ import { CartPanel } from '../components/CartPanel';
 import { CheckoutDialog } from '../components/CheckoutDialog';
 import { ProductPicker } from '../components/ProductPicker';
 import type { PosCartItem, PosPaymentMethod } from '../model/pos-types';
-import { posCartStorageKey } from '../model/pos-storage';
+import {
+  posCartStorageKey,
+  sanitizePersistedPosCartItems,
+} from '../model/pos-storage';
+import { calculatePosTotals } from '../model/pos-totals';
 import { usePosCommands } from '../hooks/use-pos-commands';
+import {
+  INTEGER_FINAL,
+  incrementCanonicalInteger,
+} from '@/shared/lib/numeric/canonical-number';
 
 export function PosPage() {
   const { saleId } = useParams();
@@ -32,6 +40,7 @@ export function PosPage() {
   const [note, setNote] = useState('');
   const [draft, setDraft] = useState<Sale | null>(null);
   const [payment, setPayment] = useState<PosPaymentMethod | null>(null);
+  const [cartWarning, setCartWarning] = useState(false);
   const canDiscount = Boolean(
     session?.permissions.includes('sale.discount.apply'),
   );
@@ -83,7 +92,9 @@ export function PosPage() {
           orderDiscount: string;
           note: string;
         };
-        setItems(value.items);
+        const restoredItems = sanitizePersistedPosCartItems(value.items);
+        setItems(restoredItems);
+        setCartWarning(restoredItems.length !== value.items.length);
         if (value.channelId) setChannelId(value.channelId);
         setCustomerId(value.customerId);
         setOrderDiscount(value.orderDiscount);
@@ -107,22 +118,9 @@ export function PosPage() {
     orderDiscount,
     note,
   ]);
-  const subtotal = useMemo(
-    () =>
-      items.reduce(
-        (total, x) => total + Number(x.quantity) * Number(x.unitSalePrice),
-        0,
-      ),
-    [items],
-  );
-  const lineDiscount = useMemo(
-    () =>
-      items.reduce((total, x) => total + Number(x.lineDiscountAmount || 0), 0),
-    [items],
-  );
-  const total = Math.max(
-    0,
-    subtotal - lineDiscount - Number(orderDiscount || 0),
+  const totals = useMemo(
+    () => calculatePosTotals(items, orderDiscount),
+    [items, orderDiscount],
   );
   const add = (product: {
     id: string;
@@ -139,7 +137,12 @@ export function PosPage() {
       if (found)
         return current.map((x) =>
           x.productId === product.id
-            ? { ...x, quantity: String(Number(x.quantity) + 1) }
+            ? {
+                ...x,
+                quantity: INTEGER_FINAL.test(x.quantity)
+                  ? incrementCanonicalInteger(x.quantity)
+                  : '1',
+              }
             : x,
         );
       return [
@@ -202,6 +205,14 @@ export function PosPage() {
           </button>
         ) : null}
       </div>
+      {cartWarning ? (
+        <p
+          role="alert"
+          className="mb-5 rounded-lg bg-amber-50 p-3 text-sm text-amber-800"
+        >
+          Một số dòng trong giỏ cũ có số lượng lẻ nên đã được bỏ.
+        </p>
+      ) : null}
       <div className="grid gap-5 lg:grid-cols-[1fr_420px]">
         <ProductPicker
           search={search}
@@ -218,9 +229,9 @@ export function PosPage() {
           customerId={customerId}
           orderDiscount={orderDiscount}
           note={note}
-          subtotal={subtotal}
-          lineDiscount={lineDiscount}
-          total={total}
+          subtotal={totals.subtotal}
+          discountTotal={totals.discountTotal}
+          total={totals.total}
           canDiscount={canDiscount}
           online={online}
           saving={saving}
@@ -241,7 +252,7 @@ export function PosPage() {
       {payment ? (
         <CheckoutDialog
           payment={payment}
-          total={total}
+          total={totals.total}
           saving={saving}
           onPaymentChange={setPayment}
           onCancel={() => setPayment(null)}

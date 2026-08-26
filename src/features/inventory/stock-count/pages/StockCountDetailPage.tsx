@@ -110,9 +110,7 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
         }).ok,
     );
     if (invalid) {
-      setError(
-        'Số đếm phải là số canonical không âm, tối đa ba chữ số thập phân.',
-      );
+      setError('Số đếm phải là số nguyên canonical không âm.');
       return;
     }
     await perform(async () => {

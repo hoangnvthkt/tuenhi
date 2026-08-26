@@ -2,6 +2,7 @@ import { useId, useState, type FocusEvent } from 'react';
 import {
   editingGrammarFor,
   numericErrorMessages,
+  quantityIntegerMessage,
   validateCanonicalNumber,
   type NumericKind,
 } from '@/shared/lib/numeric/canonical-number';
@@ -54,7 +55,9 @@ export function NumericField({
         id={inputId}
         name={name}
         type="text"
-        inputMode="decimal"
+        inputMode={
+          kind === 'quantity' || kind === 'integer' ? 'numeric' : 'decimal'
+        }
         autoComplete="off"
         value={value}
         required={required}
@@ -68,7 +71,11 @@ export function NumericField({
         onChange={(event) => {
           const nextValue = event.currentTarget.value;
           if (!editingGrammarFor(kind).test(nextValue)) {
-            setLocalError(numericErrorMessages.NUMBER_FORMAT_INVALID);
+            setLocalError(
+              kind === 'quantity'
+                ? quantityIntegerMessage
+                : numericErrorMessages.NUMBER_FORMAT_INVALID,
+            );
             return;
           }
 

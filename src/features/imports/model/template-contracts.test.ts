@@ -49,6 +49,10 @@ describe('catalog import template contracts', () => {
         required: true,
       },
     ]);
+    expect(
+      contract.columns.find(({ field }) => field === 'openingQuantity')
+        ?.example,
+    ).toBe('10');
   });
 
   it('keeps the approved product header order and field types', () => {

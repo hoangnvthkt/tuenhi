@@ -1,7 +1,7 @@
+import { formatViDecimal } from '@/shared/lib/numeric/canonical-number';
+
 export function formatReportNumber(value: string, maximumFractionDigits = 3) {
-  return new Intl.NumberFormat('vi-VN', { maximumFractionDigits }).format(
-    Number(value),
-  );
+  return formatViDecimal(value, maximumFractionDigits);
 }
 export function formatReportMoney(value: string) {
   return `${formatReportNumber(value, 2)} ₫`;

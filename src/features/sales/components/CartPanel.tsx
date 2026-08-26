@@ -13,7 +13,7 @@ export function CartPanel({
   orderDiscount,
   note,
   subtotal,
-  lineDiscount,
+  discountTotal,
   total,
   canDiscount,
   online,
@@ -34,9 +34,9 @@ export function CartPanel({
   customerId: string;
   orderDiscount: string;
   note: string;
-  subtotal: number;
-  lineDiscount: number;
-  total: number;
+  subtotal: string;
+  discountTotal: string;
+  total: string;
   canDiscount: boolean;
   online: boolean;
   saving: boolean;
@@ -82,7 +82,7 @@ export function CartPanel({
                   onUpdateLine(item.productId, 'quantity', value)
                 }
                 kind="quantity"
-                precision={3}
+                precision={18}
                 positive
               />
               <NumericField
@@ -156,9 +156,7 @@ export function CartPanel({
           </div>
           <div className="flex justify-between">
             <dt>Giảm giá</dt>
-            <dd>
-              -{formatPosMoney(lineDiscount + Number(orderDiscount || 0))}
-            </dd>
+            <dd>-{formatPosMoney(discountTotal)}</dd>
           </div>
           <div className="flex justify-between text-lg font-semibold">
             <dt>Cần thanh toán</dt>

@@ -1,9 +1,11 @@
 import { z } from 'zod';
+import { INTEGER_FINAL } from '@/shared/lib/numeric/canonical-number';
 
 const decimal = z.string();
+const quantity = z.string().regex(INTEGER_FINAL);
 const summarySchema = z.object({
   completedOrderCount: z.number().int().nonnegative(),
-  soldQuantity: decimal,
+  soldQuantity: quantity,
   grossSales: decimal,
   lineDiscounts: decimal,
   orderDiscounts: decimal,
@@ -49,7 +51,7 @@ export const operationalDashboardSchema = z.object({
     activeProductCount: z.number().int(),
     lowStockCount: z.number().int(),
     outOfStockCount: z.number().int(),
-    totalOnHandQty: decimal,
+    totalOnHandQty: quantity,
   }),
   pending: z.object({
     purchaseReceipts: z.number().int(),

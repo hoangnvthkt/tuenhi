@@ -6,6 +6,7 @@ import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import {
   compareCanonicalNumbers,
+  formatViNumber,
   normalizeCanonicalNumber,
   validateCanonicalNumber,
 } from '@/shared/lib/numeric/canonical-number';
@@ -193,12 +194,12 @@ export function ReturnDetailPage() {
             <div>
               <strong>{line.productName}</strong>
               <p className="mt-1 text-sm text-slate-600">
-                Yêu cầu {line.requestedQty} {line.unitName} · Đã trả trước đó{' '}
-                {line.returnedQtyBefore}
+                Yêu cầu {formatViNumber(line.requestedQty)} {line.unitName} · Đã
+                trả trước đó {formatViNumber(line.returnedQtyBefore)}
               </p>
               {document.status === 'COMPLETED' ? (
                 <p className="mt-1 text-sm text-teal-800">
-                  Chấp nhận {line.acceptedQty ?? '0'} · Hoàn{' '}
+                  Chấp nhận {formatViNumber(line.acceptedQty ?? '0')} · Hoàn{' '}
                   {money(line.refundAmount)}
                 </p>
               ) : null}

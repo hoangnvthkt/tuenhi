@@ -8,7 +8,7 @@ const validProduct = {
   categoryId: '',
   unitName: 'Hộp',
   description: '',
-  minStockQty: '10.250',
+  minStockQty: '10',
   salePrice: '25000.50',
   isActive: true,
 };
@@ -20,7 +20,7 @@ describe('validateProductForm', () => {
     ).toEqual({ ok: true, data: validProduct });
   });
 
-  it.each(['１２', '١٢', '1,000', '1 000', '01', '1.2345'])(
+  it.each(['１２', '١٢', '1,000', '1 000', '01', '1.5', '1.000'])(
     'rejects a non-canonical minimum quantity %j',
     (minStockQty) => {
       const result = validateProductForm(

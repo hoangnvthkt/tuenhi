@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { INTEGER_FINAL } from '@/shared/lib/numeric/canonical-number';
 
 export const valuationPageSchema = z.object({
   version: z.literal(2),
@@ -8,7 +9,7 @@ export const valuationPageSchema = z.object({
       sku: z.string(),
       name: z.string(),
       unitName: z.string(),
-      onHandQty: z.string(),
+      onHandQty: z.string().regex(INTEGER_FINAL),
       avgUnitCost: z.string(),
       inventoryValue: z.string(),
     }),

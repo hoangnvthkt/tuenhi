@@ -22,12 +22,12 @@ function QuantityHarness({ required = true }: { required?: boolean }) {
 }
 
 describe('NumericField', () => {
-  it('uses a text input with decimal keyboard hint and a visible label', () => {
+  it('uses a text input with integer keyboard hint and a visible label', () => {
     render(<QuantityHarness />);
 
     const input = screen.getByLabelText('Số lượng');
     expect(input).toHaveAttribute('type', 'text');
-    expect(input).toHaveAttribute('inputmode', 'decimal');
+    expect(input).toHaveAttribute('inputmode', 'numeric');
   });
 
   it('keeps the previous value and shows Vietnamese copy for invalid paste', async () => {
@@ -35,29 +35,26 @@ describe('NumericField', () => {
     render(<QuantityHarness />);
     const input = screen.getByLabelText('Số lượng');
 
-    await user.type(input, '12.5');
+    await user.type(input, '12');
     await user.click(input);
-    await user.paste(' kg');
+    await user.paste('.5');
 
-    expect(screen.getByLabelText('Giá trị canonical')).toHaveTextContent(
-      '12.5',
-    );
+    expect(screen.getByLabelText('Giá trị canonical')).toHaveTextContent('12');
     expect(
-      screen.getByText('Chỉ nhập chữ số và dấu chấm cho phần thập phân.'),
+      screen.getByText('Số lượng chỉ được là số nguyên.'),
     ).toBeInTheDocument();
   });
 
-  it('allows a trailing period while editing and rejects it on blur', async () => {
+  it('rejects a trailing period while editing', async () => {
     const user = userEvent.setup();
     render(<QuantityHarness />);
     const input = screen.getByLabelText('Số lượng');
 
     await user.type(input, '12.');
-    expect(screen.getByLabelText('Giá trị canonical')).toHaveTextContent('12.');
-    await user.tab();
+    expect(screen.getByLabelText('Giá trị canonical')).toHaveTextContent('12');
 
     expect(
-      screen.getByText('Chỉ nhập chữ số và dấu chấm cho phần thập phân.'),
+      screen.getByText('Số lượng chỉ được là số nguyên.'),
     ).toBeInTheDocument();
   });
 

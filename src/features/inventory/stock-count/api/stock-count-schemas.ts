@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { inventoryDateTimeSchema } from '../../api/inventory-rpc';
+import {
+  INTEGER_FINAL,
+  SIGNED_INTEGER_FINAL,
+} from '@/shared/lib/numeric/canonical-number';
 
 const nullableDateTime = inventoryDateTimeSchema.nullable();
 const statusSchema = z.enum(['DRAFT', 'COUNTED', 'POSTED', 'CANCELLED']);
@@ -9,10 +13,10 @@ const stockCountLineSchema = z.object({
   productName: z.string(),
   sku: z.string(),
   unitName: z.string(),
-  systemQtySnapshot: z.string(),
+  systemQtySnapshot: z.string().regex(INTEGER_FINAL),
   inventoryVersionSnapshot: z.number().int().nonnegative(),
-  countedQty: z.string().nullable(),
-  differenceQty: z.string().nullable(),
+  countedQty: z.string().regex(INTEGER_FINAL).nullable(),
+  differenceQty: z.string().regex(SIGNED_INTEGER_FINAL).nullable(),
   lineOrder: z.number().int().nonnegative(),
   requiresEstimatedCost: z.boolean(),
 });

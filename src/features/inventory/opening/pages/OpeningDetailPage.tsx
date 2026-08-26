@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
+import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
 import { createCatalogApi } from '@/features/catalog';
 import { createOpeningApi } from '../api/opening-api';
 import type {
@@ -82,6 +83,19 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
   );
   const editable = isCreate || document?.status === 'DRAFT';
   function applySuggestion(suggestion: OpeningSuggestion) {
+    if (
+      suggestion.suggestedOpeningQuantity !== null &&
+      !validateCanonicalNumber(suggestion.suggestedOpeningQuantity, {
+        kind: 'quantity',
+        precision: 18,
+        positive: true,
+      }).ok
+    ) {
+      setError(
+        'Gợi ý từ workbook cũ có số lượng lẻ nên không thể dùng để mở sổ.',
+      );
+      return;
+    }
     const line = {
       productId: suggestion.productId,
       countedQty: suggestion.suggestedOpeningQuantity ?? '',
@@ -128,7 +142,11 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
     const valid = lines.filter(
       (line) =>
         line.productId &&
-        Number(line.countedQty) > 0 &&
+        validateCanonicalNumber(line.countedQty, {
+          kind: 'quantity',
+          precision: 18,
+          positive: true,
+        }).ok &&
         line.openingUnitCost !== '',
     );
     if (valid.length === 0 || valid.length !== selectedIds.size) {

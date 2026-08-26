@@ -18,13 +18,13 @@ const detail: ProductDetail = {
   categoryName: null,
   unitName: 'Hộp',
   description: 'Mô tả sản phẩm',
-  minStockQty: '10.000',
+  minStockQty: '10',
   isActive: true,
   version: 3,
   primaryImagePath: null,
   currentSalePrice: '25000.00',
   salePriceValidFrom: '2026-08-22T06:00:00.000Z',
-  onHandQty: '4.000',
+  onHandQty: '4',
   images: [],
 };
 

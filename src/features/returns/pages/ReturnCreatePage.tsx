@@ -3,7 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
-import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
+import {
+  compareCanonicalNumbers,
+  formatViNumber,
+  validateCanonicalNumber,
+} from '@/shared/lib/numeric/canonical-number';
 import { createSalesApi, type Invoice } from '@/features/sales';
 import { createReturnsApi } from '../api/returns-api';
 import type { ReturnLookup } from '../api/returns-schemas';
@@ -76,7 +80,7 @@ export function ReturnCreatePage() {
           precision: 18,
           positive: true,
         });
-        return value.ok && Number(line.requestedQty) > 0;
+        return value.ok && compareCanonicalNumbers(line.requestedQty, '0') > 0;
       }),
     [lines],
   );
@@ -130,7 +134,10 @@ export function ReturnCreatePage() {
           precision: 18,
           positive: true,
         }).ok ||
-          Number(line.requestedQty) > Number(available?.returnableQty ?? 0))
+          compareCanonicalNumbers(
+            line.requestedQty,
+            available?.returnableQty ?? '0',
+          ) > 0)
       );
     });
     if (invalid || selected.length === 0) {
@@ -231,8 +238,9 @@ export function ReturnCreatePage() {
                 <p>
                   <strong>{line.productName}</strong>
                   <span className="mt-1 block text-sm text-slate-600">
-                    {line.sku} · Đã bán {line.soldQty} {line.unitName} · Còn trả{' '}
-                    {line.returnableQty}
+                    {line.sku} · Đã bán {formatViNumber(line.soldQty)}{' '}
+                    {line.unitName} · Còn trả{' '}
+                    {formatViNumber(line.returnableQty)}
                   </span>
                 </p>
                 <NumericField
@@ -241,7 +249,11 @@ export function ReturnCreatePage() {
                   precision={18}
                   value={state?.requestedQty ?? ''}
                   onChange={(value) => updateLine(line.id, value)}
-                  disabled={!online || busy || Number(line.returnableQty) <= 0}
+                  disabled={
+                    !online ||
+                    busy ||
+                    compareCanonicalNumbers(line.returnableQty, '0') <= 0
+                  }
                 />
               </div>
             );

@@ -39,7 +39,7 @@ const receipt: PurchaseReceipt = {
       productName: 'Thuốc A',
       sku: 'THUOC-A',
       unitName: 'Hộp',
-      receivedQty: '2.000',
+      receivedQty: '2',
       lineOrder: 0,
     },
   ],

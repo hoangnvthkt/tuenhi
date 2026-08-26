@@ -7,6 +7,8 @@ import {
   QUANTITY_FINAL,
   compareCanonicalNumbers,
   formatViNumber,
+  formatViDecimal,
+  incrementCanonicalInteger,
   normalizeCanonicalNumber,
   validateCanonicalNumber,
 } from './canonical-number';
@@ -20,17 +22,28 @@ describe('canonical numeric grammars', () => {
     expect(MONEY_FINAL.test(value)).toBe(true);
   });
 
-  it.each(['0', '1', '0.1', '1.234'])('accepts final quantity %s', (value) => {
+  it.each(['0', '1', '1000'])('accepts final quantity %s', (value) => {
     expect(QUANTITY_FINAL.test(value)).toBe(true);
+  });
+
+  it.each(['0.1', '1.000', '1.5'])('rejects decimal quantity %s', (value) => {
+    expect(QUANTITY_FINAL.test(value)).toBe(false);
   });
 
   it.each(['', '0.', '12.'])('accepts money editing state %j', (value) => {
     expect(MONEY_EDITING.test(value)).toBe(true);
   });
 
-  it.each(['', '0.', '12.'])('accepts quantity editing state %j', (value) => {
+  it.each(['', '0', '12'])('accepts quantity editing state %j', (value) => {
     expect(QUANTITY_EDITING.test(value)).toBe(true);
   });
+
+  it.each(['0.', '12.', '12.5'])(
+    'rejects decimal quantity while editing %j',
+    (value) => {
+      expect(QUANTITY_EDITING.test(value)).toBe(false);
+    },
+  );
 
   it.each([
     '.5',
@@ -75,8 +88,8 @@ describe('validateCanonicalNumber', () => {
       { kind: 'money', precision: 18 },
     ],
     [
-      'quantity numeric(18,3)',
-      '1234567890123456',
+      'quantity numeric(18,0)',
+      '1234567890123456789',
       { kind: 'quantity', precision: 18 },
     ],
   ] as const)('rejects integer digits beyond %s', (_label, value, options) => {
@@ -112,11 +125,31 @@ describe('validateCanonicalNumber', () => {
   });
 });
 
+describe('integer quantity helpers', () => {
+  it('increments a large canonical quantity without Number precision loss', () => {
+    expect(incrementCanonicalInteger('999999999999999999')).toBe(
+      '1000000000000000000',
+    );
+  });
+});
+
 describe('formatViNumber', () => {
   it('formats without changing the canonical value or losing large digits', () => {
     expect(formatViNumber('123456789012345678.50')).toBe(
       '123.456.789.012.345.678,5',
     );
+  });
+});
+
+describe('formatViDecimal', () => {
+  it('formats signed, large canonical decimals without Number precision loss', () => {
+    expect(formatViDecimal('-123456789012345678.50', 2)).toBe(
+      '-123.456.789.012.345.678,5',
+    );
+  });
+
+  it('limits visible fractional digits without changing the integer part', () => {
+    expect(formatViDecimal('1000.987', 2)).toBe('1.000,99');
   });
 });
 

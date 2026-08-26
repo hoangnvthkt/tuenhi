@@ -1,4 +1,5 @@
 import type { ProductCatalogItem } from '@/features/catalog';
+import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
 import { formatPosMoney } from '../model/format-money';
 
 export function ProductPicker({
@@ -40,7 +41,8 @@ export function ProductPicker({
           >
             <p className="font-medium text-slate-950">{product.name}</p>
             <p className="text-xs text-slate-500">
-              {product.sku} · Tồn {product.onHandQty} {product.unitName}
+              {product.sku} · Tồn {formatViNumber(product.onHandQty)}{' '}
+              {product.unitName}
             </p>
             <p className="mt-1 text-sm font-semibold text-teal-800">
               {product.currentSalePrice

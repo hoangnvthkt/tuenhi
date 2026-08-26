@@ -11,7 +11,7 @@ const report: RevenueReport = {
   scope: 'OWN',
   summary: {
     completedOrderCount: 1,
-    soldQuantity: '2.000',
+    soldQuantity: '2',
     grossSales: '120000.00',
     lineDiscounts: '0.00',
     orderDiscounts: '10000.00',
@@ -24,7 +24,7 @@ const report: RevenueReport = {
     {
       day: '2026-08-01',
       completedOrderCount: 1,
-      soldQuantity: '2.000',
+      soldQuantity: '2',
       grossSales: '120000.00',
       lineDiscounts: '0.00',
       orderDiscounts: '10000.00',

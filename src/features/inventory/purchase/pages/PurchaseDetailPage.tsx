@@ -5,6 +5,7 @@ import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createCatalogApi } from '@/features/catalog';
 import { createDirectoryApi } from '@/features/directories';
 import { useSession } from '@/features/auth';
+import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
 import { createPurchaseApi } from '../api/purchase-api';
 import type { PurchaseReceipt } from '../api/purchase-schemas';
 import { PurchaseActions } from '../components/PurchaseActions';
@@ -143,7 +144,13 @@ export function PurchaseDetailPage({
   }
   async function save() {
     const validLines = lines.filter(
-      (line) => line.productId && Number(line.receivedQty) > 0,
+      (line) =>
+        line.productId &&
+        validateCanonicalNumber(line.receivedQty, {
+          kind: 'quantity',
+          precision: 18,
+          positive: true,
+        }).ok,
     );
     if (validLines.length === 0 || validLines.length !== lineProductIds.size) {
       setError(

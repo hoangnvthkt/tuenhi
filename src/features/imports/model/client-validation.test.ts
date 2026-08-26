@@ -11,7 +11,7 @@ describe('client import validation', () => {
             sku: ' SP-001 ',
             name: ' Sản phẩm A ',
             unitName: ' Hộp ',
-            minStockQty: '10.500',
+            minStockQty: '1000',
             salePrice: 25000,
             isActive: 'Có',
           },
@@ -27,7 +27,7 @@ describe('client import validation', () => {
         sku: 'SP-001',
         name: 'Sản phẩm A',
         unitName: 'Hộp',
-        minStockQty: '10.500',
+        minStockQty: '1000',
         salePrice: '25000',
         isActive: true,
       },
@@ -79,7 +79,7 @@ describe('client import validation', () => {
     expect(result.rows.every((row) => row.status === 'INVALID')).toBe(true);
   });
 
-  it('detects required, scale, format and duplicate-in-file errors', () => {
+  it('detects required, quantity format, money format and duplicate-in-file errors', () => {
     const result = validateClientRows(
       [
         {
@@ -97,7 +97,7 @@ describe('client import validation', () => {
             sku: ' sp-01 ',
             name: 'B',
             unitName: 'Hộp',
-            minStockQty: '1.2345',
+            minStockQty: '1.5',
           },
         },
       ],
@@ -119,7 +119,7 @@ describe('client import validation', () => {
         expect.objectContaining({
           rowNumber: 3,
           targetField: 'minStockQty',
-          code: 'NUMBER_SCALE_EXCEEDED',
+          code: 'NUMBER_FORMAT_INVALID',
         }),
         expect.objectContaining({ rowNumber: 2, code: 'DUPLICATE_IN_FILE' }),
         expect.objectContaining({ rowNumber: 3, code: 'DUPLICATE_IN_FILE' }),
@@ -202,6 +202,11 @@ describe('client import validation', () => {
         }),
         expect.objectContaining({ rowNumber: 2, code: 'DUPLICATE_IN_FILE' }),
         expect.objectContaining({ rowNumber: 3, code: 'DUPLICATE_IN_FILE' }),
+        expect.objectContaining({
+          rowNumber: 3,
+          targetField: 'openingQuantity',
+          code: 'NUMBER_FORMAT_INVALID',
+        }),
       ]),
     );
   });

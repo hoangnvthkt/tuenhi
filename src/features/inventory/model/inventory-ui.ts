@@ -8,9 +8,7 @@ export const statusLabel: Record<string, string> = {
 };
 
 export function formatNumber(value: string, maximumFractionDigits = 3) {
-  return new Intl.NumberFormat('vi-VN', {
-    maximumFractionDigits,
-  }).format(Number(value));
+  return formatViDecimal(value, maximumFractionDigits);
 }
 
 export function formatMoney(value: string) {
@@ -22,3 +20,4 @@ export function safeInventoryMessage(error: unknown) {
     ? error.message
     : 'Không thể hoàn tất thao tác. Vui lòng thử lại.';
 }
+import { formatViDecimal } from '@/shared/lib/numeric/canonical-number';

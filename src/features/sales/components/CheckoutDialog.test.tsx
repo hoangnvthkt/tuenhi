@@ -10,7 +10,7 @@ describe('CheckoutDialog', () => {
     render(
       <CheckoutDialog
         payment="BANK_TRANSFER"
-        total={100000}
+        total="100000"
         saving={false}
         onPaymentChange={vi.fn()}
         onCancel={vi.fn()}
@@ -37,7 +37,7 @@ describe('CheckoutDialog', () => {
     render(
       <CheckoutDialog
         payment="CASH"
-        total={100000}
+        total="100000"
         saving={false}
         onPaymentChange={vi.fn()}
         onCancel={vi.fn()}

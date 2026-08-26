@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { INTEGER_FINAL } from '@/shared/lib/numeric/canonical-number';
 import {
   inventoryCursorSchema,
   inventoryDateTimeSchema,
@@ -15,7 +16,7 @@ const receiptListItemSchema = z.object({
   receivedAt: inventoryDateTimeSchema,
   createdByName: z.string(),
   lineCount: z.number().int().nonnegative(),
-  totalQuantity: z.string(),
+  totalQuantity: z.string().regex(INTEGER_FINAL),
   version: z.number().int().positive(),
   updatedAt: inventoryDateTimeSchema,
 });
@@ -31,7 +32,7 @@ const receiptLineSchema = z.object({
   productName: z.string(),
   sku: z.string(),
   unitName: z.string(),
-  receivedQty: z.string(),
+  receivedQty: z.string().regex(INTEGER_FINAL),
   lineOrder: z.number().int().nonnegative(),
 });
 

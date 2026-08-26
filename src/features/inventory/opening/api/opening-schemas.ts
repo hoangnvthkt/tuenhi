@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { INTEGER_FINAL } from '@/shared/lib/numeric/canonical-number';
 import {
   inventoryCursorSchema,
   inventoryDateTimeSchema,
@@ -12,9 +13,9 @@ const openingLineSchema = z.object({
   productName: z.string(),
   sku: z.string(),
   unitName: z.string(),
-  systemQtySnapshot: z.string(),
+  systemQtySnapshot: z.string().regex(INTEGER_FINAL),
   inventoryVersionSnapshot: z.number().int().nonnegative(),
-  countedQty: z.string(),
+  countedQty: z.string().regex(INTEGER_FINAL),
   openingUnitCost: z.string(),
   openingValue: z.string(),
   sourceSuggestionId: z.uuid().nullable(),
@@ -51,7 +52,7 @@ export const openingPageSchema = z.object({
       status: inventoryStatusSchema,
       createdByName: z.string(),
       lineCount: z.number().int().nonnegative(),
-      totalQuantity: z.string(),
+      totalQuantity: z.string().regex(INTEGER_FINAL),
       totalValue: z.string(),
       version: z.number().int().positive(),
       updatedAt: inventoryDateTimeSchema,

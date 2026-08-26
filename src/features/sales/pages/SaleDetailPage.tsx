@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
 import { useState } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
+import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createSalesApi } from '../api/sales-api';
 import type { Invoice } from '../api/sales-schemas';
@@ -33,7 +34,7 @@ async function downloadPdf(invoice: Invoice) {
               ['Sản phẩm', 'SL', 'Thành tiền'],
               ...invoice.lines.map((x) => [
                 x.productName,
-                x.quantity,
+                formatViNumber(x.quantity),
                 money(x.netAmount),
               ]),
               ['Tổng cộng', '', '' + money(invoice.totals.netTotal)],
@@ -159,7 +160,8 @@ export function SaleDetailPage() {
                 <span>{money(line.netAmount)}</span>
               </div>
               <p className="text-sm text-slate-600">
-                {line.quantity} {line.unitName} × {money(line.unitSalePrice)}
+                {formatViNumber(line.quantity)} {line.unitName} ×{' '}
+                {money(line.unitSalePrice)}
               </p>
               {Number(line.lineDiscountAmount) +
                 Number(line.allocatedOrderDiscount) >

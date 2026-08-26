@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { INTEGER_FINAL } from '@/shared/lib/numeric/canonical-number';
+
+const quantitySchema = z.string().regex(INTEGER_FINAL);
 
 export const saleLineSchema = z.object({
   id: z.uuid(),
@@ -6,7 +9,7 @@ export const saleLineSchema = z.object({
   productName: z.string(),
   sku: z.string(),
   unitName: z.string(),
-  quantity: z.string(),
+  quantity: quantitySchema,
   unitSalePrice: z.string(),
   grossAmount: z.string(),
   lineDiscountAmount: z.string(),
@@ -37,8 +40,8 @@ export const saleSchema = z.object({
 const invoiceLineSchema = saleLineSchema
   .omit({ lineOrder: true, productId: true })
   .extend({
-    returnedQty: z.string(),
-    returnableQty: z.string(),
+    returnedQty: quantitySchema,
+    returnableQty: quantitySchema,
   });
 
 export const invoiceSchema = z.object({

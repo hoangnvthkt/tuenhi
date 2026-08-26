@@ -11,7 +11,7 @@ export function CheckoutDialog({
   onConfirm,
 }: {
   payment: PosPaymentMethod;
-  total: number;
+  total: string;
   saving: boolean;
   onPaymentChange: (method: PosPaymentMethod) => void;
   onCancel: () => void;

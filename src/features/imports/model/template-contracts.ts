@@ -350,7 +350,7 @@ const TEMPLATE_CONTRACTS: readonly TemplateContract[] = [
         type: 'quantity',
         required: true,
         aliases: ['Tồn đầu kỳ'],
-        example: '10.500',
+        example: '10',
       },
       {
         header: 'Đơn giá vốn đầu kỳ',
