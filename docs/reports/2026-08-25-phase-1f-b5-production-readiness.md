@@ -26,7 +26,7 @@ Chưa đủ điều kiện Production.
 | Preview route/PWA      | Chờ Owner kiểm trong phiên Vercel   | HTTP ẩn danh bị Vercel SSO chuyển về login                          |
 | Browser-safe config    | Đạt trên build local                | Không source map/server credential; contract chỉ nhận hai `VITE_*`  |
 | Cloud lifecycle/policy | Đạt                                 | `cutover:verify`: `OWNER_PILOT`, `OWNER_WAIVER`, audit còn hiệu lực |
-| DB state               | Đạt                                 | 35 migrations khớp; DB lint và advisors không có lỗi                |
+| DB state               | Đạt                                 | 36 migrations khớp; DB lint và advisors không có lỗi                |
 
 ## B5 bổ sung — chứng từ chuyển khoản
 
@@ -39,6 +39,10 @@ qua signed URL. Lịch sử/mock cũ không bị hồi tố.
 Owner cần UAT thêm: bán chuyển khoản và hoàn tiền chuyển khoản không thể xác
 nhận khi thiếu ảnh; có thể chụp/tải ảnh, hoàn tất và xem lại chứng từ. Khi trả
 hàng, số lượng `1.000` phải được gửi canonical thành `1` và hoàn tất được.
+
+Ngày 26/08/2026, migration `20260826031253` đã hợp nhất mỗi RPC thanh toán về
+một chữ ký có tham số ảnh mặc định `null`. Việc này loại bỏ lỗi Data API do
+overload và vẫn tương thích client cũ gửi bốn/năm tham số tương ứng.
 
 ## UAT Owner
 

@@ -19,8 +19,15 @@ begin
   end if;
 
   if not exists (select 1 from pg_proc where oid = 'api.complete_sale(uuid,bigint,text,uuid,text)'::regprocedure)
-    or not exists (select 1 from pg_proc where oid = 'api.complete_sale_return(uuid,bigint,jsonb,text,uuid,text)'::regprocedure) then
+    or not exists (select 1 from pg_proc where oid = 'api.complete_sale_return(uuid,bigint,jsonb,text,uuid,text)'::regprocedure)
+    or exists (select 1 from pg_proc where oid = 'api.complete_sale(uuid,bigint,text,uuid)'::regprocedure)
+    or exists (select 1 from pg_proc where oid = 'api.complete_sale_return(uuid,bigint,jsonb,text,uuid)'::regprocedure) then
     raise exception 'payment proof RPC contracts are missing';
+  end if;
+
+  if (select pronargdefaults from pg_proc where oid = 'api.complete_sale(uuid,bigint,text,uuid,text)'::regprocedure) <> 1
+    or (select pronargdefaults from pg_proc where oid = 'api.complete_sale_return(uuid,bigint,jsonb,text,uuid,text)'::regprocedure) <> 1 then
+    raise exception 'payment proof RPC default argument is missing';
   end if;
 
   if has_function_privilege('anon', 'api.complete_sale(uuid,bigint,text,uuid,text)', 'execute')
