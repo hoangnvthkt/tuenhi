@@ -86,7 +86,10 @@ export function validateApprovedManifest(value) {
   return value;
 }
 
-export function validateRealDataVerification(value, { stage, expectEmpty }) {
+export function validateRealDataVerification(
+  value,
+  { stage, expectEmpty, requireReady = false },
+) {
   if (
     typeof value !== 'object' ||
     value === null ||
@@ -104,6 +107,16 @@ export function validateRealDataVerification(value, { stage, expectEmpty }) {
   if (expectEmpty && !value.operationalEmpty) {
     throw new Error(
       'OPERATIONAL_DATA_NOT_EMPTY: Cloud vẫn còn dữ liệu vận hành, không được bắt đầu nhập dữ liệu thật.',
+    );
+  }
+  if (requireReady && stage === 'CATALOG' && value.catalogReady !== true) {
+    throw new Error(
+      'CATALOG_NOT_READY: Catalog chưa đạt điều kiện đối soát để tạo Baseline 1.',
+    );
+  }
+  if (requireReady && stage === 'OPENING' && value.openingReady !== true) {
+    throw new Error(
+      'OPENING_NOT_READY: Mở sổ chưa đạt điều kiện đối soát trước Baseline 2.',
     );
   }
   return value;

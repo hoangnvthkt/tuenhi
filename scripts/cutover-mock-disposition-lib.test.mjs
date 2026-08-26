@@ -136,6 +136,26 @@ test('rejects a reconciliation response for the wrong requested milestone', () =
   );
 });
 
+test('does not let a catalog/opening reconciliation continue before its server gate is ready', () => {
+  const catalog = {
+    stage: 'CATALOG',
+    operationalEmpty: false,
+    catalogReady: false,
+    openingReady: false,
+    counts: {},
+    financial: { eventCount: 0, netRevenue: '0', netCogs: '0' },
+  };
+  assert.throws(
+    () =>
+      validateRealDataVerification(catalog, {
+        stage: 'CATALOG',
+        expectEmpty: false,
+        requireReady: true,
+      }),
+    /CATALOG_NOT_READY/,
+  );
+});
+
 test('accepts both conventional forms of a command-line flag value', () => {
   assert.equal(valueForFlag('--stage', ['--stage', 'catalog']), 'catalog');
   assert.equal(valueForFlag('--stage', ['--stage=opening']), 'opening');

@@ -31,6 +31,7 @@ if (error || data?.ok !== true) {
 const verified = validateRealDataVerification(data.data, {
   stage: requestedStage,
   expectEmpty,
+  requireReady: !expectEmpty,
 });
 console.log(
   JSON.stringify(
