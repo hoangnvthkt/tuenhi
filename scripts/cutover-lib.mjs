@@ -43,9 +43,11 @@ export function hasFlag(name) {
   return process.argv.slice(2).includes(name);
 }
 
-export function valueForFlag(name) {
-  const index = process.argv.slice(2).indexOf(name);
-  return index < 0 ? null : (process.argv.slice(2)[index + 1] ?? null);
+export function valueForFlag(name, args = process.argv.slice(2)) {
+  const index = args.indexOf(name);
+  if (index >= 0) return args[index + 1] ?? null;
+  const assignment = args.find((argument) => argument.startsWith(`${name}=`));
+  return assignment ? assignment.slice(name.length + 1) || null : null;
 }
 
 export function assertExternalDirectory(pathValue, label) {
@@ -57,6 +59,22 @@ export function assertExternalDirectory(pathValue, label) {
     (!relation.startsWith(`..${sep}`) && relation !== '..')
   ) {
     throw new Error(`${label} phải là thư mục tuyệt đối nằm ngoài workspace.`);
+  }
+  return target;
+}
+
+export function assertExternalFile(directory, pathValue, label) {
+  const root = assertExternalDirectory(directory, 'CUTOVER_MANIFEST_DIR');
+  const target = resolve(pathValue);
+  const relation = relative(root, target);
+  if (
+    !pathValue ||
+    !target.startsWith(sep) ||
+    !relation ||
+    relation === '..' ||
+    relation.startsWith(`..${sep}`)
+  ) {
+    throw new Error(`${label} phải là tệp nằm trong CUTOVER_MANIFEST_DIR.`);
   }
   return target;
 }
