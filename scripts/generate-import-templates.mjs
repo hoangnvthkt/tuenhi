@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import process from 'node:process';
 import ExcelJS from 'exceljs';
-import { listTemplateContracts } from '../src/features/imports/template-contracts.ts';
+import { listTemplateContracts } from '../src/features/imports/model/template-contracts.ts';
 
 const OUTPUT_DIR = join(process.cwd(), 'public', 'templates', 'import');
 const FIXED_TIMESTAMP = new Date('2026-08-22T00:00:00.000Z');

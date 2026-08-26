@@ -3,7 +3,7 @@ import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import process from 'node:process';
 import * as XLSX from 'xlsx';
-import { listTemplateContracts } from '../src/features/imports/template-contracts.ts';
+import { listTemplateContracts } from '../src/features/imports/model/template-contracts.ts';
 
 const ROOT = process.cwd();
 const TEMPLATE_DIR = join(ROOT, 'public', 'templates', 'import');
