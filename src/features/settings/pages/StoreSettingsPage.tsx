@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createSettingsApi, settingsKeys } from '../api/settings-api';
 import { getSupabaseClient } from '@/shared/supabase/client';
@@ -10,6 +11,7 @@ const imageExtensions: Record<string, string> = {
 };
 export function StoreSettingsPage() {
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [api] = useState(createSettingsApi);
   const query = useQuery({
     queryKey: settingsKeys.store,
@@ -66,7 +68,7 @@ export function StoreSettingsPage() {
       );
       toast.show({ kind: 'success', title: 'Đã lưu cấu hình cửa hàng' });
       setLogoPath(null);
-      await query.refetch();
+      await refreshOperationalData(queryClient);
     } catch (error) {
       toast.show({
         kind: 'error',

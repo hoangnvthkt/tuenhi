@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
 import { useState } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
+import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createSalesApi } from '../api/sales-api';
@@ -93,8 +94,7 @@ export function SaleDetailPage() {
         crypto.randomUUID(),
       );
       toast.show({ kind: 'success', title: 'Đã hủy hóa đơn' });
-      await queryClient.invalidateQueries({ queryKey: ['invoice', saleId] });
-      await queryClient.invalidateQueries({ queryKey: ['sales'] });
+      await refreshOperationalData(queryClient);
     } catch (reason) {
       toast.show({
         kind: 'error',

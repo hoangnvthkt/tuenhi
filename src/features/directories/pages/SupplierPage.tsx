@@ -3,6 +3,7 @@ import { parsePhoneNumber } from 'libphonenumber-js';
 import { useState } from 'react';
 import { useSession } from '@/features/auth';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
+import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import {
   createDirectoryApi,
@@ -46,7 +47,7 @@ export function SupplierPage({
   });
 
   async function saved() {
-    await queryClient.invalidateQueries({ queryKey: directoryKeys.all });
+    await refreshOperationalData(queryClient);
     setEditor(null);
     toast.show({ kind: 'success', title: 'Đã lưu nhà cung cấp' });
   }

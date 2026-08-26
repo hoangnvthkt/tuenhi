@@ -1,5 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
+import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createPaymentProofApi } from '@/features/payments';
 import type { SalesApi } from '../api/sales-api';
@@ -41,6 +43,7 @@ export function usePosCommands({
   setPayment: Dispatch<SetStateAction<PosPaymentMethod | null>>;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [paymentProofApi] = useState(createPaymentProofApi);
@@ -90,6 +93,7 @@ export function usePosCommands({
         })),
       );
       if (!saleId) navigate(`/pos/${result.sale.id}`, { replace: true });
+      await refreshOperationalData(queryClient);
       toast.show({
         kind: 'success',
         title: 'Đã lưu tạm',
@@ -147,6 +151,7 @@ export function usePosCommands({
         transferProofPath,
       );
       if (userId) localStorage.removeItem(posCartStorageKey(userId));
+      await refreshOperationalData(queryClient);
       toast.show({
         kind: 'success',
         title: 'Thanh toán thành công',
@@ -180,6 +185,7 @@ export function usePosCommands({
     try {
       await api.discardDraft(draft.id, draft.version, crypto.randomUUID());
       if (userId) localStorage.removeItem(posCartStorageKey(userId));
+      await refreshOperationalData(queryClient);
       navigate('/pos');
       toast.show({ kind: 'success', title: 'Đã bỏ nháp' });
     } catch (error) {

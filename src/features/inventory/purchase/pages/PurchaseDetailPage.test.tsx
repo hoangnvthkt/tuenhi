@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
+import { renderWithQueryClient } from '@/shared/testing/render-with-query-client';
 import { SessionContextValue } from '@/features/auth';
 import { PurchaseDetailPage } from './PurchaseDetailPage';
 import type { createPurchaseApi } from '../api/purchase-api';
@@ -68,7 +69,7 @@ function renderPage(permissions: string[], online = true) {
   const directoryApi = {
     listSuppliers: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
   } as unknown as ReturnType<typeof createDirectoryApi>;
-  render(
+  renderWithQueryClient(
     <SessionContextValue.Provider
       value={{
         status: 'authenticated',

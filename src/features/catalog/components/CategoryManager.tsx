@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
+import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import {
   CatalogApiError,
   catalogKeys,
@@ -95,6 +96,7 @@ export function CategoryManager({
   isOnline: boolean;
 }) {
   const [api] = useState(() => apiProp ?? createCatalogApi());
+  const queryClient = useQueryClient();
   const [newName, setNewName] = useState('');
   const [workingAction, setWorkingAction] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -127,7 +129,7 @@ export function CategoryManager({
       });
       operationKeys.current.delete(input.action);
       if (!input.categoryId) setNewName('');
-      await query.refetch();
+      await refreshOperationalData(queryClient);
     } catch (error) {
       if (error instanceof CatalogApiError) {
         operationKeys.current.delete(input.action);

@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
+import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { useSession } from '@/features/auth';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
@@ -38,6 +40,7 @@ export function useImportWorkflow({
   online?: boolean;
 }) {
   const [api] = useState(() => apiProp ?? createImportApi());
+  const queryClient = useQueryClient();
   const detectedOnline = useOnlineStatus();
   const isOnline = online ?? detectedOnline;
   const { session } = useSession();
@@ -160,6 +163,7 @@ export function useImportWorkflow({
       const result = await api.commit(importRunId, commitKey.current);
       commitKey.current = null;
       setCommitResult(result);
+      await refreshOperationalData(queryClient);
       toast.show({
         kind: 'success',
         title:

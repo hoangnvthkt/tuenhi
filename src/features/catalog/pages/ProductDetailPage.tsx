@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
@@ -90,7 +91,7 @@ export function ProductDetailPage({
         });
       }
 
-      await queryClient.invalidateQueries({ queryKey: catalogKeys.all });
+      await refreshOperationalData(queryClient);
       toast.show({
         kind: 'success',
         title: mode === 'create' ? 'Đã thêm sản phẩm' : 'Đã cập nhật sản phẩm',

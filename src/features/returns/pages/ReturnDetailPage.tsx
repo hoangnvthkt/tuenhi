@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
 import { useState } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
+import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import {
@@ -42,13 +43,7 @@ export function ReturnDetailPage() {
   const document = query.data;
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: ['sale-return', returnId],
-    });
-    await queryClient.invalidateQueries({ queryKey: ['sale-returns'] });
-    await queryClient.invalidateQueries({
-      queryKey: ['invoice', document?.saleId],
-    });
+    await refreshOperationalData(queryClient);
   };
   const acceptedValue = (id: string, fallback: string) =>
     accepted[id] ?? normalizeCanonicalNumber(fallback);

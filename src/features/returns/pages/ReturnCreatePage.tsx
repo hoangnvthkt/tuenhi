@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
+import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
@@ -37,6 +39,7 @@ function toLookup(invoice: Invoice): ReturnLookup {
 export function ReturnCreatePage() {
   const { saleId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const online = useOnlineStatus();
   const toast = useToast();
   const [salesApi] = useState(createSalesApi);
@@ -155,6 +158,7 @@ export function ReturnCreatePage() {
         lines: selected,
         idempotencyKey: crypto.randomUUID(),
       });
+      await refreshOperationalData(queryClient);
       toast.show({ kind: 'success', title: 'Đã gửi yêu cầu trả hàng' });
       navigate(`/returns/${result.returnId}`);
     } catch (reason) {

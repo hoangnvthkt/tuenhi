@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
+import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createCatalogApi } from '@/features/catalog';
@@ -31,6 +33,7 @@ export function PurchaseDetailPage({
   online?: boolean;
 }) {
   const { receiptId } = useParams();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const detectedOnline = useOnlineStatus();
   const online = onlineProp ?? detectedOnline;
@@ -127,6 +130,7 @@ export function PurchaseDetailPage({
     setError(null);
     try {
       await action();
+      await refreshOperationalData(queryClient);
       toast.show({ kind: 'success', title: success, message: success });
       if (redirect) navigate('/more/purchases');
       else if (receiptId) setReceipt(await api.detail(receiptId));

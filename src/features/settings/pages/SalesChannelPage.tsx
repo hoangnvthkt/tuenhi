@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
+import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import {
   createSettingsApi,
@@ -34,12 +35,7 @@ export function SalesChannelPage({
   });
 
   async function refresh() {
-    await queryClient.invalidateQueries({
-      queryKey: settingsKeys.channels(true),
-    });
-    await queryClient.invalidateQueries({
-      queryKey: settingsKeys.channels(false),
-    });
+    await refreshOperationalData(queryClient);
     setEditor(null);
     toast.show({ kind: 'success', title: 'Đã lưu kênh bán' });
   }
