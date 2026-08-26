@@ -27,7 +27,9 @@ begin
     'app_private.get_owner_pilot_mock_manifest_impl(boolean,boolean)',
     'app_private.dispose_owner_pilot_mock_data_impl(text,boolean,boolean)',
     'app_private.finalize_owner_pilot_mock_storage_disposal_impl(uuid,jsonb)',
-    'app_private.get_owner_pilot_real_data_verification_impl(text)'
+    'app_private.get_owner_pilot_real_data_verification_impl(text)',
+    'app_private.owner_pilot_mock_manifest_uuid_ids(jsonb,text)',
+    'app_private.owner_pilot_mock_manifest_smallint_ids(jsonb,text)'
   ] loop
     if to_regprocedure(function_signature) is null then
       raise exception 'missing B6 private implementation: %', function_signature;
