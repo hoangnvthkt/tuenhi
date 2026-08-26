@@ -160,6 +160,14 @@ Không chuyển `OWNER_PILOT` hoặc `PRODUCTION` khi chưa có phê duyệt go-
 
 Khi Cloud đã ở `OWNER_PILOT`, dùng [runbook B5](docs/runbooks/phase-1f-b5-owner-pilot-readiness.md) để nghiệm thu Preview với dữ liệu mock. B5 chỉ chạy quality gate local và kiểm tra Cloud read-only (`cutover:verify`, migration list, DB lint/advisor); không chạy preflight, cleanup, Cloud runner, backup/restore hoặc lệnh lifecycle. Báo cáo readiness phải ghi rõ dữ liệu mock vẫn còn; dọn mock và nhập dữ liệu thật chỉ được lập trong phase cutover được Owner duyệt riêng.
 
+### Dữ liệu thật B6
+
+B6 giữ Cloud ở `OWNER_PILOT` và dùng một manifest SHA-256 được Owner duyệt trước
+khi hủy dữ liệu mock. Sau khi nhập danh mục/ảnh thật, tạo Baseline 1; sau mở sổ
+và đối soát, tạo Baseline 2 tại thư mục ngoài repository. Xem
+[runbook B6](docs/runbooks/phase-1f-b6-real-data-baselines.md). B6 không merge
+`main` hoặc deploy Production.
+
 ## Tài liệu đã phê duyệt
 
 - [Đặc tả thiết kế](docs/superpowers/specs/2026-08-21-internal-single-store-pos-design.md)
