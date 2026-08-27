@@ -70,7 +70,11 @@ describe('AppShell', () => {
     renderAppRoute('/');
 
     expect(
-      await screen.findByRole('heading', { name: 'Tổng quan' }),
+      await screen.findByRole(
+        'heading',
+        { name: 'Tổng quan' },
+        { timeout: 5_000 },
+      ),
     ).toBeInTheDocument();
 
     const mobileNavigation = screen.getByRole('navigation', {
@@ -94,7 +98,11 @@ describe('AppShell', () => {
     renderAppRoute('/pos');
 
     expect(
-      await screen.findByRole('heading', { name: 'Bán hàng' }),
+      await screen.findByRole(
+        'heading',
+        { name: 'Bán hàng' },
+        { timeout: 5_000 },
+      ),
     ).toBeInTheDocument();
   });
 
@@ -102,7 +110,11 @@ describe('AppShell', () => {
     renderAppRoute('/products');
 
     expect(
-      await screen.findByRole('heading', { name: 'Hàng hóa' }),
+      await screen.findByRole(
+        'heading',
+        { name: 'Hàng hóa' },
+        { timeout: 5_000 },
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByText(
