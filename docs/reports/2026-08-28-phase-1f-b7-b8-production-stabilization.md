@@ -4,19 +4,20 @@ Ngày kiểm tra: 2026-08-28 (`Asia/Ho_Chi_Minh`)
 
 ## Trạng thái release
 
-| Gate                             | Trạng thái              | Bằng chứng                                                                  |
-| -------------------------------- | ----------------------- | --------------------------------------------------------------------------- |
-| Baseline quality                 | Đạt                     | `pnpm check`: 75 files, 304 tests trước B8; build đạt                       |
-| B8 quality                       | Đạt                     | `pnpm check`: 84 files, 339 tests; production build verifier đạt            |
-| Migration B8                     | Đã apply                | outcome RPC + volatility metadata fix; local/remote `46/46`                 |
-| SQL security assertions          | Đạt                     | grant, security definer, actor scope, exact allowlist, private-table denial |
-| DB lint                          | Đạt                     | linked database: `No schema errors found`                                   |
-| Security advisor                 | Đạt có waiver           | không có error; còn warning leaked-password protection theo `OWNER_WAIVER`  |
-| Performance advisor              | Đạt                     | không có error/warning                                                      |
-| Public Production smoke trước B8 | Đạt                     | mobile + desktop trên `https://tuenhi.vercel.app`                           |
-| Authenticated Owner smoke        | Đạt                     | 5 route chỉ-đọc tải xong, không lỗi; không tạo giao dịch                    |
-| Lifecycle `PRODUCTION`           | Đạt                     | Chuyển lúc `2026-08-28T09:21:01.416658Z`; policy/counts không đổi           |
-| Blocking Deployment Check        | Chờ workflow lên `main` | Check name: `Vercel - tuenhi: production-smoke`                             |
+| Gate                             | Trạng thái    | Bằng chứng                                                                  |
+| -------------------------------- | ------------- | --------------------------------------------------------------------------- |
+| Baseline quality                 | Đạt           | `pnpm check`: 75 files, 304 tests trước B8; build đạt                       |
+| B8 quality                       | Đạt           | `pnpm check`: 84 files, 339 tests; production build verifier đạt            |
+| Migration B8                     | Đã apply      | outcome RPC + volatility metadata fix; local/remote `46/46`                 |
+| SQL security assertions          | Đạt           | grant, security definer, actor scope, exact allowlist, private-table denial |
+| DB lint                          | Đạt           | linked database: `No schema errors found`                                   |
+| Security advisor                 | Đạt có waiver | không có error; còn warning leaked-password protection theo `OWNER_WAIVER`  |
+| Performance advisor              | Đạt           | không có error/warning                                                      |
+| Public Production smoke trước B8 | Đạt           | mobile + desktop trên `https://tuenhi.vercel.app`                           |
+| Authenticated Owner smoke        | Đạt           | 5 route chỉ-đọc tải xong, không lỗi; không tạo giao dịch                    |
+| Lifecycle `PRODUCTION`           | Đạt           | Chuyển lúc `2026-08-28T09:21:01.416658Z`; policy/counts không đổi           |
+| Blocking Deployment Check        | Đã bật        | GitHub check `Vercel - tuenhi: production-smoke`, chỉ chặn Production       |
+| B8 deployment URL smoke          | Đạt           | mobile + desktop, credential-free, trên deployment của `main`               |
 
 ## Baseline Cloud trước lifecycle transition
 
@@ -51,14 +52,19 @@ runner sau Owner Pilot.
 - Production build verifier và Playwright credential-free smoke được gắn vào
   quality/release path; không thêm telemetry.
 - Fresh build trên `main`: initial JavaScript gzip `195764` bytes, initial CSS
-  gzip `7601` bytes, tổng deploy assets `3625895` bytes; XLSX/ExcelJS/PDF có chunk ổn định và
-  không được preload trong app shell.
+  gzip `7601` bytes, tổng deploy assets `3625895` bytes; XLSX/ExcelJS/PDF có
+  chunk ổn định và không được preload trong app shell.
 
-## Việc còn lại để đóng release
+## Release gate đã cấu hình
 
-1. Đưa source đã xác minh lên `main`; chờ workflow production smoke trên
-   deployment URL.
-2. Bật Vercel Deployment Check cố định, promote và chạy Owner read-only smoke
-   sau promotion.
+- Source B8 đã fast-forward/push lên `main`.
+- Workflow nhận `vercel.deployment.ready`, lọc đúng project `tuenhi`, môi trường
+  Production và `main`; vẫn giữ `workflow_dispatch` để chạy thủ công.
+- Vercel đã import check cố định `Vercel - tuenhi: production-smoke` và đặt hành
+  vi Production, nên deployment mới chỉ được cập nhật domain sau khi smoke đạt.
+- Deployment URL của B8 đã vượt qua smoke mobile và desktop sau khi tắt lớp
+  Vercel Authentication; đăng nhập ứng dụng vẫn do Supabase Auth bảo vệ.
+- Commit phát hành báo cáo này được dùng làm lần xác minh gate sau cấu hình;
+  sau khi promotion sẽ chạy lại public smoke và Owner smoke chỉ đọc.
 
-Release chưa được ghi “complete” trước khi các mục trên có bằng chứng.
+Không chạy Cloud runner hoặc E2E tạo dữ liệu sau khi lifecycle là `PRODUCTION`.
