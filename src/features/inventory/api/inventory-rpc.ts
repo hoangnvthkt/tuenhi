@@ -1,10 +1,14 @@
 import { z } from 'zod';
 import { getBusinessErrorMessage } from '@/shared/api/command-error';
+import {
+  FinancialBusinessError,
+  FinancialTransportError,
+} from '@/shared/api/financial-command';
 import { parseRpcEnvelope } from '@/shared/api/rpc-envelope';
 import { getSupabaseClient } from '@/shared/supabase/client';
 import type { Json } from '@/shared/supabase/database.types';
 
-export class InventoryApiError extends Error {
+export class InventoryApiError extends FinancialBusinessError {
   constructor(
     readonly code: string,
     readonly correlationId: string,
@@ -30,6 +34,14 @@ export const inventoryCursorSchema = z.object({
 });
 export const inventoryMutationSchema = z.record(z.string(), z.unknown());
 
+export function parseInventoryRpc<T>(schema: z.ZodType<T>, value: unknown): T {
+  return parseRpcEnvelope(schema, value, {
+    invalidMessage: 'Phản hồi kho từ máy chủ không hợp lệ.',
+    createBusinessError: (payload, correlationId) =>
+      new InventoryApiError(payload.code, correlationId, payload.details),
+  });
+}
+
 export function nullable<T>(value: T | undefined): T {
   return (value ?? null) as T;
 }
@@ -43,14 +55,8 @@ export function createInventoryRpc() {
   ): Promise<T> {
     const { data, error } = await client.rpc(name, args as never);
     if (error) {
-      throw new Error(
-        'Không thể kết nối máy chủ. Kết quả thao tác có thể chưa xác định.',
-      );
+      throw new FinancialTransportError();
     }
-    return parseRpcEnvelope(schema, data, {
-      invalidMessage: 'Phản hồi kho từ máy chủ không hợp lệ.',
-      createBusinessError: (payload, correlationId) =>
-        new InventoryApiError(payload.code, correlationId, payload.details),
-    });
+    return parseInventoryRpc(schema, data);
   };
 }

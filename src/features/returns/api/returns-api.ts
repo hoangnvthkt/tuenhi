@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { getBusinessErrorMessage } from '@/shared/api/command-error';
+import {
+  FinancialBusinessError,
+  FinancialTransportError,
+} from '@/shared/api/financial-command';
 import { parseRpcEnvelope } from '@/shared/api/rpc-envelope';
 import { getSupabaseClient } from '@/shared/supabase/client';
 import {
@@ -8,7 +12,7 @@ import {
   saleReturnSchema,
 } from './returns-schemas';
 
-export class ReturnsApiError extends Error {
+export class ReturnsApiError extends FinancialBusinessError {
   constructor(
     readonly code: string,
     readonly correlationId: string,
@@ -28,10 +32,16 @@ function parseReturnsRpc<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 function transportFailure() {
-  return new Error(
-    'Không thể kết nối máy chủ. Kết quả thao tác có thể chưa xác định.',
-  );
+  return new FinancialTransportError();
 }
+
+const completeReturnSchema = z.object({
+  returnId: z.uuid(),
+  returnNumber: z.string(),
+  status: z.literal('COMPLETED'),
+  refundTotal: z.string(),
+  version: z.number().int(),
+});
 
 export function createReturnsApi() {
   const client = getSupabaseClient();
@@ -119,13 +129,7 @@ export function createReturnsApi() {
       transferProofPath?: string;
     }) {
       return parseReturnsRpc(
-        z.object({
-          returnId: z.uuid(),
-          returnNumber: z.string(),
-          status: z.literal('COMPLETED'),
-          refundTotal: z.string(),
-          version: z.number().int(),
-        }),
+        completeReturnSchema,
         await rpc('complete_sale_return', {
           p_return_id: input.returnId,
           p_expected_version: input.expectedVersion,
@@ -135,6 +139,9 @@ export function createReturnsApi() {
           p_transfer_proof_path: input.transferProofPath ?? null,
         }),
       );
+    },
+    parseCompleteResponse(value: unknown) {
+      return parseReturnsRpc(completeReturnSchema, value);
     },
   };
 }

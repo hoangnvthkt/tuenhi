@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { getBusinessErrorMessage } from '@/shared/api/command-error';
+import {
+  FinancialBusinessError,
+  FinancialTransportError,
+} from '@/shared/api/financial-command';
 import { parseRpcEnvelope } from '@/shared/api/rpc-envelope';
 import { getSupabaseClient } from '@/shared/supabase/client';
 import {
@@ -9,7 +13,7 @@ import {
   type CartLine,
 } from './sales-schemas';
 
-export class SalesApiError extends Error {
+export class SalesApiError extends FinancialBusinessError {
   constructor(
     readonly code: string,
     readonly correlationId: string,
@@ -29,10 +33,21 @@ function parseSalesRpc<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 function transportFailure() {
-  return new Error(
-    'Không thể kết nối máy chủ. Kết quả thao tác có thể chưa xác định.',
-  );
+  return new FinancialTransportError();
 }
+
+const completeSaleSchema = z.object({
+  saleId: z.uuid(),
+  saleNumber: z.string(),
+  status: z.literal('COMPLETED'),
+  version: z.number().int(),
+});
+
+const cancelSaleSchema = z.object({
+  saleId: z.uuid(),
+  status: z.literal('CANCELLED'),
+  version: z.number().int(),
+});
 
 export function createSalesApi() {
   const client = getSupabaseClient();
@@ -92,12 +107,7 @@ export function createSalesApi() {
       transferProofPath?: string,
     ) {
       return parseSalesRpc(
-        z.object({
-          saleId: z.uuid(),
-          saleNumber: z.string(),
-          status: z.literal('COMPLETED'),
-          version: z.number().int(),
-        }),
+        completeSaleSchema,
         await rpc('complete_sale', {
           p_sale_id: saleId,
           p_expected_version: expectedVersion,
@@ -137,11 +147,7 @@ export function createSalesApi() {
       idempotencyKey: string,
     ) {
       return parseSalesRpc(
-        z.object({
-          saleId: z.uuid(),
-          status: z.literal('CANCELLED'),
-          version: z.number().int(),
-        }),
+        cancelSaleSchema,
         await rpc('cancel_sale', {
           p_sale_id: saleId,
           p_expected_version: expectedVersion,
@@ -149,6 +155,12 @@ export function createSalesApi() {
           p_idempotency_key: idempotencyKey,
         }),
       );
+    },
+    parseCompleteResponse(value: unknown) {
+      return parseSalesRpc(completeSaleSchema, value);
+    },
+    parseCancelResponse(value: unknown) {
+      return parseSalesRpc(cancelSaleSchema, value);
     },
   };
 }

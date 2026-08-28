@@ -1,5 +1,6 @@
 import type { OpeningApi } from '../api/opening-api';
 import type { OpeningDocument } from '../api/opening-schemas';
+import { useFinancialCommand } from '@/shared/hooks/use-financial-command';
 
 export function OpeningActions({
   api,
@@ -9,6 +10,7 @@ export function OpeningActions({
   busy,
   onSave,
   onPerform,
+  userId,
 }: {
   api: OpeningApi;
   document: OpeningDocument | null;
@@ -21,7 +23,9 @@ export function OpeningActions({
     success: string,
     redirect?: boolean,
   ) => Promise<void>;
+  userId?: string;
 }) {
+  const runFinancialCommand = useFinancialCommand(userId);
   return (
     <div className="sticky bottom-20 z-20 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-lg lg:static lg:border-0 lg:bg-slate-50 lg:p-0 lg:py-2 lg:shadow-none">
       {editable ? (
@@ -52,7 +56,20 @@ export function OpeningActions({
           disabled={!online || busy}
           onClick={() =>
             void onPerform(
-              () => api.command('post', document.id, document.version),
+              () =>
+                runFinancialCommand({
+                  commandName: 'opening.post',
+                  entityId: document.id,
+                  invoke: (idempotencyKey) =>
+                    api.command(
+                      'post',
+                      document.id,
+                      document.version,
+                      '',
+                      idempotencyKey,
+                    ),
+                  parseCachedResponse: api.parseMutationResponse,
+                }),
               'Đã ghi sổ tồn đầu kỳ',
             )
           }

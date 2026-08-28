@@ -2,10 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
+import {
+  FinancialOutcomeUnknownError,
+  getFinancialCorrelationId,
+} from '@/shared/api/financial-command';
+import { useFinancialCommand } from '@/shared/hooks/use-financial-command';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
 import { createCatalogApi } from '@/features/catalog';
+import { useSession } from '@/features/auth';
 import { createStockCountApi } from '../api/stock-count-api';
 import type { PeriodicStockCount } from '../api/stock-count-schemas';
 import { StockCountActions } from '../components/StockCountActions';
@@ -19,6 +25,8 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
   const navigate = useNavigate();
   const online = useOnlineStatus();
   const toast = useToast();
+  const { session } = useSession();
+  const runFinancialCommand = useFinancialCommand(session?.userId);
   const [api] = useState(createStockCountApi);
   const [catalogApi] = useState(createCatalogApi);
   const [document, setDocument] = useState<PeriodicStockCount | null>(null);
@@ -94,6 +102,11 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
         kind: 'error',
         title: 'Không thể cập nhật phiếu kiểm kho',
         message,
+        requestId:
+          reason instanceof FinancialOutcomeUnknownError
+            ? reason.requestId
+            : undefined,
+        correlationId: getFinancialCorrelationId(reason),
       });
     } finally {
       setBusy(false);
@@ -174,7 +187,14 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
     )
       return;
     await perform(
-      () => api.post(document.id, document.version, values),
+      () =>
+        runFinancialCommand({
+          commandName: 'stock.count.post',
+          entityId: document.id,
+          invoke: (idempotencyKey) =>
+            api.post(document.id, document.version, values, idempotencyKey),
+          parseCachedResponse: api.parseMutationResponse,
+        }),
       'Đã ghi sổ phiếu kiểm kho',
     );
   }

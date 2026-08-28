@@ -3,6 +3,11 @@ import { Link, useParams } from 'react-router';
 import { useState } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
+import {
+  FinancialOutcomeUnknownError,
+  getFinancialCorrelationId,
+} from '@/shared/api/financial-command';
+import { useFinancialCommand } from '@/shared/hooks/use-financial-command';
 import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createSalesApi } from '../api/sales-api';
@@ -56,6 +61,7 @@ export function SaleDetailPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { session } = useSession();
+  const runFinancialCommand = useFinancialCommand(session?.userId);
   const [api] = useState(createSalesApi);
   const [cancelReason, setCancelReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -87,12 +93,18 @@ export function SaleDetailPage() {
     setBusy(true);
     try {
       const detail = await api.detail(saleId);
-      await api.cancelSale(
-        saleId,
-        detail.version,
-        cancelReason.trim(),
-        crypto.randomUUID(),
-      );
+      await runFinancialCommand({
+        commandName: 'sale.cancel',
+        entityId: saleId,
+        invoke: (idempotencyKey) =>
+          api.cancelSale(
+            saleId,
+            detail.version,
+            cancelReason.trim(),
+            idempotencyKey,
+          ),
+        parseCachedResponse: api.parseCancelResponse,
+      });
       toast.show({ kind: 'success', title: 'Đã hủy hóa đơn' });
       await refreshOperationalData(queryClient);
     } catch (reason) {
@@ -100,6 +112,11 @@ export function SaleDetailPage() {
         kind: 'error',
         title: 'Không thể hủy hóa đơn',
         message: reason instanceof Error ? reason.message : undefined,
+        requestId:
+          reason instanceof FinancialOutcomeUnknownError
+            ? reason.requestId
+            : undefined,
+        correlationId: getFinancialCorrelationId(reason),
       });
     } finally {
       setBusy(false);

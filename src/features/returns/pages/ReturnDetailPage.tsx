@@ -3,6 +3,11 @@ import { Link, useParams } from 'react-router';
 import { useState } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
+import {
+  FinancialOutcomeUnknownError,
+  getFinancialCorrelationId,
+} from '@/shared/api/financial-command';
+import { useFinancialCommand } from '@/shared/hooks/use-financial-command';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import {
@@ -13,6 +18,7 @@ import {
 } from '@/shared/lib/numeric/canonical-number';
 import { createReturnsApi } from '../api/returns-api';
 import { createPaymentProofApi, PaymentProofLink } from '@/features/payments';
+import { useSession } from '@/features/auth';
 
 const money = (value: string) =>
   new Intl.NumberFormat('vi-VN', {
@@ -26,6 +32,8 @@ export function ReturnDetailPage() {
   const online = useOnlineStatus();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const { session } = useSession();
+  const runFinancialCommand = useFinancialCommand(session?.userId);
   const [api] = useState(createReturnsApi);
   const [paymentProofApi] = useState(createPaymentProofApi);
   const query = useQuery({
@@ -106,13 +114,19 @@ export function ReturnDetailPage() {
           })
         ).objectPath;
       }
-      await api.complete({
-        returnId: document.id,
-        expectedVersion: document.version,
-        lines,
-        refundMethod,
-        idempotencyKey: crypto.randomUUID(),
-        transferProofPath,
+      await runFinancialCommand({
+        commandName: 'sale.return.complete',
+        entityId: document.id,
+        invoke: (idempotencyKey) =>
+          api.complete({
+            returnId: document.id,
+            expectedVersion: document.version,
+            lines,
+            refundMethod,
+            idempotencyKey,
+            transferProofPath,
+          }),
+        parseCachedResponse: api.parseCompleteResponse,
       });
       toast.show({ kind: 'success', title: 'Đã hoàn tất trả hàng' });
       await refresh();
@@ -128,6 +142,11 @@ export function ReturnDetailPage() {
         kind: 'error',
         title: 'Không thể hoàn tất trả hàng',
         message: reason instanceof Error ? reason.message : undefined,
+        requestId:
+          reason instanceof FinancialOutcomeUnknownError
+            ? reason.requestId
+            : undefined,
+        correlationId: getFinancialCorrelationId(reason),
       });
     } finally {
       setBusy(false);

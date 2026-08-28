@@ -2,6 +2,7 @@ import {
   createInventoryRpc,
   inventoryMutationSchema,
   nullable,
+  parseInventoryRpc,
 } from '../../api/inventory-rpc';
 import {
   openingDocumentSchema,
@@ -55,6 +56,7 @@ export function createOpeningApi() {
       id: string,
       version: number,
       reason = '',
+      idempotencyKey: string = crypto.randomUUID(),
     ) {
       const names = {
         submit: 'submit_opening_stock',
@@ -67,12 +69,12 @@ export function createOpeningApi() {
               p_count_id: id,
               p_expected_version: version,
               p_reason: reason,
-              p_idempotency_key: crypto.randomUUID(),
+              p_idempotency_key: idempotencyKey,
             }
           : {
               p_count_id: id,
               p_expected_version: version,
-              p_idempotency_key: crypto.randomUUID(),
+              p_idempotency_key: idempotencyKey,
             };
       return rpc(names[command], args, inventoryMutationSchema);
     },
@@ -82,6 +84,9 @@ export function createOpeningApi() {
         { p_cursor_id: null, p_limit: 100 },
         openingSuggestionPageSchema,
       );
+    },
+    parseMutationResponse(value: unknown) {
+      return parseInventoryRpc(inventoryMutationSchema, value);
     },
   };
 }

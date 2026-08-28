@@ -14,6 +14,7 @@ import { catalogRoutes } from './routes/catalog-routes';
 import { operationRoutes } from './routes/operation-routes';
 import { reportRoutes } from './routes/report-routes';
 import { RouteLoading } from './routes/RouteLoading';
+import { RouterErrorPage } from './errors/RouterErrorPage';
 
 function foundationPage(title: string) {
   return (
@@ -25,10 +26,11 @@ function foundationPage(title: string) {
 }
 
 export const appRoutes: RouteObject[] = [
-  loginRoute,
-  forgotPasswordRoute,
+  { ...loginRoute, errorElement: <RouterErrorPage /> },
+  { ...forgotPasswordRoute, errorElement: <RouterErrorPage /> },
   {
     element: <RequireSession />,
+    errorElement: <RouterErrorPage />,
     children: [
       changePasswordRoute,
       {

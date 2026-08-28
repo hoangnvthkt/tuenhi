@@ -6,6 +6,7 @@ export type ToastInput = {
   message?: string;
   dedupeKey?: string;
   correlationId?: string;
+  requestId?: string;
   actionRoute?: string;
   actionLabel?: string;
 };

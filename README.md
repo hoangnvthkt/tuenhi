@@ -129,9 +129,26 @@ Service worker chỉ precache app shell và static asset. Mọi phản hồi tà
 
 Owner dùng màn `/staff` để tạo, khóa, mở lại tài khoản và đặt mật khẩu tạm. Các thao tác Auth Admin đi qua bốn Edge Function `create-employee`, `deactivate-employee`, `reactivate-employee`, `reset-employee-password`; UI không bao giờ nhận secret key. Nhân viên mới hoặc vừa được đặt lại mật khẩu phải đổi mật khẩu ở lần đăng nhập tiếp theo.
 
-## Triển khai
+## Triển khai Production
 
-Vercel được chủ động hoãn lại; Phase 1B không tạo hoặc liên kết dự án triển khai.
+Ứng dụng Production hiện chạy tại [tuenhi.vercel.app](https://tuenhi.vercel.app)
+và Vercel build từ nhánh `main`. Mọi `pnpm build` đều chạy production-build
+verifier: giới hạn JavaScript/CSS initial, tổng deploy assets, bắt buộc PWA
+manifest/service worker/icon, chặn secret material và không cho preload
+XLSX/ExcelJS/PDF trong app shell.
+
+Smoke công khai không dùng credential chạy độc lập trên mobile và desktop:
+
+```bash
+PRODUCTION_BASE_URL=https://tuenhi.vercel.app pnpm test:e2e:production
+```
+
+Workflow `Production deployment smoke` nhận `vercel.deployment.ready` chỉ cho
+project `tuenhi`, môi trường `production`, ref `main`, rồi phát status cố định
+`Vercel - tuenhi: production-smoke`. Sau khi workflow đã có trên `main`, chọn
+status này làm Vercel Deployment Check bắt buộc để domain Production chỉ được
+cập nhật sau khi smoke đạt. `workflow_dispatch` vẫn cho phép chạy thủ công với
+deployment URL hoặc domain hiện tại.
 
 ## Báo cáo Phase 1F-A
 
@@ -139,14 +156,20 @@ Dashboard và trang `/reports` dùng múi giờ cố định `Asia/Ho_Chi_Minh`.
 
 Nút XLSX tạo file trong bộ nhớ trình duyệt, không upload lên Storage. Báo cáo chính thức chỉ tổng hợp ledger vận hành; `legacy_sales` luôn là dữ liệu tra cứu riêng.
 
-Quality gate Phase 1F:
+Quality gate Phase 1F hiện hành:
 
 ```bash
-pnpm test:cloud:phase1f
+pnpm check
 pnpm cloud:verify:phase1f
 ```
 
-Phase 1F-B (dữ liệu thật, backup, bật leaked-password protection và go-live) chỉ được bắt đầu khi owner phê duyệt riêng. Project Cloud hiện tại sẽ trở thành production; không chạy runner dữ liệu tổng hợp sau cutover.
+`test:cloud:phase1f` là runner lịch sử có tạo dữ liệu tổng hợp và không được chạy
+ở `OWNER_PILOT` hoặc `PRODUCTION`.
+
+Project Cloud hiện tại là database Production duy nhất. Backup, cutover và dữ
+liệu vận hành do Owner quản lý ngoài repository. Sau khi lifecycle là
+`PRODUCTION`, không chạy Cloud runner, Cloud E2E tạo dữ liệu hoặc cleanup tổng
+hợp.
 
 ### Cutover Phase 1F-B
 
@@ -166,7 +189,21 @@ B6 giữ Cloud ở `OWNER_PILOT` và dùng một manifest SHA-256 được Owner
 khi hủy dữ liệu mock. Sau khi nhập danh mục/ảnh thật, tạo Baseline 1; sau mở sổ
 và đối soát, tạo Baseline 2 tại thư mục ngoài repository. Xem
 [runbook B6](docs/runbooks/phase-1f-b6-real-data-baselines.md). B6 không merge
-`main` hoặc deploy Production.
+`main` hoặc deploy Production. Đây là tài liệu lịch sử của B6; trạng thái deploy
+hiện hành được mô tả tại phần “Triển khai Production” và release report B7/B8.
+
+### Ổn định B8
+
+Các lệnh tài chính trọng yếu lưu marker tối thiểu trong `localStorage` theo
+user/command/entity và tái dùng cùng idempotency key nếu response bị mất. Marker
+không chứa tiền, giá vốn, khách hàng hoặc payload chứng từ. Nếu lookup chưa xác
+định được kết quả, giao diện giữ marker và hiển thị riêng “Mã yêu cầu”; mã này
+không phải correlation ID.
+
+RPC `api.get_my_command_outcome` chỉ cho user đăng nhập tra outcome của chính
+mình theo allowlist tài chính và không mở quyền đọc
+`app_private.command_deduplication`. Xem
+[runbook B8](docs/runbooks/phase-1f-b8-production-stabilization.md).
 
 ## Tài liệu đã phê duyệt
 

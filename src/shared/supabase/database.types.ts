@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.15';
+    PostgrestVersion: '14.17';
   };
   api: {
     Tables: {
@@ -471,6 +471,7 @@ export type Database = {
           reversed_by: string | null;
           sale_id: string;
           status: string;
+          transfer_proof_path: string | null;
         };
         Insert: {
           amount: number;
@@ -484,6 +485,7 @@ export type Database = {
           reversed_by?: string | null;
           sale_id: string;
           status: string;
+          transfer_proof_path?: string | null;
         };
         Update: {
           amount?: number;
@@ -497,6 +499,7 @@ export type Database = {
           reversed_by?: string | null;
           sale_id?: string;
           status?: string;
+          transfer_proof_path?: string | null;
         };
         Relationships: [
           {
@@ -1036,6 +1039,7 @@ export type Database = {
           refunded_by: string;
           sale_return_id: string;
           status: string;
+          transfer_proof_path: string | null;
         };
         Insert: {
           amount: number;
@@ -1046,6 +1050,7 @@ export type Database = {
           refunded_by: string;
           sale_return_id: string;
           status: string;
+          transfer_proof_path?: string | null;
         };
         Update: {
           amount?: number;
@@ -1056,6 +1061,7 @@ export type Database = {
           refunded_by?: string;
           sale_return_id?: string;
           status?: string;
+          transfer_proof_path?: string | null;
         };
         Relationships: [
           {
@@ -1885,6 +1891,7 @@ export type Database = {
           p_idempotency_key: string;
           p_payment_method: string;
           p_sale_id: string;
+          p_transfer_proof_path?: string;
         };
         Returns: Json;
       };
@@ -1895,6 +1902,7 @@ export type Database = {
           p_lines: Json;
           p_refund_method: string;
           p_return_id: string;
+          p_transfer_proof_path?: string;
         };
         Returns: Json;
       };
@@ -1924,6 +1932,18 @@ export type Database = {
           p_idempotency_key: string;
           p_sale_id: string;
         };
+        Returns: Json;
+      };
+      dispose_owner_pilot_mock_data: {
+        Args: {
+          p_keep_sales_channels: boolean;
+          p_keep_store_settings: boolean;
+          p_manifest_sha256: string;
+        };
+        Returns: Json;
+      };
+      finalize_owner_pilot_mock_storage_disposal: {
+        Args: { p_deleted_paths: Json; p_receipt_id: string };
         Returns: Json;
       };
       finalize_staff_profile: {
@@ -1966,6 +1986,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_my_command_outcome: {
+        Args: { p_command_name: string; p_idempotency_key: string };
+        Returns: Json;
+      };
       get_my_notifications: {
         Args: {
           p_cursor_created_at?: string;
@@ -1990,6 +2014,17 @@ export type Database = {
       };
       get_owner_dashboard: {
         Args: { p_from: string; p_to: string };
+        Returns: Json;
+      };
+      get_owner_pilot_mock_manifest: {
+        Args: {
+          p_keep_sales_channels: boolean;
+          p_keep_store_settings: boolean;
+        };
+        Returns: Json;
+      };
+      get_owner_pilot_real_data_verification: {
+        Args: { p_stage: string };
         Returns: Json;
       };
       get_product_catalog: {
@@ -2025,7 +2060,6 @@ export type Database = {
         Returns: Json;
       };
       get_project_lifecycle: { Args: never; Returns: Json };
-      get_staff_access_capability: { Args: never; Returns: Json };
       get_purchase_receipt_cost_detail: {
         Args: { p_receipt_id: string };
         Returns: Json;
@@ -2041,6 +2075,7 @@ export type Database = {
       get_sale_detail: { Args: { p_sale_id: string }; Returns: Json };
       get_sale_invoice: { Args: { p_sale_id: string }; Returns: Json };
       get_sale_return: { Args: { p_return_id: string }; Returns: Json };
+      get_staff_access_capability: { Args: never; Returns: Json };
       get_stock_count: { Args: { p_count_id: string }; Returns: Json };
       get_store_settings: { Args: never; Returns: Json };
       list_categories: {
@@ -2179,10 +2214,7 @@ export type Database = {
         Returns: Json;
       };
       record_auth_hardening: { Args: never; Returns: Json };
-      record_staff_access_waiver: {
-        Args: { p_reason: string };
-        Returns: Json;
-      };
+      record_staff_access_waiver: { Args: { p_reason: string }; Returns: Json };
       refresh_stock_count_snapshot: {
         Args: {
           p_count_id: string;

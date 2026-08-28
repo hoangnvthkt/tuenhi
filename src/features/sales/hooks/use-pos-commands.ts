@@ -2,6 +2,14 @@ import { useState, type Dispatch, type SetStateAction } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
+import {
+  FinancialBusinessError,
+  FinancialOutcomeUnknownError,
+  FinancialStorageUnavailableError,
+  findPendingFinancialCommand,
+  getFinancialCorrelationId,
+} from '@/shared/api/financial-command';
+import { useFinancialCommand } from '@/shared/hooks/use-financial-command';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createPaymentProofApi } from '@/features/payments';
 import type { SalesApi } from '../api/sales-api';
@@ -45,6 +53,7 @@ export function usePosCommands({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const runFinancialCommand = useFinancialCommand(userId);
   const [saving, setSaving] = useState(false);
   const [paymentProofApi] = useState(createPaymentProofApi);
 
@@ -114,6 +123,27 @@ export function usePosCommands({
 
   const pay = async (proofFile?: File) => {
     if (!payment) return;
+    let pendingCompletion;
+    try {
+      pendingCompletion =
+        userId && draft
+          ? findPendingFinancialCommand({
+              userId,
+              commandName: 'sale.complete',
+              entityId: draft.id,
+            })
+          : undefined;
+    } catch (error) {
+      toast.show({
+        kind: 'error',
+        title: 'Chưa thể thanh toán',
+        message:
+          error instanceof FinancialStorageUnavailableError
+            ? error.message
+            : 'Không thể kiểm tra mã yêu cầu đã lưu trên thiết bị.',
+      });
+      return;
+    }
     if (!online) {
       toast.show({
         kind: 'info',
@@ -122,7 +152,7 @@ export function usePosCommands({
       });
       return;
     }
-    if (payment === 'BANK_TRANSFER' && !proofFile) {
+    if (payment === 'BANK_TRANSFER' && !proofFile && !pendingCompletion) {
       toast.show({
         kind: 'error',
         title: 'Thiếu ảnh chứng từ',
@@ -130,26 +160,39 @@ export function usePosCommands({
       });
       return;
     }
-    const saved = await save();
+    const saved = pendingCompletion ? draft : await save();
     if (!saved) return;
     setSaving(true);
     let transferProofPath: string | undefined;
     try {
-      if (payment === 'BANK_TRANSFER' && proofFile) {
-        transferProofPath = (
-          await paymentProofApi.upload({
-            transaction: { kind: 'sale', id: saved.id },
-            file: proofFile,
-          })
-        ).objectPath;
-      }
-      const completed = await api.complete(
-        saved.id,
-        saved.version,
-        payment,
-        crypto.randomUUID(),
-        transferProofPath,
-      );
+      const completed = await runFinancialCommand({
+        commandName: 'sale.complete',
+        entityId: saved.id,
+        invoke: async (idempotencyKey) => {
+          if (payment === 'BANK_TRANSFER' && proofFile && !transferProofPath) {
+            try {
+              transferProofPath = (
+                await paymentProofApi.upload({
+                  transaction: { kind: 'sale', id: saved.id },
+                  file: proofFile,
+                })
+              ).objectPath;
+            } catch {
+              throw new FinancialBusinessError(
+                'Không thể tải ảnh chứng từ. Giao dịch chưa được gửi.',
+              );
+            }
+          }
+          return api.complete(
+            saved.id,
+            saved.version,
+            payment,
+            idempotencyKey,
+            transferProofPath,
+          );
+        },
+        parseCachedResponse: api.parseCompleteResponse,
+      });
       if (userId) localStorage.removeItem(posCartStorageKey(userId));
       await refreshOperationalData(queryClient);
       toast.show({
@@ -173,6 +216,11 @@ export function usePosCommands({
           error instanceof Error
             ? error.message
             : 'Vui lòng kiểm tra lại giỏ hàng.',
+        requestId:
+          error instanceof FinancialOutcomeUnknownError
+            ? error.requestId
+            : undefined,
+        correlationId: getFinancialCorrelationId(error),
       });
     } finally {
       setSaving(false);

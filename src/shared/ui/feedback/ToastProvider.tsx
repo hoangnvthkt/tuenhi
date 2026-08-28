@@ -65,6 +65,14 @@ function ToastItem({
               </code>
             </details>
           ) : null}
+          {toast.requestId ? (
+            <details className="mt-2 text-xs text-slate-600">
+              <summary className="cursor-pointer font-medium">
+                Mã yêu cầu
+              </summary>
+              <code className="mt-1 block break-all">{toast.requestId}</code>
+            </details>
+          ) : null}
           {toast.actionRoute ? (
             <a
               href={toast.actionRoute}

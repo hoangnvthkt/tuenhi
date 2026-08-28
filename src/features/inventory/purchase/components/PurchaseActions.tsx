@@ -1,5 +1,6 @@
 import type { PurchaseApi } from '../api/purchase-api';
 import type { PurchaseReceipt } from '../api/purchase-schemas';
+import { useFinancialCommand } from '@/shared/hooks/use-financial-command';
 
 export function PurchaseActions({
   api,
@@ -12,6 +13,7 @@ export function PurchaseActions({
   busy,
   onSave,
   onPerform,
+  userId,
 }: {
   api: PurchaseApi;
   receipt: PurchaseReceipt | null;
@@ -27,7 +29,9 @@ export function PurchaseActions({
     success: string,
     redirect?: boolean,
   ) => Promise<void>;
+  userId?: string;
 }) {
+  const runFinancialCommand = useFinancialCommand(userId);
   return (
     <div className="sticky bottom-20 z-20 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-lg lg:static lg:border-0 lg:bg-slate-50 lg:p-0 lg:py-2 lg:shadow-none">
       {editable && canDraft ? (
@@ -61,14 +65,21 @@ export function PurchaseActions({
           onClick={() =>
             void onPerform(
               () =>
-                api.post(
-                  receipt.id,
-                  receipt.version,
-                  receipt.lines.map((line) => ({
-                    lineId: line.id,
-                    unitCost: costs[line.id] ?? '',
-                  })),
-                ),
+                runFinancialCommand({
+                  commandName: 'purchase.post',
+                  entityId: receipt.id,
+                  invoke: (idempotencyKey) =>
+                    api.post(
+                      receipt.id,
+                      receipt.version,
+                      receipt.lines.map((line) => ({
+                        lineId: line.id,
+                        unitCost: costs[line.id] ?? '',
+                      })),
+                      idempotencyKey,
+                    ),
+                  parseCachedResponse: api.parseMutationResponse,
+                }),
               'Đã ghi sổ phiếu nhập',
             )
           }
@@ -83,12 +94,19 @@ export function PurchaseActions({
           onClick={() =>
             void onPerform(
               () =>
-                api.command(
-                  'reverse',
-                  receipt.id,
-                  receipt.version,
-                  'Owner đảo phiếu',
-                ),
+                runFinancialCommand({
+                  commandName: 'purchase.reverse',
+                  entityId: receipt.id,
+                  invoke: (idempotencyKey) =>
+                    api.command(
+                      'reverse',
+                      receipt.id,
+                      receipt.version,
+                      'Owner đảo phiếu',
+                      idempotencyKey,
+                    ),
+                  parseCachedResponse: api.parseMutationResponse,
+                }),
               'Đã đảo phiếu nhập',
             )
           }

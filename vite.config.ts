@@ -3,8 +3,16 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
+import { documentLibraryChunkName } from './scripts/document-library-chunks.mjs';
 
 export default defineConfig({
+  build: {
+    rolldownOptions: {
+      output: {
+        manualChunks: documentLibraryChunkName,
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

@@ -1,5 +1,6 @@
 import {
   inventoryMutationSchema,
+  parseInventoryRpc,
   createInventoryRpc,
   nullable,
 } from '../../api/inventory-rpc';
@@ -66,6 +67,7 @@ export function createPurchaseApi() {
       id: string,
       version: number,
       reason = '',
+      idempotencyKey: string = crypto.randomUUID(),
     ) {
       const names = {
         submit: 'submit_purchase_receipt',
@@ -77,19 +79,19 @@ export function createPurchaseApi() {
           ? {
               p_receipt_id: id,
               p_expected_version: version,
-              p_idempotency_key: crypto.randomUUID(),
+              p_idempotency_key: idempotencyKey,
             }
           : command === 'cancel'
             ? {
                 p_receipt_id: id,
                 p_expected_version: version,
                 p_reason: reason,
-                p_idempotency_key: crypto.randomUUID(),
+                p_idempotency_key: idempotencyKey,
               }
             : {
                 p_receipt_id: id,
                 p_reason: reason,
-                p_idempotency_key: crypto.randomUUID(),
+                p_idempotency_key: idempotencyKey,
               };
       return rpc(names[command], args, inventoryMutationSchema);
     },
@@ -97,6 +99,7 @@ export function createPurchaseApi() {
       id: string,
       version: number,
       costs: Array<{ lineId: string; unitCost: string }>,
+      idempotencyKey: string = crypto.randomUUID(),
     ) {
       return rpc(
         'post_purchase_receipt',
@@ -104,10 +107,13 @@ export function createPurchaseApi() {
           p_receipt_id: id,
           p_expected_version: version,
           p_cost_lines: costs,
-          p_idempotency_key: crypto.randomUUID(),
+          p_idempotency_key: idempotencyKey,
         },
         inventoryMutationSchema,
       );
+    },
+    parseMutationResponse(value: unknown) {
+      return parseInventoryRpc(inventoryMutationSchema, value);
     },
   };
 }

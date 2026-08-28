@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
+import {
+  FinancialOutcomeUnknownError,
+  getFinancialCorrelationId,
+} from '@/shared/api/financial-command';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createCatalogApi } from '@/features/catalog';
@@ -141,6 +145,11 @@ export function PurchaseDetailPage({
         kind: 'error',
         title: 'Không thể cập nhật phiếu nhập',
         message,
+        requestId:
+          reason instanceof FinancialOutcomeUnknownError
+            ? reason.requestId
+            : undefined,
+        correlationId: getFinancialCorrelationId(reason),
       });
     } finally {
       setBusy(false);
@@ -279,6 +288,7 @@ export function PurchaseDetailPage({
         busy={busy}
         onSave={save}
         onPerform={perform}
+        userId={session?.userId}
       />
     </section>
   );

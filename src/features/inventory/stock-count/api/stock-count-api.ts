@@ -2,6 +2,7 @@ import {
   createInventoryRpc,
   inventoryMutationSchema,
   nullable,
+  parseInventoryRpc,
 } from '../../api/inventory-rpc';
 import { stockCountPageSchema, stockCountSchema } from './stock-count-schemas';
 
@@ -78,6 +79,7 @@ export function createStockCountApi() {
         stockCountLineId: string;
         estimatedUnitCost: string;
       }>,
+      idempotencyKey: string = crypto.randomUUID(),
     ) {
       return rpc(
         'post_stock_count',
@@ -85,10 +87,13 @@ export function createStockCountApi() {
           p_count_id: id,
           p_expected_version: version,
           p_estimated_costs: estimates,
-          p_idempotency_key: crypto.randomUUID(),
+          p_idempotency_key: idempotencyKey,
         },
         inventoryMutationSchema,
       );
+    },
+    parseMutationResponse(value: unknown) {
+      return parseInventoryRpc(inventoryMutationSchema, value);
     },
   };
 }

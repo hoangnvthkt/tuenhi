@@ -2,10 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
+import {
+  FinancialOutcomeUnknownError,
+  getFinancialCorrelationId,
+} from '@/shared/api/financial-command';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
 import { createCatalogApi } from '@/features/catalog';
+import { useSession } from '@/features/auth';
 import { createOpeningApi } from '../api/opening-api';
 import type {
   OpeningDocument,
@@ -26,6 +31,7 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
   const navigate = useNavigate();
   const online = useOnlineStatus();
   const toast = useToast();
+  const { session } = useSession();
   const [api] = useState(createOpeningApi);
   const [catalogApi] = useState(createCatalogApi);
   const [document, setDocument] = useState<OpeningDocument | null>(null);
@@ -137,6 +143,11 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
         kind: 'error',
         title: 'Không thể cập nhật phiếu mở sổ',
         message,
+        requestId:
+          reason instanceof FinancialOutcomeUnknownError
+            ? reason.requestId
+            : undefined,
+        correlationId: getFinancialCorrelationId(reason),
       });
     } finally {
       setBusy(false);
@@ -236,6 +247,7 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
         busy={busy}
         onSave={save}
         onPerform={perform}
+        userId={session?.userId}
       />
     </section>
   );

@@ -1,0 +1,66 @@
+name: Production deployment smoke
+
+on:
+  repository_dispatch:
+    types:
+      - vercel.deployment.ready
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Deployment or current Production URL
+        required: true
+        default: https://tuenhi.vercel.app
+
+permissions:
+  actions: read
+  contents: read
+  statuses: write
+
+concurrency:
+  group: production-smoke-${{ github.event.client_payload.id || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  production-smoke:
+    name: Production smoke runner
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.client_payload.project.name == 'tuenhi' &&
+      github.event.client_payload.environment == 'production' &&
+      github.event.client_payload.git.ref == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PRODUCTION_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.base_url || github.event.client_payload.url }}
+    steps:
+      - name: Checkout deployment commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.git.sha || github.sha }}
+
+      - name: Publish blocking status to Vercel
+        if: github.event_name == 'repository_dispatch'
+        uses: vercel/repository-dispatch/actions/status@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          name: 'Vercel - tuenhi: production-smoke'
+
+      - name: Setup pnpm
+        uses: pnpm/setup@v2
+        with:
+          install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run credential-free production smoke
+        run: pnpm test:e2e:production
