@@ -50,8 +50,8 @@ runner sau Owner Pilot.
 - App error boundary và router error page không render raw error.
 - Production build verifier và Playwright credential-free smoke được gắn vào
   quality/release path; không thêm telemetry.
-- Fresh build: initial JavaScript gzip `195695` bytes, initial CSS gzip `7601`
-  bytes, tổng deploy assets `3625755` bytes; XLSX/ExcelJS/PDF có chunk ổn định và
+- Fresh build trên `main`: initial JavaScript gzip `195764` bytes, initial CSS
+  gzip `7601` bytes, tổng deploy assets `3625895` bytes; XLSX/ExcelJS/PDF có chunk ổn định và
   không được preload trong app shell.
 
 ## Việc còn lại để đóng release
