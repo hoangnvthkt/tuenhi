@@ -5,11 +5,11 @@ import {
   listSyntheticProfiles,
 } from './cutover-lib.mjs';
 import { spawnSync } from 'node:child_process';
-import { getProjectLifecycle } from './project-lifecycle.mjs';
+import { assertSyntheticTestsAllowed } from './project-lifecycle.mjs';
 
 const admin = await adminClient();
-const [lifecycle, profiles, authUsers, counts] = await Promise.all([
-  getProjectLifecycle(admin),
+const lifecycle = await assertSyntheticTestsAllowed(admin);
+const [profiles, authUsers, counts] = await Promise.all([
   listSyntheticProfiles(admin),
   listSyntheticAuthUsers(admin),
   applicationCounts(admin),
@@ -82,11 +82,6 @@ console.log(
   ),
 );
 
-if (lifecycle.mode !== 'PRE_PRODUCTION') {
-  throw new Error(
-    'PRECHECK_LIFECYCLE_INVALID: Môi trường không còn PRE_PRODUCTION.',
-  );
-}
 if (profiles.length > 0 || authUsers.length > 0) {
   throw new Error(
     'PRECHECK_SYNTHETIC_DATA_PRESENT: Còn dữ liệu test cần dry-run cleanup.',

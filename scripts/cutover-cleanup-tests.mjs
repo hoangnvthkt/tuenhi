@@ -4,7 +4,7 @@ import {
   listSyntheticAuthUsers,
   listSyntheticProfiles,
 } from './cutover-lib.mjs';
-import { getProjectLifecycle } from './project-lifecycle.mjs';
+import { assertSyntheticTestsAllowed } from './project-lifecycle.mjs';
 
 const cleanupRpcByPhase = {
   phase1a: 'cleanup_phase1a_test_users',
@@ -15,12 +15,7 @@ const cleanupRpcByPhase = {
 };
 
 const admin = await adminClient();
-const lifecycle = await getProjectLifecycle(admin);
-if (lifecycle.mode !== 'PRE_PRODUCTION') {
-  throw new Error(
-    'PRODUCTION_TEST_DATA_FORBIDDEN: Không được dọn test sau cutover.',
-  );
-}
+await assertSyntheticTestsAllowed(admin);
 
 const [profiles, authUsers] = await Promise.all([
   listSyntheticProfiles(admin),

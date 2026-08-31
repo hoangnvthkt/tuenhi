@@ -18,12 +18,14 @@ export async function getProjectLifecycle(admin) {
   return data.data;
 }
 
-export async function assertSyntheticTestsAllowed(admin) {
-  const lifecycle = await getProjectLifecycle(admin);
-  if (lifecycle.mode !== 'PRE_PRODUCTION') {
-    throw new Error(
-      `PRODUCTION_TEST_DATA_FORBIDDEN: Cloud runner bị chặn khi môi trường ở trạng thái ${String(lifecycle.mode)}.`,
-    );
+export function assertPreProductionAutomationAllowed(lifecycle) {
+  if (lifecycle?.mode !== 'PRE_PRODUCTION') {
+    throw new Error('PRODUCTION_TEST_DATA_FORBIDDEN');
   }
   return lifecycle;
+}
+
+export async function assertSyntheticTestsAllowed(admin) {
+  const lifecycle = await getProjectLifecycle(admin);
+  return assertPreProductionAutomationAllowed(lifecycle);
 }
