@@ -81,6 +81,9 @@ describe('SupplierPage', () => {
       .mockResolvedValue({ items: [supplier], nextCursor: null });
     renderPage(createApi({ listSuppliers }), ['supplier.read']);
     expect(await screen.findByText('Nhà cung cấp A')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Nhà cung cấp A' }),
+    ).toHaveAttribute('href', `/more/suppliers/${supplier.id}`);
     expect(screen.getByText('+84 912 345 678')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Thêm nhà cung cấp' }),

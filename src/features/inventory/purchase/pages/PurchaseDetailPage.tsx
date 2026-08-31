@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import {
   FinancialOutcomeUnknownError,
@@ -10,12 +10,17 @@ import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createCatalogApi } from '@/features/catalog';
 import { createDirectoryApi } from '@/features/directories';
+import {
+  createConnectedExplorerApi,
+  type ConnectedExplorerApi,
+} from '@/features/connected-explorer';
 import { useSession } from '@/features/auth';
 import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
 import { createPurchaseApi } from '../api/purchase-api';
 import type { PurchaseReceipt } from '../api/purchase-schemas';
 import { PurchaseActions } from '../components/PurchaseActions';
 import { PurchaseLineEditor } from '../components/PurchaseLineEditor';
+import { PurchasePrefillIntent } from '../components/PurchasePrefillIntent';
 import type { PurchaseDraftLine } from '../model/purchase-draft';
 import {
   formatMoney,
@@ -28,15 +33,18 @@ export function PurchaseDetailPage({
   api: apiProp,
   catalogApi: catalogApiProp,
   directoryApi: directoryApiProp,
+  explorerApi: explorerApiProp,
   online: onlineProp,
 }: {
   mode?: 'create';
   api?: ReturnType<typeof createPurchaseApi>;
   catalogApi?: ReturnType<typeof createCatalogApi>;
   directoryApi?: ReturnType<typeof createDirectoryApi>;
+  explorerApi?: ConnectedExplorerApi;
   online?: boolean;
 }) {
   const { receiptId } = useParams();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const detectedOnline = useOnlineStatus();
@@ -47,6 +55,9 @@ export function PurchaseDetailPage({
   const [catalogApi] = useState(() => catalogApiProp ?? createCatalogApi());
   const [directoryApi] = useState(
     () => directoryApiProp ?? createDirectoryApi(),
+  );
+  const [explorerApi] = useState(
+    () => explorerApiProp ?? createConnectedExplorerApi(),
   );
   const [receipt, setReceipt] = useState<PurchaseReceipt | null>(null);
   const [products, setProducts] = useState<
@@ -67,20 +78,48 @@ export function PurchaseDetailPage({
   const [totalCost, setTotalCost] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prefillWarning, setPrefillWarning] = useState<string | null>(null);
+  const prefillHandledRef = useRef<string | null>(null);
+  const supplierTouchedRef = useRef(false);
+  const linesTouchedRef = useRef(false);
   const isCreate = mode === 'create';
   const canDraft = session?.permissions.includes('purchase.draft.manage');
   const canPost = session?.permissions.includes('purchase.post');
   const canReadCost = session?.permissions.includes('purchase.cost.read');
+  const canViewProduct = session?.permissions.includes('catalog.read') ?? false;
+  const canViewSupplier = Boolean(
+    session?.permissions.some((permission) =>
+      ['supplier.read', 'supplier.manage'].includes(permission),
+    ),
+  );
 
   useEffect(() => {
     let active = true;
     catalogApi
       .list({ limit: 100 })
-      .then((page) => active && setProducts(page.items))
+      .then(
+        (page) =>
+          active &&
+          setProducts((current) => [
+            ...current,
+            ...page.items.filter(
+              (item) => !current.some((existing) => existing.id === item.id),
+            ),
+          ]),
+      )
       .catch(() => undefined);
     directoryApi
       .listSuppliers({ limit: 100 })
-      .then((page) => active && setSuppliers(page.items))
+      .then(
+        (page) =>
+          active &&
+          setSuppliers((current) => [
+            ...current,
+            ...page.items.filter(
+              (item) => !current.some((existing) => existing.id === item.id),
+            ),
+          ]),
+      )
       .catch(() => undefined);
     if (!isCreate && receiptId) {
       api
@@ -120,10 +159,126 @@ export function PurchaseDetailPage({
     };
   }, [api, canReadCost, catalogApi, directoryApi, isCreate, receiptId]);
 
+  useEffect(() => {
+    if (!isCreate) return;
+    const productId = searchParams.get('productId');
+    const requestedSupplierId = searchParams.get('supplierId');
+    const intentKey = `${productId ?? ''}:${requestedSupplierId ?? ''}`;
+    if (prefillHandledRef.current === intentKey || intentKey === ':') return;
+    prefillHandledRef.current = intentKey;
+    let active = true;
+    const validUuid = (value: string | null) =>
+      Boolean(
+        value &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          value,
+        ),
+      );
+    const tasks: Promise<void>[] = [];
+    const warnings: string[] = [];
+    if (productId) {
+      if (!validUuid(productId) || !canViewProduct) {
+        warnings.push(
+          'Sản phẩm trong liên kết không hợp lệ hoặc không được phép xem.',
+        );
+      } else {
+        tasks.push(
+          catalogApi
+            .detail(productId)
+            .then((product) => {
+              if (!active) return;
+              if (!product.isActive) {
+                warnings.push('Sản phẩm trong liên kết đã ngừng hoạt động.');
+                return;
+              }
+              setProducts((current) =>
+                current.some((item) => item.id === product.id)
+                  ? current
+                  : [...current, product],
+              );
+              if (!linesTouchedRef.current) {
+                setLines((current) => {
+                  const first = current[0];
+                  if (!first || first.productId) return current;
+                  return [
+                    { ...first, productId: product.id },
+                    ...current.slice(1),
+                  ];
+                });
+              }
+            })
+            .catch(() => {
+              warnings.push('Không thể mở sản phẩm từ liên kết.');
+            }),
+        );
+      }
+    }
+    if (requestedSupplierId) {
+      if (!validUuid(requestedSupplierId) || !canViewSupplier) {
+        warnings.push(
+          'Nhà cung cấp trong liên kết không hợp lệ hoặc không được phép xem.',
+        );
+      } else {
+        tasks.push(
+          explorerApi
+            .supplierDetail(requestedSupplierId)
+            .then((supplier) => {
+              if (!active) return;
+              if (!supplier.isActive) {
+                warnings.push(
+                  'Nhà cung cấp trong liên kết đã ngừng hoạt động.',
+                );
+                return;
+              }
+              setSuppliers((current) =>
+                current.some((item) => item.id === supplier.id)
+                  ? current
+                  : [
+                      ...current,
+                      {
+                        id: supplier.id,
+                        code: supplier.code,
+                        name: supplier.name,
+                        phone: supplier.phone,
+                        email: supplier.email,
+                        address: supplier.address,
+                        notes: supplier.notes,
+                        isActive: supplier.isActive,
+                        version: supplier.version,
+                      },
+                    ],
+              );
+              if (!supplierTouchedRef.current) setSupplierId(supplier.id);
+            })
+            .catch(() => {
+              warnings.push('Không thể mở Nhà cung cấp từ liên kết.');
+            }),
+        );
+      }
+    }
+    void Promise.all(tasks).then(() => {
+      if (active && warnings.length) setPrefillWarning(warnings.join(' '));
+    });
+    return () => {
+      active = false;
+    };
+  }, [
+    canViewProduct,
+    canViewSupplier,
+    catalogApi,
+    explorerApi,
+    isCreate,
+    searchParams,
+  ]);
+
   const lineProductIds = useMemo(
     () => new Set(lines.map((line) => line.productId).filter(Boolean)),
     [lines],
   );
+  const setLinesFromUser: typeof setLines = (action) => {
+    linesTouchedRef.current = true;
+    setLines(action);
+  };
   async function perform(
     action: () => Promise<unknown>,
     success: string,
@@ -227,14 +382,19 @@ export function PurchaseDetailPage({
           {error}
         </p>
       ) : null}
+      <PurchasePrefillIntent warning={prefillWarning} />
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm font-semibold">
             Nhà cung cấp
             <select
+              aria-label="Nhà cung cấp"
               disabled={!editable}
               value={supplierId}
-              onChange={(e) => setSupplierId(e.target.value)}
+              onChange={(e) => {
+                supplierTouchedRef.current = true;
+                setSupplierId(e.target.value);
+              }}
               className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3"
             >
               <option value="">Không chọn</option>
@@ -244,6 +404,14 @@ export function PurchaseDetailPage({
                 </option>
               ))}
             </select>
+            {canViewSupplier && supplierId ? (
+              <Link
+                to={`/more/suppliers/${supplierId}`}
+                className="mt-2 inline-block text-xs font-semibold text-teal-800 hover:underline"
+              >
+                Mở chi tiết Nhà cung cấp
+              </Link>
+            ) : null}
           </label>
           <label className="text-sm font-semibold">
             Ngày nhận
@@ -274,8 +442,9 @@ export function PurchaseDetailPage({
         editable={editable}
         canPost={Boolean(canPost)}
         lineProductIds={lineProductIds}
-        setLines={setLines}
+        setLines={setLinesFromUser}
         setCosts={setCosts}
+        canViewProduct={canViewProduct}
       />
       <PurchaseActions
         api={api}

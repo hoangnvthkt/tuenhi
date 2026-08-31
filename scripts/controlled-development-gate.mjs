@@ -56,6 +56,11 @@ export const GATE_COMMANDS = Object.freeze([
     command: 'pnpm',
     args: Object.freeze(['cloud:verify:phase1f']),
   }),
+  Object.freeze({
+    id: 'p2.2Assertions',
+    command: 'pnpm',
+    args: Object.freeze(['cloud:verify:p2.2']),
+  }),
 ]);
 
 const GATE_IDS = [

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.17';
+    PostgrestVersion: '14.5';
   };
   api: {
     Tables: {
@@ -2040,6 +2040,10 @@ export type Database = {
         Returns: Json;
       };
       get_product_detail: { Args: { p_product_id: string }; Returns: Json };
+      get_product_relationship_context: {
+        Args: { p_product_id: string };
+        Returns: Json;
+      };
       get_product_sale_price_history: {
         Args: {
           p_cursor_id?: string;
@@ -2078,6 +2082,7 @@ export type Database = {
       get_staff_access_capability: { Args: never; Returns: Json };
       get_stock_count: { Args: { p_count_id: string }; Returns: Json };
       get_store_settings: { Args: never; Returns: Json };
+      get_supplier_detail: { Args: { p_supplier_id: string }; Returns: Json };
       list_categories: {
         Args: { p_include_inactive?: boolean };
         Returns: Json;
@@ -2110,6 +2115,28 @@ export type Database = {
           p_cursor_id?: string;
           p_cursor_updated_at?: string;
           p_limit?: number;
+        };
+        Returns: Json;
+      };
+      list_posted_purchase_history: {
+        Args: {
+          p_cursor_line_id?: string;
+          p_cursor_receipt_id?: string;
+          p_cursor_received_at?: string;
+          p_from?: string;
+          p_limit?: number;
+          p_product_id?: string;
+          p_supplier_id?: string;
+          p_to?: string;
+        };
+        Returns: Json;
+      };
+      list_product_suppliers: {
+        Args: {
+          p_cursor_last_received_at?: string;
+          p_cursor_supplier_id?: string;
+          p_limit?: number;
+          p_product_id: string;
         };
         Returns: Json;
       };
@@ -2158,6 +2185,16 @@ export type Database = {
           p_cursor_updated_at?: string;
           p_filters?: Json;
           p_limit?: number;
+        };
+        Returns: Json;
+      };
+      list_supplier_products: {
+        Args: {
+          p_cursor_last_received_at?: string;
+          p_cursor_product_id?: string;
+          p_limit?: number;
+          p_search?: string;
+          p_supplier_id: string;
         };
         Returns: Json;
       };

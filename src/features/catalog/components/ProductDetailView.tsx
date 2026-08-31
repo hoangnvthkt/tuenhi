@@ -17,6 +17,7 @@ export function ProductDetailView({
   priceHistory,
   priceHistoryError,
   priceHistoryPending,
+  hideHeader = false,
 }: {
   canManage: boolean;
   canManageSalePrice: boolean;
@@ -26,38 +27,43 @@ export function ProductDetailView({
   priceHistory: PriceHistoryItem[] | undefined;
   priceHistoryError: boolean;
   priceHistoryPending: boolean;
+  hideHeader?: boolean;
 }) {
   return (
     <section className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link
-            to="/products"
-            className="text-sm font-semibold text-teal-800 hover:underline"
-          >
-            ← Về danh sách sản phẩm
-          </Link>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-              {detail.name}
-            </h1>
-            {!detail.isActive ? (
-              <span className="rounded-md bg-slate-200 px-2 py-1 text-xs font-semibold text-slate-700">
-                Ngừng hoạt động
-              </span>
-            ) : null}
+      {!hideHeader ? (
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <Link
+              to="/products"
+              className="text-sm font-semibold text-teal-800 hover:underline"
+            >
+              ← Về danh sách sản phẩm
+            </Link>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950">
+                {detail.name}
+              </h1>
+              {!detail.isActive ? (
+                <span className="rounded-md bg-slate-200 px-2 py-1 text-xs font-semibold text-slate-700">
+                  Ngừng hoạt động
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-1 font-mono text-sm text-slate-600">
+              {detail.sku}
+            </p>
           </div>
-          <p className="mt-1 font-mono text-sm text-slate-600">{detail.sku}</p>
+          {canManage ? (
+            <Link
+              to={`/products/${detail.id}/edit`}
+              className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+            >
+              Sửa sản phẩm
+            </Link>
+          ) : null}
         </div>
-        {canManage ? (
-          <Link
-            to={`/products/${detail.id}/edit`}
-            className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-900 hover:bg-slate-50"
-          >
-            Sửa sản phẩm
-          </Link>
-        ) : null}
-      </div>
+      ) : null}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

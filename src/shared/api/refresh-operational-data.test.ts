@@ -30,6 +30,7 @@ describe('refreshOperationalData', () => {
     const client = new QueryClient();
     clients.push(client);
     let salesFetches = 0;
+    let connectedExplorerFetches = 0;
     let staffFetches = 0;
     const sales = observeQuery(client, ['sales', ''], () => {
       salesFetches += 1;
@@ -37,14 +38,24 @@ describe('refreshOperationalData', () => {
     const staff = observeQuery(client, ['staff'], () => {
       staffFetches += 1;
     });
+    const connectedExplorer = observeQuery(
+      client,
+      ['connected-explorer', 'supplier', 'supplier-id'],
+      () => {
+        connectedExplorerFetches += 1;
+      },
+    );
 
     await sales.observer.refetch();
     await staff.observer.refetch();
+    await connectedExplorer.observer.refetch();
     const salesBeforeRefresh = salesFetches;
+    const connectedExplorerBeforeRefresh = connectedExplorerFetches;
     const staffBeforeRefresh = staffFetches;
     await refreshOperationalData(client);
 
     expect(salesFetches).toBe(salesBeforeRefresh + 1);
+    expect(connectedExplorerFetches).toBe(connectedExplorerBeforeRefresh + 1);
     expect(staffFetches).toBe(staffBeforeRefresh);
     client.setQueryData(['reports', '2026-08-01'], 'cached');
     await refreshOperationalData(client);
@@ -53,6 +64,7 @@ describe('refreshOperationalData', () => {
         ?.state.isInvalidated,
     ).toBe(true);
     sales.unsubscribe();
+    connectedExplorer.unsubscribe();
     staff.unsubscribe();
   });
 });

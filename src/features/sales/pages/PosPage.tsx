@@ -1,9 +1,9 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
-import { createCatalogApi } from '@/features/catalog';
+import { createCatalogApi, type ProductCatalogItem } from '@/features/catalog';
 import { createDirectoryApi } from '@/features/directories';
 import { createSettingsApi } from '@/features/settings';
 import { useSession } from '@/features/auth';
@@ -12,6 +12,7 @@ import type { Sale } from '../api/sales-schemas';
 import { CartPanel } from '../components/CartPanel';
 import { CheckoutDialog } from '../components/CheckoutDialog';
 import { ProductPicker } from '../components/ProductPicker';
+import { PrefilledProductIntent } from '../components/PrefilledProductIntent';
 import type { PosCartItem, PosPaymentMethod } from '../model/pos-types';
 import {
   acquirePosEditorLease,
@@ -50,6 +51,7 @@ function getPosTabId() {
 
 export function PosPage() {
   const { saleId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const online = useOnlineStatus();
   const { session } = useSession();
   const [salesApi] = useState(createSalesApi);
@@ -71,6 +73,9 @@ export function PosPage() {
   const [staleCartWarning, setStaleCartWarning] = useState(false);
   const [workspaceReady, setWorkspaceReady] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
+  const [focusedProduct, setFocusedProduct] =
+    useState<ProductCatalogItem | null>(null);
+  const [focusWarning, setFocusWarning] = useState<string | null>(null);
   const [tabId] = useState(getPosTabId);
   const revisionRef = useRef(0);
   const draftVersionRef = useRef<number | null>(null);
@@ -78,6 +83,46 @@ export function PosPage() {
     () => (saleId ? { kind: 'DRAFT', saleId } : { kind: 'NEW' }),
     [saleId],
   );
+  const focusProductId = searchParams.get('focusProduct');
+  const clearFocusProduct = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('focusProduct');
+    setSearchParams(next, { replace: true });
+    setFocusedProduct(null);
+  }, [searchParams, setSearchParams]);
+  useEffect(() => {
+    let active = true;
+    if (!focusProductId || saleId) return;
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        focusProductId,
+      )
+    ) {
+      setFocusWarning('Liên kết sản phẩm không hợp lệ và đã được bỏ qua.');
+      return;
+    }
+    setFocusWarning(null);
+    catalogApi
+      .detail(focusProductId)
+      .then((product) => {
+        if (!active) return;
+        if (!product.isActive) {
+          setFocusWarning('Sản phẩm trong liên kết đã ngừng hoạt động.');
+          return;
+        }
+        setFocusedProduct(product);
+        setSearch(product.sku);
+      })
+      .catch(() => {
+        if (active)
+          setFocusWarning(
+            'Không thể mở sản phẩm từ liên kết. Vui lòng thử lại.',
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [catalogApi, focusProductId, saleId]);
   const canDiscount = Boolean(
     session?.permissions.includes('sale.discount.apply'),
   );
@@ -423,17 +468,37 @@ export function PosPage() {
         disabled={!workspaceReady || !canEdit}
         className="grid min-w-0 gap-5 disabled:opacity-75 lg:grid-cols-[1fr_420px]"
       >
-        <ProductPicker
-          search={search}
-          resolvedSearch={debouncedSearch}
-          products={catalog.data?.items ?? []}
-          isLoading={catalog.isLoading}
-          onSearchChange={setSearch}
-          onExactLookup={async (value) =>
-            (await catalogApi.list({ search: value, limit: 30 })).items
-          }
-          onAdd={add}
-        />
+        <div className="space-y-3">
+          <PrefilledProductIntent
+            product={focusedProduct}
+            warning={focusWarning}
+            disabled={!canEdit}
+            onDismiss={clearFocusProduct}
+            onAdd={(product) => {
+              add(product);
+              clearFocusProduct();
+            }}
+          />
+          <ProductPicker
+            search={search}
+            resolvedSearch={debouncedSearch}
+            products={catalog.data?.items ?? []}
+            isLoading={catalog.isLoading}
+            onSearchChange={(value) => {
+              if (focusedProduct && value !== focusedProduct.sku) {
+                clearFocusProduct();
+              }
+              setSearch(value);
+            }}
+            onExactLookup={async (value) =>
+              (await catalogApi.list({ search: value, limit: 30 })).items
+            }
+            onAdd={(product) => {
+              add(product);
+              if (focusedProduct?.id === product.id) clearFocusProduct();
+            }}
+          />
+        </div>
         <CartPanel
           items={items}
           channels={channels.data ?? []}

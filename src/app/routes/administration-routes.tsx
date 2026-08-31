@@ -28,6 +28,11 @@ const SupplierPage = lazy(() =>
     default: module.SupplierPage,
   })),
 );
+const SupplierDetailPage = lazy(() =>
+  import('@/features/directories').then((module) => ({
+    default: module.SupplierDetailPage,
+  })),
+);
 const CustomerPage = lazy(() =>
   import('@/features/directories').then((module) => ({
     default: module.CustomerPage,
@@ -77,7 +82,22 @@ export const administrationRoutes: RouteObject[] = [
     element: (
       <RequireSession permission={['supplier.read', 'supplier.manage']} />
     ),
-    children: [{ path: 'more/suppliers', element: <SupplierPage /> }],
+    children: [
+      { path: 'more/suppliers', element: <SupplierPage /> },
+      {
+        path: 'more/suppliers/:supplierId',
+        element: <SupplierDetailPage />,
+      },
+    ],
+  },
+  {
+    element: <RequireSession permission="supplier.manage" />,
+    children: [
+      {
+        path: 'more/suppliers/:supplierId/edit',
+        element: <SupplierDetailPage mode="edit" />,
+      },
+    ],
   },
   {
     element: (

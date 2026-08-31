@@ -1,5 +1,6 @@
 export { CustomerPage } from './pages/CustomerPage';
 export { SupplierPage } from './pages/SupplierPage';
+export { SupplierDetailPage } from './pages/SupplierDetailPage';
 export {
   createDirectoryApi,
   DirectoryApiError,

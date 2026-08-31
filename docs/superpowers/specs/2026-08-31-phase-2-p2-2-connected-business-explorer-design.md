@@ -2,7 +2,7 @@
 
 Ngày: 2026-08-31
 
-Trạng thái: Owner đã duyệt thiết kế trong hội thoại; chờ Owner review bản spec
+Trạng thái: Owner đã duyệt
 
 ## 1. Tóm tắt
 

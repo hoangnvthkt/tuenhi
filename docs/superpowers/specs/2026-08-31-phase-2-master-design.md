@@ -2,7 +2,7 @@
 
 Ngày: 2026-08-31
 
-Trạng thái: Owner đã duyệt; P2.0 đang triển khai theo implementation plan
+Trạng thái: Owner đã duyệt; P2.2 đang triển khai theo implementation plan
 
 Liên quan:
 
@@ -135,14 +135,16 @@ audit hoặc dữ liệu test từ project cũ sang project mới.
 - Rút gọn thao tác tra cứu, in/tải và đối soát hóa đơn mà không thay đổi nghiệp
   vụ payment, return hoặc cancel.
 
-### P2.2 — Inventory Replenishment
+### P2.2 — Connected Business Explorer
 
-- Danh sách sản phẩm dưới/ngang ngưỡng tồn với lọc và cursor pagination.
-- Lịch sử biến động tồn theo sản phẩm, chứng từ và khoảng ngày.
-- Gợi ý lượng cần nhập theo công thức đơn giản từ `min_stock` và tồn hiện tại;
-  không forecasting, không tự đặt hàng và không tự ghi sổ.
-- Owner có thể tạo purchase draft từ gợi ý; giá nhập và posting vẫn theo quyền
-  hiện hành.
+- Biến chi tiết Sản phẩm và Nhà cung cấp thành Context Hub có KPI, lịch sử và
+  drill-through tới Phiếu nhập.
+- Quan hệ Sản phẩm–Nhà cung cấp chỉ suy ra từ phiếu nhập `POSTED`; không tạo
+  bảng liên kết hoặc Nhà cung cấp chính.
+- Deeplink tới POS và phiếu nhập chỉ điền sẵn ngữ cảnh, không tự tạo hoặc ghi
+  chứng từ.
+- Inventory Replenishment được hoãn sang increment sẽ được ưu tiên lại sau;
+  không đổi số các increment còn lại trong tài liệu này.
 
 ### P2.3 — Customer Purchase History
 

@@ -50,7 +50,8 @@ pnpm p2:release:verify
 
 Không chạy `test:cloud:*`, Cloud E2E có credential, `cutover:preflight`,
 `cutover:cleanup-tests`, cleanup RPC, lifecycle mutation, bootstrap Owner hoặc
-`db push` trong P2.0. Quy trình đầy đủ nằm tại
+`db push` nếu increment chưa có migration additive được duyệt. Quy trình nền
+tảng nằm tại
 [runbook P2.0](docs/runbooks/phase-2-p2-0-controlled-development.md).
 
 ### P2.1 — Daily workflow productivity
@@ -63,6 +64,20 @@ regenerate Supabase types và không thêm dependency.
 Sau `pnpm p2:release:verify` và public production smoke, Owner thực hiện UAT thủ
 công theo [runbook P2.1](docs/runbooks/phase-2-p2-1-daily-workflow-productivity.md).
 Không dùng camera barcode; máy quét USB/Bluetooth chỉ hoạt động như bàn phím.
+
+### P2.2 — Connected Business Explorer
+
+P2.2 nối hai chiều **Sản phẩm ↔ Nhà cung cấp ↔ Phiếu nhập** bằng Context Hub.
+Quan hệ, KPI, số lượng và lịch sử mua chỉ được suy ra từ phiếu nhập đang có
+trạng thái `POSTED`; phiếu không có Nhà cung cấp vẫn thuộc lịch sử sản phẩm
+nhưng không tạo quan hệ Nhà cung cấp. Giá nhập được kiểm soát server-side và
+luôn trả `null` khi người dùng thiếu `purchase.cost.read`.
+
+Các deeplink `focusProduct`, `productId` và `supplierId` chỉ điền sẵn ngữ cảnh
+local. Chúng không tự thêm vào giỏ, tạo draft, lưu, ghi sổ hoặc sinh
+idempotency key. Migration P2.2 là additive và Cloud assertion chỉ đọc đã được
+gắn vào `pnpm p2:release:verify`. Quy trình release, Owner UAT và rollback nằm
+tại [runbook P2.2](docs/runbooks/phase-2-p2-2-connected-business-explorer.md).
 
 ## Quy trình cloud — migration đã được duyệt
 

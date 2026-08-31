@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import { SessionContextValue } from '@/features/auth';
 import type { CatalogApi } from '../api/catalog-api';
+import type { ConnectedExplorerApi } from '@/features/connected-explorer';
 import type { ProductDetail } from '../model/catalog-types';
 import { ProductDetailPage } from './ProductDetailPage';
 
@@ -46,12 +47,16 @@ function createApi(overrides: Partial<CatalogApi> = {}): CatalogApi {
 
 function renderPage({
   api,
+  explorerApi,
   mode = 'view',
   permissions = ['catalog.read'],
+  initialEntry,
 }: {
   api: CatalogApi;
+  explorerApi?: ConnectedExplorerApi;
   mode?: 'view' | 'create' | 'edit';
   permissions?: string[];
+  initialEntry?: string;
 }) {
   render(
     <QueryClientProvider
@@ -81,9 +86,10 @@ function renderPage({
         <ToastProvider>
           <MemoryRouter
             initialEntries={[
-              mode === 'create'
-                ? '/products/new'
-                : `/products/${detail.id}${mode === 'edit' ? '/edit' : ''}`,
+              initialEntry ??
+                (mode === 'create'
+                  ? '/products/new'
+                  : `/products/${detail.id}${mode === 'edit' ? '/edit' : ''}`),
             ]}
           >
             <Routes>
@@ -95,7 +101,13 @@ function renderPage({
                       ? '/products/:productId/edit'
                       : '/products/:productId'
                 }
-                element={<ProductDetailPage api={api} mode={mode} />}
+                element={
+                  <ProductDetailPage
+                    api={api}
+                    explorerApi={explorerApi}
+                    mode={mode}
+                  />
+                }
               />
               <Route
                 path="/products/:productId"
@@ -119,12 +131,86 @@ describe('ProductDetailPage', () => {
     expect(screen.queryByText('Lịch sử giá bán')).not.toBeInTheDocument();
   });
 
+  it('falls back to overview when a purchase tab is not permitted', async () => {
+    renderPage({
+      api: createApi(),
+      permissions: ['catalog.read'],
+      initialEntry: `/products/${detail.id}?tab=suppliers`,
+    });
+    expect(await screen.findByText('Mô tả sản phẩm')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('tab', { name: 'Nhà cung cấp' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows sale-price history only with owner permission', async () => {
     renderPage({
       api: createApi(),
       permissions: ['catalog.read', 'pricing.sale.manage'],
     });
     expect(await screen.findByText('Lịch sử giá bán')).toBeInTheDocument();
+  });
+
+  it('drills through posted suppliers and exposes safe contextual actions', async () => {
+    const explorerApi: ConnectedExplorerApi = {
+      productContext: vi.fn(),
+      productSuppliers: vi.fn().mockResolvedValue({
+        items: [
+          {
+            supplierId: '10000000-0000-4000-8000-000000000011',
+            supplierCode: 'NCC-01',
+            supplierName: 'Nhà cung cấp A',
+            supplierIsActive: true,
+            postedReceiptCount: 2,
+            totalReceivedQty: '5',
+            lastReceivedAt: '2026-08-31T10:00:00.000Z',
+            latestReceiptId: '10000000-0000-4000-8000-000000000012',
+            latestReceiptNumber: 'PN000001',
+            latestUnitCost: null,
+            canReadCost: false,
+          },
+        ],
+        nextCursor: null,
+      }),
+      supplierDetail: vi.fn(),
+      supplierProducts: vi.fn(),
+      postedPurchaseHistory: vi.fn(),
+    };
+    renderPage({
+      api: createApi(),
+      explorerApi,
+      permissions: [
+        'catalog.read',
+        'supplier.read',
+        'purchase.operational.read',
+        'purchase.draft.manage',
+        'sale.draft.manage',
+      ],
+      initialEntry: `/products/${detail.id}?tab=suppliers`,
+    });
+
+    expect(await screen.findByText('Nhà cung cấp A')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Bán hàng' })).toHaveAttribute(
+      'href',
+      `/pos?focusProduct=${detail.id}`,
+    );
+    expect(screen.getByRole('link', { name: 'Nhập hàng' })).toHaveAttribute(
+      'href',
+      `/more/purchases/new?productId=${detail.id}`,
+    );
+    expect(
+      screen.getByRole('link', { name: 'Nhà cung cấp A' }),
+    ).toHaveAttribute(
+      'href',
+      '/more/suppliers/10000000-0000-4000-8000-000000000011',
+    );
+    expect(
+      screen.getByRole('link', { name: 'Nhập từ NCC này' }),
+    ).toHaveAttribute(
+      'href',
+      `/more/purchases/new?productId=${detail.id}&supplierId=10000000-0000-4000-8000-000000000011`,
+    );
+    expect(screen.queryByText(/đơn giá gần nhất/i)).not.toBeInTheDocument();
   });
 
   it('creates the product before applying its owner-supplied price', async () => {

@@ -8,6 +8,7 @@ import { acquirePosEditorLease } from '../model/pos-storage';
 
 const mocks = vi.hoisted(() => ({
   catalogList: vi.fn().mockResolvedValue({ items: [] }),
+  catalogDetail: vi.fn(),
 }));
 
 const channels = [
@@ -43,7 +44,10 @@ vi.mock('@/features/auth', () => ({
 }));
 
 vi.mock('@/features/catalog', () => ({
-  createCatalogApi: () => ({ list: mocks.catalogList }),
+  createCatalogApi: () => ({
+    list: mocks.catalogList,
+    detail: mocks.catalogDetail,
+  }),
 }));
 
 vi.mock('@/features/directories', () => ({
@@ -71,14 +75,14 @@ vi.mock('../hooks/use-pos-commands', () => ({
   }),
 }));
 
-function renderPage() {
+function renderPage(entry = '/pos') {
   return render(
     <QueryClientProvider
       client={
         new QueryClient({ defaultOptions: { queries: { retry: false } } })
       }
     >
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[entry]}>
         <PosPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -90,6 +94,7 @@ describe('PosPage', () => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.catalogList.mockResolvedValue({ items: [] });
+    mocks.catalogDetail.mockReset();
   });
 
   afterEach(() => {
@@ -271,5 +276,49 @@ describe('PosPage', () => {
     expect(
       await screen.findByRole('dialog', { name: 'Xác nhận thanh toán' }),
     ).toBeInTheDocument();
+  });
+
+  it('focuses a deeplink product without adding it until the user confirms', async () => {
+    const user = userEvent.setup();
+    const product = {
+      id: '10000000-0000-4000-8000-000000000011',
+      sku: 'SP-FOCUS',
+      barcode: null,
+      name: 'Sản phẩm từ deeplink',
+      categoryId: null,
+      categoryName: null,
+      unitName: 'Hộp',
+      description: null,
+      minStockQty: '0',
+      isActive: true,
+      version: 1,
+      primaryImagePath: null,
+      currentSalePrice: '25000.00',
+      salePriceValidFrom: null,
+      onHandQty: '4',
+      images: [],
+    };
+    mocks.catalogDetail.mockResolvedValue(product);
+    mocks.catalogList.mockImplementation(({ search }: { search?: string }) =>
+      Promise.resolve({
+        items: search === product.sku ? [product] : [],
+        nextCursor: null,
+      }),
+    );
+
+    renderPage(`/pos?focusProduct=${product.id}`);
+
+    expect(
+      await screen.findByText('Sản phẩm được mở từ liên kết'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Chưa có sản phẩm trong giỏ.')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Tìm sản phẩm' })).toHaveValue(
+      product.sku,
+    );
+    await user.click(screen.getByRole('button', { name: 'Thêm vào giỏ' }));
+    expect(await screen.findByText(product.name)).toBeInTheDocument();
+    expect(
+      screen.queryByText('Chưa có sản phẩm trong giỏ.'),
+    ).not.toBeInTheDocument();
   });
 });

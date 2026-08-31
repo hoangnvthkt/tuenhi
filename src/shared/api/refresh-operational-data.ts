@@ -25,6 +25,7 @@ const operationalQueryRoots = new Set([
   'reports',
   'owner-dashboard',
   'profit-report',
+  'connected-explorer',
 ]);
 
 export function refreshOperationalData(queryClient: QueryClient) {
