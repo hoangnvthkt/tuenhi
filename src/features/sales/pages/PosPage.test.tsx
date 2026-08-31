@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PosPage } from './PosPage';
+import { acquirePosEditorLease } from '../model/pos-storage';
 
 const channels = [
   {
@@ -83,6 +84,7 @@ function renderPage() {
 describe('PosPage', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   afterEach(() => {
@@ -145,5 +147,37 @@ describe('PosPage', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Cũ')).not.toBeInTheDocument();
+  });
+
+  it('keeps a second POS tab read-only until the user explicitly takes over', async () => {
+    const user = userEvent.setup();
+    const userId = '10000000-0000-4000-8000-000000000099';
+    const tabA = '20000000-0000-4000-8000-000000000001';
+    const tabB = '20000000-0000-4000-8000-000000000002';
+    sessionStorage.setItem('tuenhi:pos:tab-id', tabB);
+    acquirePosEditorLease({
+      userId,
+      identity: { kind: 'NEW' },
+      tabId: tabA,
+      now: new Date(),
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText('Giỏ hàng đang được chỉnh sửa ở tab khác.'),
+    ).toBeInTheDocument();
+    expect(await screen.findByLabelText('Kênh bán')).toBeDisabled();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Tiếp tục ở tab này' }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Giỏ hàng đang được chỉnh sửa ở tab khác.'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByLabelText('Kênh bán')).toBeEnabled();
   });
 });

@@ -15,7 +15,11 @@ import { createPaymentProofApi } from '@/features/payments';
 import type { SalesApi } from '../api/sales-api';
 import type { Sale } from '../api/sales-schemas';
 import type { PosCartItem, PosPaymentMethod } from '../model/pos-types';
-import { posCartStorageKey } from '../model/pos-storage';
+import {
+  posCartStorageKey,
+  removePosCartSnapshot,
+  type PosCartIdentity,
+} from '../model/pos-storage';
 
 export function usePosCommands({
   api,
@@ -56,6 +60,15 @@ export function usePosCommands({
   const runFinancialCommand = useFinancialCommand(userId);
   const [saving, setSaving] = useState(false);
   const [paymentProofApi] = useState(createPaymentProofApi);
+  const cartIdentity: PosCartIdentity = saleId
+    ? { kind: 'DRAFT', saleId }
+    : { kind: 'NEW' };
+
+  const clearLocalCart = () => {
+    if (!userId) return;
+    removePosCartSnapshot(userId, cartIdentity);
+    localStorage.removeItem(posCartStorageKey(userId));
+  };
 
   const save = async () => {
     if (!online) {
@@ -101,7 +114,10 @@ export function usePosCommands({
               ?.onHandQty ?? '0',
         })),
       );
-      if (!saleId) navigate(`/pos/${result.sale.id}`, { replace: true });
+      if (!saleId) {
+        clearLocalCart();
+        navigate(`/pos/${result.sale.id}`, { replace: true });
+      }
       await refreshOperationalData(queryClient);
       toast.show({
         kind: 'success',
@@ -193,7 +209,7 @@ export function usePosCommands({
         },
         parseCachedResponse: api.parseCompleteResponse,
       });
-      if (userId) localStorage.removeItem(posCartStorageKey(userId));
+      clearLocalCart();
       await refreshOperationalData(queryClient);
       toast.show({
         kind: 'success',
@@ -232,7 +248,7 @@ export function usePosCommands({
     if (!draft || !online) return;
     try {
       await api.discardDraft(draft.id, draft.version, crypto.randomUUID());
-      if (userId) localStorage.removeItem(posCartStorageKey(userId));
+      clearLocalCart();
       await refreshOperationalData(queryClient);
       navigate('/pos');
       toast.show({ kind: 'success', title: 'Đã bỏ nháp' });

@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
@@ -14,8 +14,18 @@ import { CheckoutDialog } from '../components/CheckoutDialog';
 import { ProductPicker } from '../components/ProductPicker';
 import type { PosCartItem, PosPaymentMethod } from '../model/pos-types';
 import {
-  posCartStorageKey,
-  sanitizePersistedPosCartItems,
+  acquirePosEditorLease,
+  migrateLegacyPosCart,
+  ownsPosEditorLease,
+  posCartSnapshotStorageKey,
+  posEditorLeaseStorageKey,
+  readPosCartSnapshot,
+  refreshPosEditorLease,
+  releasePosEditorLease,
+  resolvePosCartSnapshot,
+  writeOwnedPosCartSnapshot,
+  type PosCartIdentity,
+  type PosCartSnapshotV2,
 } from '../model/pos-storage';
 import { calculatePosTotals } from '../model/pos-totals';
 import { usePosCommands } from '../hooks/use-pos-commands';
@@ -23,6 +33,20 @@ import {
   INTEGER_FINAL,
   incrementCanonicalInteger,
 } from '@/shared/lib/numeric/canonical-number';
+
+const POS_TAB_ID_KEY = 'tuenhi:pos:tab-id';
+
+function getPosTabId() {
+  try {
+    const current = sessionStorage.getItem(POS_TAB_ID_KEY);
+    if (current) return current;
+    const created = crypto.randomUUID();
+    sessionStorage.setItem(POS_TAB_ID_KEY, created);
+    return created;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
 
 export function PosPage() {
   const { saleId } = useParams();
@@ -41,6 +65,16 @@ export function PosPage() {
   const [draft, setDraft] = useState<Sale | null>(null);
   const [payment, setPayment] = useState<PosPaymentMethod | null>(null);
   const [cartWarning, setCartWarning] = useState(false);
+  const [staleCartWarning, setStaleCartWarning] = useState(false);
+  const [workspaceReady, setWorkspaceReady] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [tabId] = useState(getPosTabId);
+  const revisionRef = useRef(0);
+  const draftVersionRef = useRef<number | null>(null);
+  const identity = useMemo<PosCartIdentity>(
+    () => (saleId ? { kind: 'DRAFT', saleId } : { kind: 'NEW' }),
+    [saleId],
+  );
   const canDiscount = Boolean(
     session?.permissions.includes('sale.discount.apply'),
   );
@@ -70,54 +104,149 @@ export function PosPage() {
       );
     }
   }, [channelId, channels.data]);
+  const restoreSnapshot = useCallback((snapshot: PosCartSnapshotV2) => {
+    revisionRef.current = snapshot.revision;
+    setItems(snapshot.items);
+    if (snapshot.channelId) setChannelId(snapshot.channelId);
+    setCustomerId(snapshot.customerId);
+    setOrderDiscount(snapshot.orderDiscount);
+    setNote(snapshot.note);
+  }, []);
+
   useEffect(() => {
-    if (!detail.data) return;
-    const s = detail.data;
-    setDraft(s);
-    setChannelId(s.salesChannelId);
-    setCustomerId(s.customerId ?? '');
-    setOrderDiscount(s.orderDiscountTotal);
-    setNote(s.note ?? '');
-    setItems(s.lines.map((x) => ({ ...x, onHandQty: '0' })));
-  }, [detail.data]);
+    const userId = session?.userId;
+    if (!userId) return;
+    setWorkspaceReady(false);
+    const acquired = acquirePosEditorLease({
+      userId,
+      identity,
+      tabId,
+      now: new Date(),
+    });
+    setCanEdit(acquired);
+
+    if (identity.kind === 'NEW') {
+      const migrated = acquired
+        ? migrateLegacyPosCart({ userId, tabId, now: new Date() })
+        : undefined;
+      const snapshot =
+        migrated?.snapshot ?? readPosCartSnapshot(userId, identity);
+      if (snapshot) restoreSnapshot(snapshot);
+      setCartWarning(Boolean(migrated?.discardedLineCount));
+      setWorkspaceReady(true);
+    }
+
+    const leaseKey = posEditorLeaseStorageKey(userId, identity);
+    const snapshotKey = posCartSnapshotStorageKey(userId, identity);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== leaseKey && event.key !== snapshotKey) return;
+      const ownsLease = ownsPosEditorLease({ userId, identity, tabId });
+      setCanEdit(ownsLease);
+      if (ownsLease) return;
+      const snapshot = readPosCartSnapshot(userId, identity);
+      const resolved = resolvePosCartSnapshot(
+        snapshot,
+        identity.kind === 'DRAFT' ? draftVersionRef.current : null,
+      );
+      if (resolved.status === 'RESTORE') restoreSnapshot(resolved.snapshot);
+    };
+    window.addEventListener('storage', onStorage);
+    const heartbeat = window.setInterval(() => {
+      const refreshed = refreshPosEditorLease({
+        userId,
+        identity,
+        tabId,
+        now: new Date(),
+      });
+      if (!refreshed) setCanEdit(false);
+    }, 10_000);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.clearInterval(heartbeat);
+      releasePosEditorLease({ userId, identity, tabId });
+    };
+  }, [identity, restoreSnapshot, session?.userId, tabId]);
+
   useEffect(() => {
-    if (!session?.userId || saleId) return;
-    const raw = localStorage.getItem(posCartStorageKey(session.userId));
-    if (raw)
-      try {
-        const value = JSON.parse(raw) as {
-          items: PosCartItem[];
-          channelId: string;
-          customerId: string;
-          orderDiscount: string;
-          note: string;
-        };
-        const restoredItems = sanitizePersistedPosCartItems(value.items);
-        setItems(restoredItems);
-        setCartWarning(restoredItems.length !== value.items.length);
-        if (value.channelId) setChannelId(value.channelId);
-        setCustomerId(value.customerId);
-        setOrderDiscount(value.orderDiscount);
-        setNote(value.note);
-      } catch {
-        /* ignore damaged local cart */
-      }
-  }, [session?.userId, saleId]);
-  useEffect(() => {
-    if (!session?.userId || saleId) return;
-    localStorage.setItem(
-      posCartStorageKey(session.userId),
-      JSON.stringify({ items, channelId, customerId, orderDiscount, note }),
+    if (!detail.data || identity.kind !== 'DRAFT' || !session?.userId) return;
+    const serverDraft = detail.data;
+    draftVersionRef.current = serverDraft.version;
+    setDraft(serverDraft);
+    const local = resolvePosCartSnapshot(
+      readPosCartSnapshot(session.userId, identity),
+      serverDraft.version,
     );
+    if (local.status === 'RESTORE') {
+      restoreSnapshot(local.snapshot);
+      setStaleCartWarning(false);
+    } else {
+      setChannelId(serverDraft.salesChannelId);
+      setCustomerId(serverDraft.customerId ?? '');
+      setOrderDiscount(serverDraft.orderDiscountTotal);
+      setNote(serverDraft.note ?? '');
+      setItems(serverDraft.lines.map((line) => ({ ...line, onHandQty: '0' })));
+      setStaleCartWarning(local.status === 'STALE');
+    }
+    setWorkspaceReady(true);
+  }, [detail.data, identity, restoreSnapshot, session?.userId]);
+
+  useEffect(() => {
+    const userId = session?.userId;
+    if (!userId || !workspaceReady || !canEdit) return;
+    const nextRevision = revisionRef.current + 1;
+    const saved = writeOwnedPosCartSnapshot({
+      snapshot: {
+        version: 2,
+        userId,
+        identity,
+        serverVersion: draft?.version ?? null,
+        revision: nextRevision,
+        updatedAt: new Date().toISOString(),
+        lastWriterTabId: tabId,
+        items,
+        channelId,
+        customerId,
+        orderDiscount,
+        note,
+      },
+      tabId,
+      now: new Date(),
+    });
+    if (saved) revisionRef.current = nextRevision;
+    else setCanEdit(false);
   }, [
-    session?.userId,
-    saleId,
-    items,
+    canEdit,
     channelId,
     customerId,
-    orderDiscount,
+    draft?.version,
+    identity,
+    items,
     note,
+    orderDiscount,
+    session?.userId,
+    tabId,
+    workspaceReady,
   ]);
+
+  const takeOver = () => {
+    const userId = session?.userId;
+    if (!userId) return;
+    const acquired = acquirePosEditorLease({
+      userId,
+      identity,
+      tabId,
+      now: new Date(),
+      force: true,
+    });
+    if (!acquired) return;
+    const snapshot = resolvePosCartSnapshot(
+      readPosCartSnapshot(userId, identity),
+      identity.kind === 'DRAFT' ? draftVersionRef.current : null,
+    );
+    if (snapshot.status === 'RESTORE') restoreSnapshot(snapshot.snapshot);
+    setCanEdit(true);
+  };
   const totals = useMemo(
     () => calculatePosTotals(items, orderDiscount),
     [items, orderDiscount],
@@ -199,7 +328,7 @@ export function PosPage() {
           <button
             onClick={discard}
             className="min-h-11 rounded-lg border border-red-200 px-3 text-sm font-medium text-red-700"
-            disabled={!online || saving}
+            disabled={!online || saving || !canEdit}
           >
             Bỏ nháp
           </button>
@@ -213,7 +342,31 @@ export function PosPage() {
           Một số dòng trong giỏ cũ có số lượng lẻ nên đã được bỏ.
         </p>
       ) : null}
-      <div className="grid gap-5 lg:grid-cols-[1fr_420px]">
+      {staleCartWarning ? (
+        <p
+          role="alert"
+          className="mb-5 rounded-lg bg-amber-50 p-3 text-sm text-amber-800"
+        >
+          Giỏ lưu trên thiết bị đã cũ. Hệ thống đang dùng bản nháp mới nhất từ
+          máy chủ.
+        </p>
+      ) : null}
+      {workspaceReady && !canEdit ? (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+          <p>Giỏ hàng đang được chỉnh sửa ở tab khác.</p>
+          <button
+            type="button"
+            onClick={takeOver}
+            className="min-h-11 rounded-lg border border-amber-700 px-3 font-semibold"
+          >
+            Tiếp tục ở tab này
+          </button>
+        </div>
+      ) : null}
+      <fieldset
+        disabled={!workspaceReady || !canEdit}
+        className="grid min-w-0 gap-5 disabled:opacity-75 lg:grid-cols-[1fr_420px]"
+      >
         <ProductPicker
           search={search}
           products={catalog.data?.items ?? []}
@@ -248,7 +401,7 @@ export function PosPage() {
           onSave={() => void save()}
           onCheckout={() => setPayment('CASH')}
         />
-      </div>
+      </fieldset>
       {payment ? (
         <CheckoutDialog
           payment={payment}

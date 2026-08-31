@@ -12,6 +12,10 @@ import {
 import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import type { SalesApi } from '../api/sales-api';
 import type { Sale } from '../api/sales-schemas';
+import {
+  readPosCartSnapshot,
+  writePosCartSnapshot,
+} from '../model/pos-storage';
 import { usePosCommands } from './use-pos-commands';
 
 const mocks = vi.hoisted(() => ({
@@ -97,6 +101,20 @@ describe('usePosCommands', () => {
       async ({ invoke }: { invoke: (key: string) => Promise<unknown> }) =>
         invoke('30000000-0000-4000-8000-000000000001'),
     );
+    writePosCartSnapshot({
+      version: 2,
+      userId,
+      identity: { kind: 'DRAFT', saleId },
+      serverVersion: draft.version,
+      revision: 1,
+      updatedAt: '2026-08-31T07:00:00.000Z',
+      lastWriterTabId: '60000000-0000-4000-8000-000000000001',
+      items: [],
+      channelId: draft.salesChannelId,
+      customerId: '',
+      orderDiscount: '0',
+      note: '',
+    });
 
     const { result } = renderHook(
       () =>
@@ -142,6 +160,9 @@ describe('usePosCommands', () => {
       '30000000-0000-4000-8000-000000000001',
       undefined,
     );
+    expect(
+      readPosCartSnapshot(userId, { kind: 'DRAFT', saleId }),
+    ).toBeUndefined();
   });
 
   it('uploads a bank-transfer proof once across same-key invocations', async () => {
