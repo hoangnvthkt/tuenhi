@@ -54,6 +54,8 @@
     "cloud:verify:phase1d": "supabase db query --linked --file supabase/tests/phase_1d_sales_assertions.sql",
     "cloud:verify:phase1e": "supabase db query --linked --file supabase/tests/phase_1e_returns_stock_count_assertions.sql",
     "cloud:verify:phase1f": "supabase db query --linked --file supabase/tests/phase_1f_report_assertions.sql && supabase db query --linked --file supabase/tests/phase_1f_b_cutover_assertions.sql && supabase db query --linked --file supabase/tests/phase_1f_b8_command_outcome_assertions.sql",
+    "p2:verify:cloud": "node --env-file=.env scripts/controlled-development-gate.mjs",
+    "p2:release:verify": "pnpm check && pnpm p2:verify:cloud",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm templates:verify && pnpm build",
     "check:full": "pnpm check && pnpm test:e2e",
     "supabase": "supabase"
