@@ -16,6 +16,11 @@ mã an toàn `PRODUCTION_TEST_DATA_FORBIDDEN`.
 P2.0 không tạo Staging, không đổi Supabase plan, không thêm migration/RPC/schema
 và không sửa dữ liệu Cloud.
 
+Increment frontend-only P2.1 tiếp tục dùng đúng guard và release gate này,
+không có migration và chỉ cho phép Owner UAT thủ công. Checklist thao tác POS
+và hóa đơn nằm tại
+[runbook P2.1](phase-2-p2-1-daily-workflow-productivity.md).
+
 ## Lệnh vận hành
 
 | Phạm vi         | Được phép                                                                            | Bị cấm trong P2.0                                                                              |

@@ -53,6 +53,17 @@ Không chạy `test:cloud:*`, Cloud E2E có credential, `cutover:preflight`,
 `db push` trong P2.0. Quy trình đầy đủ nằm tại
 [runbook P2.0](docs/runbooks/phase-2-p2-0-controlled-development.md).
 
+### P2.1 — Daily workflow productivity
+
+P2.1 là increment frontend-only: giỏ POS có snapshot V2 và quyền sửa một tab,
+luồng tìm hàng bằng bàn phím, đối soát pending financial command chỉ đọc, cùng
+tra cứu/action hóa đơn rút gọn. Increment này không có migration, không
+regenerate Supabase types và không thêm dependency.
+
+Sau `pnpm p2:release:verify` và public production smoke, Owner thực hiện UAT thủ
+công theo [runbook P2.1](docs/runbooks/phase-2-p2-1-daily-workflow-productivity.md).
+Không dùng camera barcode; máy quét USB/Bluetooth chỉ hoạt động như bàn phím.
+
 ## Quy trình cloud — migration đã được duyệt
 
 Không dùng Supabase local hoặc Docker. Mọi lệnh migration chạy trên project Cloud đã link và phải nạp `.env` từ vị trí an toàn mà không in giá trị ra terminal:
