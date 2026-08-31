@@ -34,6 +34,19 @@ export type FinancialCommandOutcome =
   | { status: 'NOT_FOUND'; response: null };
 
 const storageKeyPrefix = 'tuenhi:pending-financial-command:v1:';
+export const FINANCIAL_COMMAND_MARKERS_CHANGED_EVENT =
+  'tuenhi:financial-command:markers-changed';
+
+function notifyBrowserMarkersChanged(storage: FinancialCommandStorage) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (storage === window.localStorage) {
+      window.dispatchEvent(new Event(FINANCIAL_COMMAND_MARKERS_CHANGED_EVENT));
+    }
+  } catch {
+    // Browser storage diagnostics must never expose or replace command errors.
+  }
+}
 
 export function isPendingFinancialCommandStorageKey(key: string | null) {
   return Boolean(key?.startsWith(storageKeyPrefix));
@@ -182,9 +195,18 @@ function removePendingCommand(
 ) {
   try {
     storage.removeItem(pendingStorageKey(input));
+    notifyBrowserMarkersChanged(storage);
   } catch {
     // A stale marker is safer than losing the idempotency key before certainty.
   }
+}
+
+function unknownFinancialOutcome(
+  pending: PendingFinancialCommand,
+  storage: FinancialCommandStorage,
+) {
+  notifyBrowserMarkersChanged(storage);
+  return new FinancialOutcomeUnknownError(pending.idempotencyKey);
 }
 
 export function clearPendingFinancialCommand(
@@ -275,7 +297,7 @@ async function executeFinancialCommandUnlocked<T>({
             removePendingCommand(storage, identity);
             throw error;
           }
-          throw new FinancialOutcomeUnknownError(pending.idempotencyKey);
+          throw unknownFinancialOutcome(pending, storage);
         }
       }
     }
@@ -297,14 +319,14 @@ async function executeFinancialCommandUnlocked<T>({
   }
 
   if (!isOnline()) {
-    throw new FinancialOutcomeUnknownError(pending.idempotencyKey);
+    throw unknownFinancialOutcome(pending, storage);
   }
 
   try {
     return await invokeAndFinalize();
   } catch (error) {
     if (error instanceof FinancialBusinessError) throw error;
-    throw new FinancialOutcomeUnknownError(pending.idempotencyKey);
+    throw unknownFinancialOutcome(pending, storage);
   }
 }
 

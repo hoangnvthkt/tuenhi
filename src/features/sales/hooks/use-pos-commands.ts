@@ -67,7 +67,11 @@ export function usePosCommands({
   const clearLocalCart = () => {
     if (!userId) return;
     removePosCartSnapshot(userId, cartIdentity);
-    localStorage.removeItem(posCartStorageKey(userId));
+    try {
+      localStorage.removeItem(posCartStorageKey(userId));
+    } catch {
+      // A stale legacy cart must not turn a confirmed server action into an error.
+    }
   };
 
   const save = async () => {

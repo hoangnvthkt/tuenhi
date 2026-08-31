@@ -126,6 +126,31 @@ describe('ProductPicker', () => {
     expect(onAdd).not.toHaveBeenCalled();
   });
 
+  it('does not add an ambiguous exact SKU or barcode match', async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+    const ambiguousProducts = [
+      products[0]!,
+      { ...products[1]!, barcode: products[0]!.sku },
+    ];
+    render(
+      <ProductPicker
+        search="AO-001"
+        resolvedSearch="AO-001"
+        products={ambiguousProducts}
+        isLoading={false}
+        onSearchChange={vi.fn()}
+        onExactLookup={vi.fn().mockResolvedValue(ambiguousProducts)}
+        onAdd={onAdd}
+      />,
+    );
+
+    await user.click(screen.getByRole('combobox', { name: 'Tìm sản phẩm' }));
+    await user.keyboard('{Enter}');
+
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
   it('clears the search with Escape', async () => {
     const user = userEvent.setup();
     const { onSearchChange } = renderPicker();

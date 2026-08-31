@@ -131,12 +131,14 @@ describe('POS cart snapshot V2', () => {
       storage,
     });
 
-    expect(result?.snapshot.version).toBe(2);
-    expect(result?.snapshot.note).toBe('Giữ lại');
-    expect(result?.discardedLineCount).toBe(0);
+    expect(result?.invalidPayload).toBe(false);
+    if (!result || result.invalidPayload) throw new Error('Expected migration');
+    expect(result.snapshot.version).toBe(2);
+    expect(result.snapshot.note).toBe('Giữ lại');
+    expect(result.discardedLineCount).toBe(0);
     expect(storage.getItem(`tuenhi:pos:cart:${userId}`)).toBeNull();
     expect(readPosCartSnapshot(userId, identity, storage)).toEqual(
-      result?.snapshot,
+      result.snapshot,
     );
   });
 
@@ -160,8 +162,27 @@ describe('POS cart snapshot V2', () => {
       storage,
     });
 
-    expect(result?.snapshot.items).toEqual([validLine]);
-    expect(result?.discardedLineCount).toBe(1);
+    expect(result?.invalidPayload).toBe(false);
+    if (!result || result.invalidPayload) throw new Error('Expected migration');
+    expect(result.snapshot.items).toEqual([validLine]);
+    expect(result.discardedLineCount).toBe(1);
+  });
+
+  it('reports a malformed legacy payload without deleting the recoverable source key', () => {
+    const storage = new MemoryStorage();
+    const legacyKey = `tuenhi:pos:cart:${userId}`;
+    storage.setItem(legacyKey, '{not-json');
+
+    const result = migrateLegacyPosCart({
+      userId,
+      tabId: '20000000-0000-4000-8000-000000000001',
+      now: new Date('2026-08-31T07:30:00.000Z'),
+      storage,
+    });
+
+    expect(result).toEqual({ invalidPayload: true });
+    expect(storage.getItem(legacyKey)).toBe('{not-json');
+    expect(readPosCartSnapshot(userId, identity, storage)).toBeUndefined();
   });
 
   it('uses the server draft when the persisted server version is stale', () => {

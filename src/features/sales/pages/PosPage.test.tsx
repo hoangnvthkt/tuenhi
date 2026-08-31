@@ -154,6 +154,21 @@ describe('PosPage', () => {
     expect(screen.queryByText('Cũ')).not.toBeInTheDocument();
   });
 
+  it('shows a safe warning for a malformed legacy cart payload', async () => {
+    localStorage.setItem(
+      'tuenhi:pos:cart:10000000-0000-4000-8000-000000000099',
+      '{not-json',
+    );
+
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        'Không thể phục hồi giỏ cũ trên thiết bị. Dữ liệu lỗi đã được bỏ qua.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('keeps a second POS tab read-only until the user explicitly takes over', async () => {
     const user = userEvent.setup();
     const userId = '10000000-0000-4000-8000-000000000099';

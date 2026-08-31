@@ -65,7 +65,9 @@ export function PosPage() {
   const [note, setNote] = useState('');
   const [draft, setDraft] = useState<Sale | null>(null);
   const [payment, setPayment] = useState<PosPaymentMethod | null>(null);
-  const [cartWarning, setCartWarning] = useState(false);
+  const [cartWarning, setCartWarning] = useState<
+    'INVALID_PAYLOAD' | 'DISCARDED_LINES' | null
+  >(null);
   const [staleCartWarning, setStaleCartWarning] = useState(false);
   const [workspaceReady, setWorkspaceReady] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
@@ -122,6 +124,16 @@ export function PosPage() {
     const userId = session?.userId;
     if (!userId) return;
     setWorkspaceReady(false);
+    setItems([]);
+    setChannelId('');
+    setCustomerId('');
+    setOrderDiscount('0');
+    setNote('');
+    setDraft(null);
+    setCartWarning(null);
+    setStaleCartWarning(false);
+    revisionRef.current = 0;
+    draftVersionRef.current = null;
     const acquired = acquirePosEditorLease({
       userId,
       identity,
@@ -135,9 +147,17 @@ export function PosPage() {
         ? migrateLegacyPosCart({ userId, tabId, now: new Date() })
         : undefined;
       const snapshot =
-        migrated?.snapshot ?? readPosCartSnapshot(userId, identity);
+        migrated && !migrated.invalidPayload
+          ? migrated.snapshot
+          : readPosCartSnapshot(userId, identity);
       if (snapshot) restoreSnapshot(snapshot);
-      setCartWarning(Boolean(migrated?.discardedLineCount));
+      setCartWarning(
+        migrated?.invalidPayload
+          ? 'INVALID_PAYLOAD'
+          : migrated?.discardedLineCount
+            ? 'DISCARDED_LINES'
+            : null,
+      );
       setWorkspaceReady(true);
     }
 
@@ -373,7 +393,9 @@ export function PosPage() {
           role="alert"
           className="mb-5 rounded-lg bg-amber-50 p-3 text-sm text-amber-800"
         >
-          Một số dòng trong giỏ cũ có số lượng lẻ nên đã được bỏ.
+          {cartWarning === 'INVALID_PAYLOAD'
+            ? 'Không thể phục hồi giỏ cũ trên thiết bị. Dữ liệu lỗi đã được bỏ qua.'
+            : 'Một số dòng trong giỏ cũ có số lượng lẻ nên đã được bỏ.'}
         </p>
       ) : null}
       {staleCartWarning ? (

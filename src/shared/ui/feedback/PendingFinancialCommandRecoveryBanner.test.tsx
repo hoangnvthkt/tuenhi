@@ -165,4 +165,19 @@ describe('PendingFinancialCommandRecoveryBanner', () => {
 
     await waitFor(() => expect(lookup).toHaveBeenCalledOnce());
   });
+
+  it('detects a pending marker created in the same browser tab', async () => {
+    const lookup = vi
+      .fn<FinancialOutcomeApi['lookup']>()
+      .mockResolvedValue({ status: 'NOT_FOUND', response: null });
+    renderBanner({ lookup });
+    await waitFor(() => expect(lookup).not.toHaveBeenCalled());
+
+    await seedPending();
+
+    expect(
+      await screen.findByText('Có giao dịch cần đối soát'),
+    ).toBeInTheDocument();
+    expect(lookup).toHaveBeenCalledWith('sale.complete', requestId);
+  });
 });

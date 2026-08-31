@@ -44,9 +44,13 @@ export function ProductPicker({
     const value = search.trim();
     if (!value) return;
     if (resolvedSearch.trim() !== value) {
-      const fresh = await onExactLookup(value);
-      const exact = exactMatches(fresh, value);
-      if (exact.length === 1) addAndReset(exact[0]!);
+      try {
+        const fresh = await onExactLookup(value);
+        const exact = exactMatches(fresh, value);
+        if (exact.length === 1) addAndReset(exact[0]!);
+      } catch {
+        // Keep the search intact so the user can retry after a safe API error.
+      }
       return;
     }
     const exact = exactMatches(products, value);
@@ -54,6 +58,7 @@ export function ProductPicker({
       addAndReset(exact[0]!);
       return;
     }
+    if (exact.length > 1) return;
     const highlighted =
       products[Math.min(highlightedIndex, products.length - 1)];
     if (highlighted) addAndReset(highlighted);

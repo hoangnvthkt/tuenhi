@@ -197,16 +197,29 @@ export function migrateLegacyPosCart({
   tabId: string;
   now: Date;
   storage?: StorageLike;
-}): { snapshot: PosCartSnapshotV2; discardedLineCount: number } | undefined {
+}):
+  | {
+      snapshot: PosCartSnapshotV2;
+      discardedLineCount: number;
+      invalidPayload: false;
+    }
+  | { invalidPayload: true }
+  | undefined {
   const existing = readPosCartSnapshot(userId, { kind: 'NEW' }, storage);
-  if (existing) return { snapshot: existing, discardedLineCount: 0 };
+  if (existing) {
+    return {
+      snapshot: existing,
+      discardedLineCount: 0,
+      invalidPayload: false,
+    };
+  }
 
   const legacyKey = posCartStorageKey(userId);
   try {
     const raw = storage.getItem(legacyKey);
     if (!raw) return undefined;
     const parsed = legacyCartSchema.safeParse(JSON.parse(raw));
-    if (!parsed.success) return undefined;
+    if (!parsed.success) return { invalidPayload: true };
 
     const items = sanitizePersistedPosCartItems(parsed.data.items);
     const snapshot = snapshotSchema.parse({
@@ -228,9 +241,10 @@ export function migrateLegacyPosCart({
     return {
       snapshot,
       discardedLineCount: parsed.data.items.length - items.length,
+      invalidPayload: false,
     };
   } catch {
-    return undefined;
+    return { invalidPayload: true };
   }
 }
 
