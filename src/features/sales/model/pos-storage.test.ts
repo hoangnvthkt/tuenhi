@@ -244,12 +244,25 @@ describe('POS editor lease', () => {
         force: true,
       }),
     ).toBe(true);
-    expect(ownsPosEditorLease({ userId, identity, tabId: tabA, storage })).toBe(
-      false,
-    );
-    expect(ownsPosEditorLease({ userId, identity, tabId: tabB, storage })).toBe(
-      true,
-    );
+    const afterTakeover = new Date(startedAt.getTime() + 3_000);
+    expect(
+      ownsPosEditorLease({
+        userId,
+        identity,
+        tabId: tabA,
+        storage,
+        now: afterTakeover,
+      }),
+    ).toBe(false);
+    expect(
+      ownsPosEditorLease({
+        userId,
+        identity,
+        tabId: tabB,
+        storage,
+        now: afterTakeover,
+      }),
+    ).toBe(true);
   });
 
   it('refreshes only the owner and lets another tab recover an expired lease', () => {
@@ -293,13 +306,26 @@ describe('POS editor lease', () => {
     });
 
     releasePosEditorLease({ userId, identity, tabId: tabB, storage });
-    expect(ownsPosEditorLease({ userId, identity, tabId: tabA, storage })).toBe(
-      true,
-    );
+    const beforeExpiry = new Date(startedAt.getTime() + 1_000);
+    expect(
+      ownsPosEditorLease({
+        userId,
+        identity,
+        tabId: tabA,
+        storage,
+        now: beforeExpiry,
+      }),
+    ).toBe(true);
     releasePosEditorLease({ userId, identity, tabId: tabA, storage });
-    expect(ownsPosEditorLease({ userId, identity, tabId: tabA, storage })).toBe(
-      false,
-    );
+    expect(
+      ownsPosEditorLease({
+        userId,
+        identity,
+        tabId: tabA,
+        storage,
+        now: beforeExpiry,
+      }),
+    ).toBe(false);
   });
 
   it('prevents a tab without the lease from writing a cart snapshot', () => {
