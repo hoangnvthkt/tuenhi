@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,6 +10,7 @@ import {
   readPendingFinancialCommands,
 } from '@/shared/api/financial-command';
 import type { FinancialOutcomeApi } from '@/shared/api/financial-outcome-api';
+import { FINANCIAL_COMMAND_RECONCILE_EVENT } from '@/shared/api/financial-command-recovery';
 import { ToastProvider } from './ToastProvider';
 import { PendingFinancialCommandRecoveryBanner } from './PendingFinancialCommandRecoveryBanner';
 
@@ -147,6 +148,20 @@ describe('PendingFinancialCommandRecoveryBanner', () => {
     lookup.mockClear();
 
     await user.click(screen.getByRole('button', { name: 'Đối soát lại' }));
+
+    await waitFor(() => expect(lookup).toHaveBeenCalledOnce());
+  });
+
+  it('reconciles when a document page requests a read-only lookup', async () => {
+    await seedPending();
+    const lookup = vi
+      .fn<FinancialOutcomeApi['lookup']>()
+      .mockResolvedValue({ status: 'NOT_FOUND', response: null });
+    renderBanner({ lookup });
+    await screen.findByText('Có giao dịch cần đối soát');
+    lookup.mockClear();
+
+    fireEvent(window, new Event(FINANCIAL_COMMAND_RECONCILE_EVENT));
 
     await waitFor(() => expect(lookup).toHaveBeenCalledOnce());
   });

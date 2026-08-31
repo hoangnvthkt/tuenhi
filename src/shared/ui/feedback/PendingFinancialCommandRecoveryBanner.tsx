@@ -3,7 +3,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { isPendingFinancialCommandStorageKey } from '@/shared/api/financial-command';
 import {
+  FINANCIAL_COMMAND_RECONCILE_EVENT,
   listPendingFinancialCommandRecoveries,
+  notifyFinancialCommandMarkersChanged,
   reconcilePendingFinancialCommands,
   type PendingFinancialCommandRecovery,
 } from '@/shared/api/financial-command-recovery';
@@ -52,6 +54,7 @@ export function PendingFinancialCommandRecoveryBanner({
           (result) => result.status === 'RESOLVED',
         );
         setRecoveries(results.filter((result) => result.status !== 'RESOLVED'));
+        notifyFinancialCommandMarkersChanged();
         for (const result of resolved) {
           toast.show({
             kind: 'success',
@@ -74,7 +77,8 @@ export function PendingFinancialCommandRecoveryBanner({
   }, [api.lookup, online, queryClient, toast, userId]);
 
   useEffect(() => {
-    void reconcile();
+    const initialReconcile = window.setTimeout(() => void reconcile(), 0);
+    return () => window.clearTimeout(initialReconcile);
   }, [reconcile]);
 
   useEffect(() => {
@@ -86,6 +90,19 @@ export function PendingFinancialCommandRecoveryBanner({
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, [online, reconcile, userId]);
+
+  useEffect(() => {
+    const onReconcileRequest = () => void reconcile();
+    window.addEventListener(
+      FINANCIAL_COMMAND_RECONCILE_EVENT,
+      onReconcileRequest,
+    );
+    return () =>
+      window.removeEventListener(
+        FINANCIAL_COMMAND_RECONCILE_EVENT,
+        onReconcileRequest,
+      );
+  }, [reconcile]);
 
   if (recoveries.length === 0) return null;
   const checking = recoveries.some((item) => item.status === 'CHECKING');

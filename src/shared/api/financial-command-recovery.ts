@@ -9,6 +9,19 @@ import {
   type PendingFinancialCommand,
 } from './financial-command';
 
+export const FINANCIAL_COMMAND_RECONCILE_EVENT =
+  'tuenhi:financial-command:reconcile';
+export const FINANCIAL_COMMAND_MARKERS_CHANGED_EVENT =
+  'tuenhi:financial-command:markers-changed';
+
+export function requestFinancialCommandReconciliation() {
+  window.dispatchEvent(new Event(FINANCIAL_COMMAND_RECONCILE_EVENT));
+}
+
+export function notifyFinancialCommandMarkersChanged() {
+  window.dispatchEvent(new Event(FINANCIAL_COMMAND_MARKERS_CHANGED_EVENT));
+}
+
 const cachedSuccessEnvelopeSchema = z.object({
   ok: z.literal(true),
   data: z.unknown(),

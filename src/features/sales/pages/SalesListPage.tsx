@@ -1,6 +1,6 @@
-import { Link } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { createSalesApi } from '../api/sales-api';
 const money = (v: string) =>
   new Intl.NumberFormat('vi-VN', {
@@ -17,12 +17,41 @@ const statusLabels: Record<string, string> = {
 };
 export function SalesListPage() {
   const [api] = useState(createSalesApi);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  const [status, setStatus] = useState(() => searchParams.get('status') ?? '');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
   const query = useQuery({
-    queryKey: ['sales', search, status],
-    queryFn: () => api.list({ search, status }),
+    queryKey: ['sales', debouncedSearch, status],
+    queryFn: () => api.list({ search: debouncedSearch, status }),
+    placeholderData: keepPreviousData,
   });
+  const updateParams = (nextSearch: string, nextStatus: string) => {
+    setSearchParams(
+      () => {
+        const next = new URLSearchParams();
+        if (nextSearch) next.set('q', nextSearch);
+        if (nextStatus) next.set('status', nextStatus);
+        return next;
+      },
+      { replace: true },
+    );
+  };
+  const openExactInvoice = () => {
+    if (search.trim() !== debouncedSearch.trim()) return;
+    const normalized = search.trim().toLocaleLowerCase('vi');
+    const exact = (query.data?.items ?? []).filter(
+      (item) => item.saleNumber?.trim().toLocaleLowerCase('vi') === normalized,
+    );
+    if (exact.length !== 1) return;
+    const item = exact[0]!;
+    navigate(item.status === 'DRAFT' ? `/pos/${item.id}` : `/sales/${item.id}`);
+  };
   return (
     <main className="mx-auto max-w-6xl p-4 sm:p-6">
       <div className="mb-5 flex items-end justify-between gap-3">
@@ -40,25 +69,58 @@ export function SalesListPage() {
         </Link>
       </div>
       <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_180px]">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Mã hóa đơn, khách hàng hoặc sản phẩm"
-          className="min-h-11 rounded-lg border border-slate-300 px-3"
-        />
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="min-h-11 rounded-lg border border-slate-300 px-3"
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="DRAFT">Nháp</option>
-          <option value="COMPLETED">Hoàn tất</option>
-          <option value="PARTIALLY_RETURNED">Trả một phần</option>
-          <option value="RETURNED">Đã trả hết</option>
-          <option value="CANCELLED">Đã hủy</option>
-        </select>
+        <label className="text-sm font-medium">
+          <span className="sr-only">Tìm hóa đơn</span>
+          <input
+            aria-label="Tìm hóa đơn"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              updateParams(event.target.value, status);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                openExactInvoice();
+              }
+            }}
+            placeholder="Mã hóa đơn, khách hàng hoặc sản phẩm"
+            className="min-h-11 w-full rounded-lg border border-slate-300 px-3"
+          />
+        </label>
+        <label className="text-sm font-medium">
+          <span className="sr-only">Trạng thái hóa đơn</span>
+          <select
+            aria-label="Trạng thái hóa đơn"
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value);
+              updateParams(search, event.target.value);
+            }}
+            className="min-h-11 w-full rounded-lg border border-slate-300 px-3"
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="DRAFT">Nháp</option>
+            <option value="COMPLETED">Hoàn tất</option>
+            <option value="PARTIALLY_RETURNED">Trả một phần</option>
+            <option value="RETURNED">Đã trả hết</option>
+            <option value="CANCELLED">Đã hủy</option>
+          </select>
+        </label>
       </div>
+      {query.isFetching && !query.isLoading ? (
+        <p role="status" className="mb-3 text-sm text-slate-500">
+          Đang cập nhật danh sách…
+        </p>
+      ) : null}
+      {query.isError ? (
+        <p
+          role="alert"
+          className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-800"
+        >
+          Không thể tải danh sách hóa đơn.
+        </p>
+      ) : null}
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         {query.data?.items.map((item) => (
           <Link

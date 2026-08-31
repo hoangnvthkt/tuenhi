@@ -1,12 +1,19 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import {
   FinancialOutcomeUnknownError,
+  findPendingFinancialCommand,
   getFinancialCorrelationId,
+  isPendingFinancialCommandStorageKey,
+  type PendingFinancialCommand,
 } from '@/shared/api/financial-command';
+import {
+  FINANCIAL_COMMAND_MARKERS_CHANGED_EVENT,
+  requestFinancialCommandReconciliation,
+} from '@/shared/api/financial-command-recovery';
 import { useFinancialCommand } from '@/shared/hooks/use-financial-command';
 import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
 import { useToast } from '@/shared/ui/feedback/use-toast';
@@ -55,6 +62,27 @@ async function downloadPdf(invoice: Invoice) {
     })
     .download(`Hoa-don-${invoice.sale.saleNumber}.pdf`);
 }
+
+function findSalePendingCommand(userId?: string, saleId?: string) {
+  if (!userId || !saleId) return undefined;
+  try {
+    return (
+      findPendingFinancialCommand({
+        userId,
+        commandName: 'sale.complete',
+        entityId: saleId,
+      }) ??
+      findPendingFinancialCommand({
+        userId,
+        commandName: 'sale.cancel',
+        entityId: saleId,
+      })
+    );
+  } catch {
+    return undefined;
+  }
+}
+
 export function SaleDetailPage() {
   const { saleId } = useParams();
   const online = useOnlineStatus();
@@ -65,12 +93,41 @@ export function SaleDetailPage() {
   const [api] = useState(createSalesApi);
   const [cancelReason, setCancelReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pendingCommand, setPendingCommand] = useState<
+    PendingFinancialCommand | undefined
+  >(() => findSalePendingCommand(session?.userId, saleId));
   const query = useQuery({
     queryKey: ['invoice', saleId],
     queryFn: () => api.invoice(saleId!),
     enabled: Boolean(saleId),
   });
   const invoice = query.data;
+
+  useEffect(() => {
+    const refreshPendingCommand = () =>
+      setPendingCommand(findSalePendingCommand(session?.userId, saleId));
+    const initialRefresh = window.setTimeout(refreshPendingCommand, 0);
+    const onStorage = (event: StorageEvent) => {
+      if (isPendingFinancialCommandStorageKey(event.key)) {
+        refreshPendingCommand();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener(
+      FINANCIAL_COMMAND_MARKERS_CHANGED_EVENT,
+      refreshPendingCommand,
+    );
+    return () => {
+      window.clearTimeout(initialRefresh);
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(
+        FINANCIAL_COMMAND_MARKERS_CHANGED_EVENT,
+        refreshPendingCommand,
+      );
+    };
+  }, [saleId, session?.userId]);
+
   if (query.isLoading) return <main className="p-6">Đang tải hóa đơn…</main>;
   if (!invoice) return <main className="p-6">Không tìm thấy hóa đơn.</main>;
   const logoUrl = invoice.store.logoPath
@@ -120,6 +177,18 @@ export function SaleDetailPage() {
       });
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function createPdf() {
+    if (pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      await downloadPdf(invoice!);
+    } catch {
+      toast.show({ kind: 'error', title: 'Không thể tạo PDF' });
+    } finally {
+      setPdfBusy(false);
     }
   }
   return (
@@ -233,24 +302,97 @@ export function SaleDetailPage() {
           </p>
         ) : null}
       </article>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <div className="mt-4 grid gap-2 sm:grid-cols-3">
         <button
+          type="button"
           onClick={() => window.print()}
           className="min-h-11 rounded-lg border border-slate-300 font-medium"
         >
-          In nhiệt 80 mm
+          In nhiệt
         </button>
         <button
-          onClick={() =>
-            downloadPdf(invoice).catch(() =>
-              toast.show({ kind: 'error', title: 'Không thể tạo PDF' }),
-            )
-          }
+          type="button"
+          onClick={() => void createPdf()}
+          disabled={pdfBusy}
           className="min-h-11 rounded-lg bg-teal-700 font-semibold text-white"
         >
-          Tải PDF
+          {pdfBusy ? 'Đang tạo PDF…' : 'Tải PDF'}
         </button>
+        <Link
+          to="/pos"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-teal-700 font-semibold text-teal-800"
+        >
+          Đơn mới
+        </Link>
       </div>
+      <section
+        aria-labelledby="payment-reconciliation-title"
+        className="mt-5 rounded-xl border border-slate-200 bg-white p-4"
+      >
+        <h2 id="payment-reconciliation-title" className="font-bold">
+          Đối soát thanh toán
+        </h2>
+        <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-slate-500">Trạng thái hóa đơn</dt>
+            <dd className="font-medium">{invoice.sale.status}</dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">Trạng thái thanh toán</dt>
+            <dd className="font-medium">
+              {invoice.sale.paymentStatus === 'CAPTURED'
+                ? 'Đã ghi nhận'
+                : invoice.sale.paymentStatus === 'REVERSED'
+                  ? 'Đã đảo'
+                  : invoice.sale.paymentStatus}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">Số tiền đã ghi nhận</dt>
+            <dd className="font-medium">
+              {money(invoice.totals.capturedAmount)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">Phương thức</dt>
+            <dd className="font-medium">
+              {invoice.sale.paymentMethod === 'CASH'
+                ? 'Tiền mặt'
+                : 'Chuyển khoản'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">Nhân viên</dt>
+            <dd className="font-medium">{invoice.sale.staffName}</dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">Kênh bán</dt>
+            <dd className="font-medium">{invoice.sale.channelName}</dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-slate-500">Thời điểm hoàn tất</dt>
+            <dd className="font-medium">
+              {new Date(invoice.sale.completedAt).toLocaleString('vi-VN')}
+            </dd>
+          </div>
+        </dl>
+        {pendingCommand ? (
+          <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+            <p className="font-semibold">Giao dịch này đang chờ đối soát</p>
+            <p className="mt-1 text-xs">Mã yêu cầu</p>
+            <code className="block break-all text-xs">
+              {pendingCommand.idempotencyKey}
+            </code>
+            <button
+              type="button"
+              onClick={requestFinancialCommandReconciliation}
+              className="mt-3 min-h-11 rounded-lg border border-amber-700 px-3 font-semibold"
+            >
+              Đối soát lại giao dịch
+            </button>
+          </div>
+        ) : null}
+      </section>
       {invoice.lifecycle.returns.length > 0 ? (
         <section className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
           <h2 className="font-bold">Lịch sử trả hàng</h2>
