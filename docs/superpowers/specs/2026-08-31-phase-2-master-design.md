@@ -2,8 +2,7 @@
 
 Ngày: 2026-08-31
 
-Trạng thái: Owner đã duyệt hướng kiến trúc; chờ duyệt đặc tả văn bản trước khi
-lập implementation plan
+Trạng thái: Owner đã duyệt; P2.0 đang triển khai theo implementation plan
 
 Liên quan:
 
@@ -260,4 +259,3 @@ thức hiện hành cho phần được dùng, đặc biệt:
 - Auth session/revocation semantics.
 - Storage access control và private buckets.
 - Realtime publications và Edge Function secrets.
-

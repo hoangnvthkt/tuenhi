@@ -17,7 +17,10 @@ pnpm check
 pnpm check:full
 ```
 
-`pnpm check:full` là quality gate frontend đầy đủ trong một lệnh. `pnpm test:e2e` chạy trên bản production đã build và cần bộ tài khoản kiểm thử Cloud tạm thời như phần dưới. Luôn nạp biến `VITE_*` trước `pnpm build` vì Vite ghi cấu hình public vào bundle tại thời điểm build.
+`pnpm check` là quality gate local hiện hành. `pnpm check:full` và
+`pnpm test:e2e` có dùng tài khoản Cloud là lệnh lịch sử PRE_PRODUCTION, không
+được chạy trên project hiện tại. Luôn nạp biến `VITE_*` trước `pnpm build` vì
+Vite ghi cấu hình public vào bundle tại thời điểm build.
 
 Các mẫu Excel chính thức được sinh từ code, không sửa tay:
 
@@ -32,9 +35,30 @@ Năm file hợp lệ duy nhất trong `public/templates/import` là nhóm hàng 
 
 Chỉ hai biến an toàn cho browser bundle là `VITE_SUPABASE_URL` và `VITE_SUPABASE_PUBLISHABLE_KEY`. Ba biến chỉ dành cho Supabase CLI là `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` và `SUPABASE_PROJECT_ID`; không đặt chúng trong frontend hoặc browser bundle.
 
-## Quy trình cloud
+## Phase 2 — Controlled development hiện hành
+
+Project Supabase Free hiện tại được dùng như `CONTROLLED_DEVELOPMENT_UAT` nhưng
+giữ lifecycle kỹ thuật `PRODUCTION`. Owner tự nhập dữ liệu test qua UI; không
+chạy automation tạo/xóa dữ liệu. Các runner bị chặn fail-closed bằng mã
+`PRODUCTION_TEST_DATA_FORBIDDEN`.
+
+Release gate chuẩn, chỉ đọc Cloud:
+
+```bash
+pnpm p2:release:verify
+```
+
+Không chạy `test:cloud:*`, Cloud E2E có credential, `cutover:preflight`,
+`cutover:cleanup-tests`, cleanup RPC, lifecycle mutation, bootstrap Owner hoặc
+`db push` trong P2.0. Quy trình đầy đủ nằm tại
+[runbook P2.0](docs/runbooks/phase-2-p2-0-controlled-development.md).
+
+## Quy trình cloud — migration đã được duyệt
 
 Không dùng Supabase local hoặc Docker. Mọi lệnh migration chạy trên project Cloud đã link và phải nạp `.env` từ vị trí an toàn mà không in giá trị ra terminal:
+
+Các ví dụ `db push` dưới đây chỉ áp dụng cho increment có spec/plan migration
+additive và phê duyệt riêng; không phải hướng dẫn chạy trong P2.0.
 
 ```bash
 set -a
@@ -52,7 +76,10 @@ pnpm supabase:types
 
 Migration phải được tạo bằng `pnpm exec supabase migration new <tên>` và review trước khi push. Data API của ứng dụng chỉ expose schema `api`; `app_private` không được expose và không cấp direct table privilege cho browser roles.
 
-## Kiểm thử bảo mật trên Cloud
+## Kiểm thử bảo mật trên Cloud — Lịch sử PRE_PRODUCTION
+
+Toàn bộ phần này mô tả runner lịch sử trước cutover. Không chạy các lệnh bên
+dưới khi lifecycle là `OWNER_PILOT` hoặc `PRODUCTION`.
 
 Hai lệnh runtime dùng tài khoản Auth tạm, kiểm tra bằng JWT thật rồi tự xóa dữ liệu trong `finally`:
 
@@ -113,7 +140,11 @@ Giá vốn và tồn đầu kỳ trong workbook cũ chỉ là gợi ý mở sổ
 
 ## Bootstrap chủ cửa hàng lần đầu
 
-Chỉ chạy một lần sau khi migration Phase 1A đã được áp dụng. Cấp các biến runtime `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_PASSWORD`, `BOOTSTRAP_OWNER_DISPLAY_NAME`, sau đó chạy:
+Đây là quy trình lịch sử, chỉ chạy một lần sau migration Phase 1A. P2.0 không
+được chạy lại bootstrap. Khi tạo Production sạch ở P2.6 sẽ có phê duyệt và
+runbook riêng. Cấp các biến runtime `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
+`BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_PASSWORD`,
+`BOOTSTRAP_OWNER_DISPLAY_NAME`, sau đó chạy:
 
 ```bash
 pnpm bootstrap:owner
