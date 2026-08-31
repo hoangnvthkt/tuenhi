@@ -1,6 +1,6 @@
 import type { PosPaymentMethod } from '../model/pos-types';
 import { formatPosMoney } from '../model/format-money';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function CheckoutDialog({
   payment,
@@ -20,14 +20,37 @@ export function CheckoutDialog({
   const [proofFile, setProofFile] = useState<File | null>(null);
   const requiresProof = payment === 'BANK_TRANSFER';
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.isComposing) return;
+      if (event.key === 'Escape' && !saving) {
+        event.preventDefault();
+        onCancel();
+      } else if (
+        event.key === 'Enter' &&
+        (event.ctrlKey || event.metaKey) &&
+        !saving &&
+        (!requiresProof || proofFile)
+      ) {
+        event.preventDefault();
+        onConfirm(proofFile ?? undefined);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onCancel, onConfirm, proofFile, requiresProof, saving]);
+
   return (
     <div
       role="dialog"
       aria-modal="true"
+      aria-labelledby="checkout-dialog-title"
       className="fixed inset-0 grid place-items-center bg-slate-950/40 p-4"
     >
       <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
-        <h2 className="text-lg font-semibold">Xác nhận thanh toán</h2>
+        <h2 id="checkout-dialog-title" className="text-lg font-semibold">
+          Xác nhận thanh toán
+        </h2>
         <p className="mt-2 text-sm">
           Tổng tiền: <strong>{formatPosMoney(total)}</strong>
         </p>

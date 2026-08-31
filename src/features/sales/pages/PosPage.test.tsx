@@ -1,10 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PosPage } from './PosPage';
 import { acquirePosEditorLease } from '../model/pos-storage';
+
+const mocks = vi.hoisted(() => ({
+  catalogList: vi.fn().mockResolvedValue({ items: [] }),
+}));
 
 const channels = [
   {
@@ -39,7 +43,7 @@ vi.mock('@/features/auth', () => ({
 }));
 
 vi.mock('@/features/catalog', () => ({
-  createCatalogApi: () => ({ list: vi.fn().mockResolvedValue({ items: [] }) }),
+  createCatalogApi: () => ({ list: mocks.catalogList }),
 }));
 
 vi.mock('@/features/directories', () => ({
@@ -85,6 +89,7 @@ describe('PosPage', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
+    mocks.catalogList.mockResolvedValue({ items: [] });
   });
 
   afterEach(() => {
@@ -179,5 +184,77 @@ describe('PosPage', () => {
       ).not.toBeInTheDocument(),
     );
     expect(screen.getByLabelText('Kênh bán')).toBeEnabled();
+  });
+
+  it('debounces product lookup instead of querying on every keystroke', async () => {
+    renderPage();
+    await screen.findByRole('combobox', { name: 'Tìm sản phẩm' });
+    await waitFor(() => expect(mocks.catalogList).toHaveBeenCalled());
+    mocks.catalogList.mockClear();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Tìm sản phẩm' }), {
+      target: { value: 'áo' },
+    });
+
+    expect(mocks.catalogList).not.toHaveBeenCalled();
+    await waitFor(
+      () =>
+        expect(mocks.catalogList).toHaveBeenCalledWith({
+          search: 'áo',
+          limit: 30,
+        }),
+      { timeout: 700 },
+    );
+  });
+
+  it('focuses product search with slash but leaves editable fields alone', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const search = await screen.findByRole('combobox', {
+      name: 'Tìm sản phẩm',
+    });
+    search.blur();
+
+    fireEvent.keyDown(window, { key: '/' });
+    expect(search).toHaveFocus();
+
+    const note = screen.getByPlaceholderText('Ghi chú (nếu có)');
+    await user.click(note);
+    await user.keyboard('/');
+    expect(note).toHaveValue('/');
+    expect(search).not.toHaveFocus();
+  });
+
+  it('opens checkout with Ctrl+Enter when the editable cart has an item', async () => {
+    localStorage.setItem(
+      'tuenhi:pos:cart:10000000-0000-4000-8000-000000000099',
+      JSON.stringify({
+        items: [
+          {
+            productId: '10000000-0000-4000-8000-000000000001',
+            productName: 'Áo thử',
+            sku: 'AO-001',
+            unitName: 'Cái',
+            quantity: '1',
+            unitSalePrice: '150000',
+            lineDiscountAmount: '0',
+            lineOrder: 0,
+            onHandQty: '10',
+          },
+        ],
+        channelId: channels[0]!.id,
+        customerId: '',
+        orderDiscount: '0',
+        note: '',
+      }),
+    );
+    renderPage();
+    await screen.findByText('Áo thử');
+
+    fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Xác nhận thanh toán' }),
+    ).toBeInTheDocument();
   });
 });

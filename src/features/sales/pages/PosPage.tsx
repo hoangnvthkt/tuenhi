@@ -57,6 +57,7 @@ export function PosPage() {
   const [directoryApi] = useState(createDirectoryApi);
   const [settingsApi] = useState(createSettingsApi);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [items, setItems] = useState<PosCartItem[]>([]);
   const [channelId, setChannelId] = useState('');
   const [customerId, setCustomerId] = useState('');
@@ -78,9 +79,13 @@ export function PosPage() {
   const canDiscount = Boolean(
     session?.permissions.includes('sale.discount.apply'),
   );
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 225);
+    return () => window.clearTimeout(timer);
+  }, [search]);
   const catalog = useQuery({
-    queryKey: ['pos-products', search],
-    queryFn: () => catalogApi.list({ search, limit: 30 }),
+    queryKey: ['pos-products', debouncedSearch],
+    queryFn: () => catalogApi.list({ search: debouncedSearch, limit: 30 }),
   });
   const channels = useQuery({
     queryKey: ['pos-channels'],
@@ -315,6 +320,35 @@ export function PosPage() {
     setItems,
     setPayment,
   });
+  useEffect(() => {
+    const onShortcut = (event: KeyboardEvent) => {
+      if (event.isComposing) return;
+      const target = event.target;
+      const targetIsEditable =
+        target instanceof HTMLElement &&
+        (target.matches('input, textarea, select') || target.isContentEditable);
+      if ((event.key === '/' || event.key === 'F2') && !targetIsEditable) {
+        event.preventDefault();
+        document.getElementById('pos-product-search')?.focus();
+        return;
+      }
+      if (
+        event.key === 'Enter' &&
+        (event.ctrlKey || event.metaKey) &&
+        !payment &&
+        workspaceReady &&
+        canEdit &&
+        online &&
+        !saving &&
+        items.length > 0
+      ) {
+        event.preventDefault();
+        setPayment('CASH');
+      }
+    };
+    window.addEventListener('keydown', onShortcut);
+    return () => window.removeEventListener('keydown', onShortcut);
+  }, [canEdit, items.length, online, payment, saving, workspaceReady]);
   return (
     <main className="mx-auto max-w-7xl p-4 sm:p-6">
       <div className="mb-5 flex items-center justify-between gap-3">
@@ -369,9 +403,13 @@ export function PosPage() {
       >
         <ProductPicker
           search={search}
+          resolvedSearch={debouncedSearch}
           products={catalog.data?.items ?? []}
           isLoading={catalog.isLoading}
           onSearchChange={setSearch}
+          onExactLookup={async (value) =>
+            (await catalogApi.list({ search: value, limit: 30 })).items
+          }
           onAdd={add}
         />
         <CartPanel
