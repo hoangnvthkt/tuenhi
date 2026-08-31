@@ -68,24 +68,33 @@ export function parseLinkedMigrationList(output) {
   }
 
   const lines = output.split(/\r?\n/);
-  const headerIndex = lines.findIndex(
-    (line) =>
-      /\bLOCAL\b/.test(line) && /\bREMOTE\b/.test(line) && line.includes('|'),
-  );
+  const headerIndex = lines.findIndex((line) => {
+    const columns = line.split('|').map((value) => value.trim().toLowerCase());
+    return (
+      columns.length === 3 &&
+      columns[0] === 'local' &&
+      columns[1] === 'remote' &&
+      columns[2] === 'time (utc)'
+    );
+  });
   if (
     headerIndex < 0 ||
-    !/^\s*-+\s*\|\s*-+/.test(lines[headerIndex + 1] ?? '')
+    !/^\s*-+\s*\|\s*-+\s*\|\s*-+\s*$/.test(lines[headerIndex + 1] ?? '')
   ) {
     fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
   }
 
   const migrationIds = new Set();
   for (const line of lines.slice(headerIndex + 2)) {
-    if (!line.trim() || !line.includes('|')) continue;
-    const [local = '', remote = ''] = line
-      .split('|')
-      .map((value) => value.trim());
-    if (!local && !remote) continue;
+    if (!line.trim()) continue;
+    const columns = line.split('|').map((value) => value.trim());
+    if (columns.length !== 3) {
+      fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
+    }
+    const [local = '', remote = '', time = ''] = columns;
+    if ((!local && !remote) || !time) {
+      fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
+    }
     if (
       (local && !MIGRATION_ID_PATTERN.test(local)) ||
       (remote && !MIGRATION_ID_PATTERN.test(remote))

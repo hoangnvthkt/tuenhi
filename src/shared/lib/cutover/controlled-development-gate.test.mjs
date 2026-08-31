@@ -31,6 +31,18 @@ function validIdentity() {
   };
 }
 
+test('parses the title-case migration header emitted by Supabase CLI 2.115.0', () => {
+  assert.deepEqual(
+    parseLinkedMigrationList(`
+ Local            | Remote           | Time (UTC)
+------------------|------------------|---------------------
+ 20260822040151   | 20260822040151   | 2026-08-22 04:01:51
+ 20260823095940   | 20260823095940   | 2026-08-23 09:59:40
+`),
+    { migrationCount: 2 },
+  );
+});
+
 test('rejects a mismatched linked project without disclosing project identity', () => {
   assert.throws(
     () =>
@@ -111,6 +123,32 @@ test('rejects an empty migration table as malformed verification output', () => 
   );
 });
 
+test('rejects non-table trailing output after a migration row', () => {
+  assert.throws(
+    () =>
+      parseLinkedMigrationList(`
+ LOCAL            | REMOTE           | TIME (UTC)
+------------------|------------------|---------------------
+ 20260822040151   | 20260822040151   | 2026-08-22 04:01:51
+corrupt trailing output
+`),
+    /CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID/,
+  );
+});
+
+test('rejects a migration row with no local or remote value', () => {
+  assert.throws(
+    () =>
+      parseLinkedMigrationList(`
+ LOCAL            | REMOTE           | TIME (UTC)
+------------------|------------------|---------------------
+ 20260822040151   | 20260822040151   | 2026-08-22 04:01:51
+                 |                  | 2026-08-23 09:59:40
+`),
+    /CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID/,
+  );
+});
+
 test('runs the fixed read-only gate sequence and reports a subprocess failure safely', async () => {
   const calls = [];
   const admin = {
@@ -140,10 +178,10 @@ test('runs the fixed read-only gate sequence and reports a subprocess failure sa
       }),
     (error) => {
       assert.equal(error.message, 'CONTROLLED_DEVELOPMENT_GATE_FAILED');
-      assert.deepEqual(
-        calls,
-        GATE_COMMANDS.slice(0, 2).map(({ command, args }) => [command, args]),
-      );
+      assert.deepEqual(calls, [
+        ['supabase', ['migration', 'list', '--linked']],
+        ['supabase', ['db', 'lint', '--linked', '--fail-on', 'error']],
+      ]);
       assert.equal(error.report.gates.migrationList, 'passed');
       assert.equal(error.report.gates.dbLint, 'failed');
       assert.equal(error.report.gates.securityAdvisor, 'not-run');
@@ -151,6 +189,89 @@ test('runs the fixed read-only gate sequence and reports a subprocess failure sa
       return true;
     },
   );
+});
+
+test('keeps the gate command allowlist read-only and in release order', () => {
+  assert.deepEqual(GATE_COMMANDS, [
+    {
+      id: 'migrationList',
+      command: 'supabase',
+      args: ['migration', 'list', '--linked'],
+    },
+    {
+      id: 'dbLint',
+      command: 'supabase',
+      args: ['db', 'lint', '--linked', '--fail-on', 'error'],
+    },
+    {
+      id: 'securityAdvisor',
+      command: 'supabase',
+      args: [
+        'db',
+        'advisors',
+        '--linked',
+        '--type',
+        'security',
+        '--level',
+        'warn',
+        '--fail-on',
+        'error',
+      ],
+    },
+    {
+      id: 'performanceAdvisor',
+      command: 'supabase',
+      args: [
+        'db',
+        'advisors',
+        '--linked',
+        '--type',
+        'performance',
+        '--level',
+        'warn',
+        '--fail-on',
+        'error',
+      ],
+    },
+    {
+      id: 'phase1fAssertions',
+      command: 'pnpm',
+      args: ['cloud:verify:phase1f'],
+    },
+  ]);
+  assert.doesNotMatch(
+    JSON.stringify(GATE_COMMANDS),
+    /db push|test:cloud|test:e2e|cleanup|lifecycle|bootstrap/i,
+  );
+});
+
+test('accepts equivalent configured Supabase URLs after normalization', async () => {
+  const admin = {
+    rpc: async () => ({
+      data: { ok: true, data: validLifecycle() },
+      error: null,
+    }),
+    from: () => ({
+      select: async () => ({ count: 0, error: null }),
+    }),
+  };
+
+  const report = await runControlledDevelopmentGate({
+    admin,
+    environment: {
+      SUPABASE_PROJECT_ID: projectRef,
+      SUPABASE_URL: supabaseUrl,
+      VITE_SUPABASE_URL: `${supabaseUrl}/`,
+    },
+    readProjectRef: async () => projectRef,
+    execute: async (_command, args) => ({
+      status: 0,
+      stdout: args[0] === 'migration' ? migrationList : '',
+      stderr: '',
+    }),
+  });
+
+  assert.equal(report.gates.projectIdentity, 'passed');
 });
 
 test('accepts the browser URL fallback and returns only the scrubbed release report', async () => {

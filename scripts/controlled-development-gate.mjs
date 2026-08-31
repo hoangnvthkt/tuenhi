@@ -89,11 +89,18 @@ function stop(report, gate, code) {
 
 function environmentIdentity(environment) {
   const projectId = environment.SUPABASE_PROJECT_ID?.trim();
-  const supabaseUrls = [
-    environment.SUPABASE_URL?.trim(),
-    environment.VITE_SUPABASE_URL?.trim(),
-  ].filter(Boolean);
-  const configuredUrls = [...new Set(supabaseUrls)];
+  let configuredUrls;
+  try {
+    configuredUrls = [
+      environment.SUPABASE_URL?.trim(),
+      environment.VITE_SUPABASE_URL?.trim(),
+    ]
+      .filter(Boolean)
+      .map((value) => new URL(value).href);
+  } catch {
+    throw new Error('CONTROLLED_DEVELOPMENT_PROJECT_IDENTITY_INVALID');
+  }
+  configuredUrls = [...new Set(configuredUrls)];
   if (configuredUrls.length !== 1) {
     throw new Error('CONTROLLED_DEVELOPMENT_PROJECT_IDENTITY_INVALID');
   }
