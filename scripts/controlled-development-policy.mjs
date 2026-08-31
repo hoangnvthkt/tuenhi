@@ -62,9 +62,59 @@ export function assertLinkedProjectIdentity({
   return { projectId };
 }
 
+function countMatchedMigrations(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
+  }
+
+  const migrationIds = new Set();
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') {
+      fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
+    }
+
+    const values = [row.local, row.remote].map((value) => {
+      if (value === null || value === undefined) return '';
+      if (typeof value !== 'string') {
+        fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
+      }
+      return value.trim();
+    });
+    const [local, remote] = values;
+    const time = typeof row.time === 'string' ? row.time.trim() : '';
+
+    if ((!local && !remote) || !time) {
+      fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
+    }
+    if (
+      (local && !MIGRATION_ID_PATTERN.test(local)) ||
+      (remote && !MIGRATION_ID_PATTERN.test(remote))
+    ) {
+      fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
+    }
+    if (!local || !remote || local !== remote || migrationIds.has(local)) {
+      fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_MISMATCH');
+    }
+    migrationIds.add(local);
+  }
+
+  return { migrationCount: migrationIds.size };
+}
+
 export function parseLinkedMigrationList(output) {
   if (typeof output !== 'string') {
     fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
+  }
+
+  const trimmedOutput = output.trim();
+  if (trimmedOutput.startsWith('{')) {
+    let parsed;
+    try {
+      parsed = JSON.parse(trimmedOutput);
+    } catch {
+      fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
+    }
+    return countMatchedMigrations(parsed?.migrations);
   }
 
   const lines = output.split(/\r?\n/);
@@ -84,7 +134,7 @@ export function parseLinkedMigrationList(output) {
     fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
   }
 
-  const migrationIds = new Set();
+  const rows = [];
   for (const line of lines.slice(headerIndex + 2)) {
     if (!line.trim()) continue;
     const columns = line.split('|').map((value) => value.trim());
@@ -92,24 +142,8 @@ export function parseLinkedMigrationList(output) {
       fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
     }
     const [local = '', remote = '', time = ''] = columns;
-    if ((!local && !remote) || !time) {
-      fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
-    }
-    if (
-      (local && !MIGRATION_ID_PATTERN.test(local)) ||
-      (remote && !MIGRATION_ID_PATTERN.test(remote))
-    ) {
-      fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
-    }
-    if (!local || !remote || local !== remote || migrationIds.has(local)) {
-      fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_MISMATCH');
-    }
-    migrationIds.add(local);
+    rows.push({ local, remote, time });
   }
 
-  if (migrationIds.size === 0) {
-    fail('CONTROLLED_DEVELOPMENT_MIGRATION_LIST_INVALID');
-  }
-
-  return { migrationCount: migrationIds.size };
+  return countMatchedMigrations(rows);
 }

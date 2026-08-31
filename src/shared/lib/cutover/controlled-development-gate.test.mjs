@@ -43,6 +43,29 @@ test('parses the title-case migration header emitted by Supabase CLI 2.115.0', (
   );
 });
 
+test('parses the JSON migration output emitted by Supabase CLI agent mode', () => {
+  assert.deepEqual(
+    parseLinkedMigrationList(
+      JSON.stringify({
+        migrations: [
+          {
+            local: '20260822040151',
+            remote: '20260822040151',
+            time: '2026-08-22 04:01:51',
+          },
+          {
+            local: '20260823095940',
+            remote: '20260823095940',
+            time: '2026-08-23 09:59:40',
+          },
+        ],
+        message: 'Migrations listed',
+      }),
+    ),
+    { migrationCount: 2 },
+  );
+});
+
 test('rejects a mismatched linked project without disclosing project identity', () => {
   assert.throws(
     () =>
