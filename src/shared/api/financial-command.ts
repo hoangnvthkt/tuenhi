@@ -25,7 +25,7 @@ export type PendingFinancialCommand = z.infer<
   typeof pendingFinancialCommandSchema
 >;
 
-type StorageLike = Pick<
+export type FinancialCommandStorage = Pick<
   Storage,
   'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'
 >;
@@ -34,6 +34,10 @@ export type FinancialCommandOutcome =
   | { status: 'NOT_FOUND'; response: null };
 
 const storageKeyPrefix = 'tuenhi:pending-financial-command:v1:';
+
+export function isPendingFinancialCommandStorageKey(key: string | null) {
+  return Boolean(key?.startsWith(storageKeyPrefix));
+}
 
 export class FinancialBusinessError extends Error {
   constructor(message: string) {
@@ -77,7 +81,7 @@ export function getFinancialCorrelationId(error: unknown) {
 
 class FinancialUnclassifiedOutcomeError extends Error {}
 
-function browserStorage(): StorageLike {
+function browserStorage(): FinancialCommandStorage {
   try {
     return window.localStorage;
   } catch {
@@ -92,7 +96,7 @@ function pendingStorageKey(
 }
 
 export function readPendingFinancialCommands(
-  storage: StorageLike = browserStorage(),
+  storage: FinancialCommandStorage = browserStorage(),
 ): PendingFinancialCommand[] {
   const commands: PendingFinancialCommand[] = [];
   let length: number;
@@ -118,7 +122,7 @@ export function readPendingFinancialCommands(
 
 export function findPendingFinancialCommand(
   input: Pick<PendingFinancialCommand, 'userId' | 'commandName' | 'entityId'>,
-  storage: StorageLike = browserStorage(),
+  storage: FinancialCommandStorage = browserStorage(),
 ) {
   let value: string | null;
   try {
@@ -140,7 +144,7 @@ export function findPendingFinancialCommand(
 }
 
 function persistPendingCommand(
-  storage: StorageLike,
+  storage: FinancialCommandStorage,
   command: PendingFinancialCommand,
 ) {
   const key = pendingStorageKey(command);
@@ -173,7 +177,7 @@ function commandMatches(
 }
 
 function removePendingCommand(
-  storage: StorageLike,
+  storage: FinancialCommandStorage,
   input: Pick<PendingFinancialCommand, 'userId' | 'commandName' | 'entityId'>,
 ) {
   try {
@@ -181,6 +185,13 @@ function removePendingCommand(
   } catch {
     // A stale marker is safer than losing the idempotency key before certainty.
   }
+}
+
+export function clearPendingFinancialCommand(
+  command: PendingFinancialCommand,
+  storage: FinancialCommandStorage = browserStorage(),
+) {
+  removePendingCommand(storage, command);
 }
 
 async function executeFinancialCommandUnlocked<T>({
@@ -206,7 +217,7 @@ async function executeFinancialCommandUnlocked<T>({
     idempotencyKey: string,
   ) => Promise<FinancialCommandOutcome>;
   parseCachedResponse: (response: unknown) => T;
-  storage?: StorageLike;
+  storage?: FinancialCommandStorage;
   createId?: () => string;
   now?: () => Date;
   isOnline?: () => boolean;

@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router';
 import { useSession } from '@/features/auth';
 import { NotificationCenter } from '@/features/notifications';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
+import { PendingFinancialCommandRecoveryBanner } from '@/shared/ui/feedback/PendingFinancialCommandRecoveryBanner';
 import { navigationItems } from './navigation-items';
 
 const roleLabels = {
@@ -136,6 +137,13 @@ export function AppShell() {
         >
           Bạn đang ngoại tuyến. Các thao tác ghi sổ sẽ bị khóa.
         </div>
+      ) : null}
+
+      {session ? (
+        <PendingFinancialCommandRecoveryBanner
+          userId={session.userId}
+          online={isOnline}
+        />
       ) : null}
 
       <main className="mx-auto max-w-6xl px-4 py-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-6 lg:pb-8">
