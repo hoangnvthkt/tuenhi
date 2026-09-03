@@ -2,7 +2,7 @@
 
 Ngày: 2026-08-31
 
-Trạng thái: Owner đã duyệt; P2.2 đang triển khai theo implementation plan
+Trạng thái: Owner đã duyệt; P2.2 đã nghiệm thu, written spec P2.3 đang chờ duyệt
 
 Liên quan:
 
@@ -137,6 +137,8 @@ audit hoặc dữ liệu test từ project cũ sang project mới.
 
 ### P2.2 — Connected Business Explorer
 
+Trạng thái: Owner nghiệm thu ngày 2026-09-03.
+
 - Biến chi tiết Sản phẩm và Nhà cung cấp thành Context Hub có KPI, lịch sử và
   drill-through tới Phiếu nhập.
 - Quan hệ Sản phẩm–Nhà cung cấp chỉ suy ra từ phiếu nhập `POSTED`; không tạo
@@ -147,6 +149,8 @@ audit hoặc dữ liệu test từ project cũ sang project mới.
   không đổi số các increment còn lại trong tài liệu này.
 
 ### P2.3 — Customer Purchase History
+
+Trạng thái: Design đã được Owner xác nhận; written spec đang chờ duyệt.
 
 - Hiển thị lịch sử sale/return của khách từ chứng từ vận hành authoritative.
 - Tổng hợp số đơn, lần mua gần nhất, doanh thu thuần và sản phẩm thường mua theo
