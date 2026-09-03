@@ -154,7 +154,16 @@ export function CustomerPage({
                   ) : null}
                 </div>
                 <p className="mt-1 text-xs text-slate-600">
-                  {item.code || 'Chưa có mã'}
+                  {item.code ? (
+                    <Link
+                      to={`/more/customers/${item.id}`}
+                      className="font-mono text-teal-800 hover:underline"
+                    >
+                      {item.code}
+                    </Link>
+                  ) : (
+                    'Chưa có mã'
+                  )}
                   {item.companyName ? ` · ${item.companyName}` : ''}
                 </p>
               </div>

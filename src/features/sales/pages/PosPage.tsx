@@ -148,7 +148,7 @@ export function PosPage() {
   }, [catalogApi, focusProductId, saleId]);
   useEffect(() => {
     let active = true;
-    if (!linkedCustomerId || saleId) return;
+    if (!linkedCustomerId) return;
     setCustomerIntentVisible(false);
     setCustomerIntentWarning(null);
     if (
@@ -200,7 +200,7 @@ export function PosPage() {
     return () => {
       active = false;
     };
-  }, [customerExplorerApi, linkedCustomerId, saleId]);
+  }, [customerExplorerApi, linkedCustomerId]);
   const canDiscount = Boolean(
     session?.permissions.includes('sale.discount.apply'),
   );

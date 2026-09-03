@@ -467,7 +467,7 @@ export function CustomerDetailPage({
         </>
       ) : null}
 
-      {canReadTransactions && contextUrl.value.tab !== 'overview' ? (
+      {canReadTransactions ? (
         <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2">
           <label className="text-sm font-semibold">
             Từ ngày

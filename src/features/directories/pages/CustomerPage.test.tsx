@@ -80,6 +80,10 @@ describe('CustomerPage', () => {
     expect(
       await screen.findByRole('link', { name: 'Khách hàng A' }),
     ).toHaveAttribute('href', `/more/customers/${customer.id}`);
+    expect(screen.getByRole('link', { name: 'KH-01' })).toHaveAttribute(
+      'href',
+      `/more/customers/${customer.id}`,
+    );
     for (const label of [
       'CCCD',
       'Ngày sinh',

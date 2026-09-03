@@ -254,6 +254,24 @@ describe('CustomerDetailPage', () => {
       await screen.findByText('Không thể tải phần dữ liệu này.'),
     ).toBeInTheDocument();
     expect(screen.queryByText('private raw error')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Từ ngày')).toBeInTheDocument();
+    expect(screen.getByLabelText('Đến ngày')).toBeInTheDocument();
+  });
+
+  it('links recent sales and returns from the merged overview activity', async () => {
+    const api = explorerApi();
+    renderPage({
+      api,
+      permissions: ['customer.read', 'sale.all.read', 'return.request.create'],
+    });
+
+    expect(
+      await screen.findByRole('link', { name: 'HD000001' }),
+    ).toHaveAttribute('href', `/sales/${saleId}`);
+    expect(screen.getByRole('link', { name: 'TH000001' })).toHaveAttribute(
+      'href',
+      `/returns/${returnId}`,
+    );
   });
 
   it('links products, sales and returns when permissions allow', async () => {
