@@ -2,7 +2,7 @@
 
 Ngày: 2026-09-03
 
-Trạng thái: Bản spec chờ Owner duyệt
+Trạng thái: Owner đã duyệt ngày 2026-09-03
 
 ## 1. Tóm tắt
 
