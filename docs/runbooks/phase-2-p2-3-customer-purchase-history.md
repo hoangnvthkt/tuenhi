@@ -36,6 +36,26 @@ Application counts đã scrub:
 Gate Cloud chỉ đọc đạt: project identity, lifecycle, migration list, DB lint,
 security advisor, performance advisor, Phase 1F assertions và P2.2 assertions.
 
+## Sau migration database
+
+Migration `20260903021635_phase_2_p2_3_customer_purchase_history.sql` được
+dry-run với đúng một migration, không seed/role/Vault, sau đó apply thành công.
+
+- migrations local/remote: `48`
+- lifecycle: `PRODUCTION`
+- policy: `OWNER_WAIVER`
+- application counts: không đổi so với baseline
+- DB lint, security advisor, performance advisor, Phase 1F và P2.2 assertions:
+  đạt
+- P2.3 assertions: đạt; các nhánh cần dữ liệu sale/return hoặc actor scope khác
+  được thiết kế fail/skip bằng `NOTICE`, không tạo dữ liệu kiểm thử
+
+Review `EXPLAIN (FORMAT JSON)` cho customer sales, financial-event summary và
+product cohort cho thấy planner dùng sequential scan/hash join trên dataset hiện
+có `0` sale và `0` return. Đây là lựa chọn hợp lý với bảng rỗng; không ép planner
+dùng `sales_customer_completed_idx`. Partial index đã tồn tại để hỗ trợ keyset
+query khi dữ liệu vận hành tăng.
+
 ## Nguyên tắc dữ liệu
 
 - Customer Context Hub chỉ dùng `api.sales`, `api.sale_lines`, các return đã

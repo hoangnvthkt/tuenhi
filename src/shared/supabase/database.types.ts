@@ -1957,6 +1957,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_customer_detail: {
+        Args: { p_customer_id: string; p_from?: string; p_to?: string };
+        Returns: Json;
+      };
       get_effective_permissions: { Args: { p_user_id: string }; Returns: Json };
       get_import_result: { Args: { p_import_run_id: string }; Returns: Json };
       get_import_validation_result: {
@@ -2085,6 +2089,41 @@ export type Database = {
       get_supplier_detail: { Args: { p_supplier_id: string }; Returns: Json };
       list_categories: {
         Args: { p_include_inactive?: boolean };
+        Returns: Json;
+      };
+      list_customer_products: {
+        Args: {
+          p_cursor_last_purchased_at?: string;
+          p_cursor_net_purchased_qty?: string;
+          p_cursor_product_id?: string;
+          p_customer_id: string;
+          p_from?: string;
+          p_limit?: number;
+          p_search?: string;
+          p_to?: string;
+        };
+        Returns: Json;
+      };
+      list_customer_returns: {
+        Args: {
+          p_cursor_completed_at?: string;
+          p_cursor_return_id?: string;
+          p_customer_id: string;
+          p_from?: string;
+          p_limit?: number;
+          p_to?: string;
+        };
+        Returns: Json;
+      };
+      list_customer_sales: {
+        Args: {
+          p_cursor_completed_at?: string;
+          p_cursor_sale_id?: string;
+          p_customer_id: string;
+          p_from?: string;
+          p_limit?: number;
+          p_to?: string;
+        };
         Returns: Json;
       };
       list_customers: {
