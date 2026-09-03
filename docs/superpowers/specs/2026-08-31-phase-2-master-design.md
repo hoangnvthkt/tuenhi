@@ -2,7 +2,7 @@
 
 Ngày: 2026-08-31
 
-Trạng thái: Owner đã duyệt; P2.2 đã nghiệm thu, P2.3 đang triển khai
+Trạng thái: Owner đã duyệt; P2.2 đã nghiệm thu, P2.3 implementation hoàn tất và chờ Owner UAT
 
 Liên quan:
 
@@ -150,7 +150,7 @@ Trạng thái: Owner nghiệm thu ngày 2026-09-03.
 
 ### P2.3 — Customer Purchase History
 
-Trạng thái: Owner đã duyệt design/spec ngày 2026-09-03; đang triển khai.
+Trạng thái: Implementation hoàn tất ngày 2026-09-03; chờ Owner UAT.
 
 - Hiển thị lịch sử sale/return của khách từ chứng từ vận hành authoritative.
 - Tổng hợp số đơn, lần mua gần nhất, doanh thu thuần và sản phẩm thường mua theo

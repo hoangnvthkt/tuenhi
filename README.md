@@ -79,6 +79,21 @@ idempotency key. Migration P2.2 là additive và Cloud assertion chỉ đọc đ
 gắn vào `pnpm p2:release:verify`. Quy trình release, Owner UAT và rollback nằm
 tại [runbook P2.2](docs/runbooks/phase-2-p2-2-connected-business-explorer.md).
 
+### P2.3 — Customer Purchase History
+
+P2.3 mở rộng Connected Explorer thành **Khách hàng ↔ Hóa đơn ↔ Phiếu trả ↔
+Sản phẩm**. Hồ sơ, KPI và lịch sử chỉ dùng chứng từ sales/returns vận hành hiện
+hành cùng financial-event ledger; `legacy_sales` không được đưa vào read model.
+Scope `ALL/OWN/NONE` được áp dụng trong database và API không trả giá vốn, COGS
+hoặc lợi nhuận.
+
+Deeplink `customerId` tới POS chỉ điền sẵn khi giỏ trống, tab giữ editor lease
+và người dùng chưa đổi lựa chọn trong lúc lookup. Nếu đã có khách khác, hệ thống
+yêu cầu xác nhận; deeplink không tự lưu, tạo draft hoặc chạy command tài chính.
+Migration P2.3 là additive, assertion Cloud chỉ đọc được gắn vào
+`pnpm p2:release:verify`. Chi tiết release/UAT/rollback nằm tại
+[runbook P2.3](docs/runbooks/phase-2-p2-3-customer-purchase-history.md).
+
 ## Quy trình cloud — migration đã được duyệt
 
 Không dùng Supabase local hoặc Docker. Mọi lệnh migration chạy trên project Cloud đã link và phải nạp `.env` từ vị trí an toàn mà không in giá trị ra terminal:

@@ -2,7 +2,7 @@
 
 Ngày bắt đầu: 2026-09-03
 
-Trạng thái: Đang triển khai trên `CONTROLLED_DEVELOPMENT_UAT`
+Trạng thái: Implementation hoàn tất trên `CONTROLLED_DEVELOPMENT_UAT`; chờ Owner UAT
 
 ## Baseline trước migration
 
@@ -56,6 +56,20 @@ có `0` sale và `0` return. Đây là lựa chọn hợp lý với bảng rỗn
 dùng `sales_customer_completed_idx`. Partial index đã tồn tại để hỗ trợ keyset
 query khi dữ liệu vận hành tăng.
 
+Gate sau implementation bắt buộc chạy theo thứ tự:
+
+```bash
+git diff --check
+pnpm check
+pnpm p2:verify:cloud
+pnpm p2:release:verify
+```
+
+`p2:verify:cloud` bao gồm migration parity, DB lint, security/performance
+advisor, Phase 1F, P2.2 và P2.3 assertions. Các bước đều chỉ đọc; application
+counts sau gate phải giữ nguyên baseline, ngoại trừ giao dịch test do Owner tự
+tạo và ghi nhận riêng trong UAT.
+
 ## Nguyên tắc dữ liệu
 
 - Customer Context Hub chỉ dùng `api.sales`, `api.sale_lines`, các return đã
@@ -91,3 +105,21 @@ Bị cấm:
   bằng migration expand/contract tiếp theo.
 - Không sửa trực tiếp financial-event ledger hoặc mở grant tạm vào private
   tables.
+
+## Owner UAT
+
+Sau khi code review đạt và Owner cho phép fast-forward/push riêng:
+
+1. Chờ check `Vercel - tuenhi: production-smoke` đạt trên deployment URL.
+2. Kiểm tra drill-through Customer → Sale → Return/Product và chiều ngược lại.
+3. So sánh KPI lifetime với một kỳ có sale, return và cancel.
+4. Dùng tài khoản `sale.own.read` để xác nhận nhãn **Giao dịch của tôi** và
+   không thấy giao dịch actor khác.
+5. Dùng tài khoản không có sales read để xác nhận chỉ tải hồ sơ, không phát
+   sinh ba list RPC.
+6. Kiểm tra POS customer prefill ở ba trạng thái giỏ trống/cùng khách/khách
+   khác, cùng reload/back/forward trên desktop và mobile.
+7. Nếu thiếu dataset, Owner tự tạo giao dịch test qua UI và ghi nhận thay đổi
+   counts riêng; agent không chạy automation tạo dữ liệu.
+
+Không fast-forward vào `main`, push hoặc promote trước xác nhận riêng của Owner.
