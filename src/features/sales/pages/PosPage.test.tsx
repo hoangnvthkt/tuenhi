@@ -9,6 +9,8 @@ import { acquirePosEditorLease } from '../model/pos-storage';
 const mocks = vi.hoisted(() => ({
   catalogList: vi.fn().mockResolvedValue({ items: [] }),
   catalogDetail: vi.fn(),
+  customerDetail: vi.fn(),
+  listCustomers: vi.fn().mockResolvedValue({ items: [] }),
 }));
 
 const channels = [
@@ -52,7 +54,13 @@ vi.mock('@/features/catalog', () => ({
 
 vi.mock('@/features/directories', () => ({
   createDirectoryApi: () => ({
-    listCustomers: vi.fn().mockResolvedValue({ items: [] }),
+    listCustomers: mocks.listCustomers,
+  }),
+}));
+
+vi.mock('@/features/connected-explorer', () => ({
+  createCustomerExplorerApi: () => ({
+    customerDetail: mocks.customerDetail,
   }),
 }));
 
@@ -95,6 +103,8 @@ describe('PosPage', () => {
     sessionStorage.clear();
     mocks.catalogList.mockResolvedValue({ items: [] });
     mocks.catalogDetail.mockReset();
+    mocks.customerDetail.mockReset();
+    mocks.listCustomers.mockResolvedValue({ items: [] });
   });
 
   afterEach(() => {
@@ -320,5 +330,190 @@ describe('PosPage', () => {
     expect(
       screen.queryByText('Chưa có sản phẩm trong giỏ.'),
     ).not.toBeInTheDocument();
+  });
+
+  it('prefills and appends an active deeplink customer without saving', async () => {
+    const customer = {
+      id: '30000000-0000-4000-8000-000000000001',
+      code: 'KH-300',
+      customerType: 'INDIVIDUAL',
+      name: 'Khách ngoài trang đầu',
+      phone: '+84912345678',
+      email: null,
+      address: null,
+      companyName: null,
+      taxCode: null,
+      customerGroup: null,
+      notes: null,
+      isActive: true,
+      version: 1,
+      salesScope: 'NONE',
+      purchaseSummary: null,
+    };
+    mocks.customerDetail.mockResolvedValue(customer);
+
+    renderPage(`/pos?customerId=${customer.id}`);
+
+    const select = await screen.findByLabelText('Khách hàng');
+    await waitFor(() => expect(select).toHaveValue(customer.id));
+    expect(
+      screen.getByRole('option', { name: /Khách ngoài trang đầu/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('requires confirmation before replacing a selected customer', async () => {
+    const user = userEvent.setup();
+    const current = {
+      id: '30000000-0000-4000-8000-000000000002',
+      name: 'Khách hiện tại',
+      phone: null,
+      isActive: true,
+    };
+    const target = {
+      id: '30000000-0000-4000-8000-000000000003',
+      code: null,
+      customerType: 'INDIVIDUAL',
+      name: 'Khách từ liên kết',
+      phone: null,
+      email: null,
+      address: null,
+      companyName: null,
+      taxCode: null,
+      customerGroup: null,
+      notes: null,
+      isActive: true,
+      version: 1,
+      salesScope: 'NONE',
+      purchaseSummary: null,
+    };
+    mocks.listCustomers.mockResolvedValue({ items: [current] });
+    mocks.customerDetail.mockResolvedValue(target);
+    localStorage.setItem(
+      'tuenhi:pos:cart:10000000-0000-4000-8000-000000000099',
+      JSON.stringify({
+        items: [],
+        channelId: channels[0]!.id,
+        customerId: current.id,
+        orderDiscount: '0',
+        note: '',
+      }),
+    );
+
+    renderPage(`/pos?customerId=${target.id}`);
+
+    const select = await screen.findByLabelText('Khách hàng');
+    expect(
+      await screen.findByText('Khách hàng được mở từ liên kết'),
+    ).toBeInTheDocument();
+    expect(select).toHaveValue(current.id);
+    await user.click(screen.getByRole('button', { name: 'Đổi khách hàng' }));
+    expect(select).toHaveValue(target.id);
+  });
+
+  it('does not overwrite a customer selected while lookup is pending', async () => {
+    const user = userEvent.setup();
+    const selected = {
+      id: '30000000-0000-4000-8000-000000000004',
+      name: 'Khách vừa chọn',
+      phone: null,
+      isActive: true,
+    };
+    let resolveTarget!: (value: object) => void;
+    mocks.listCustomers.mockResolvedValue({ items: [selected] });
+    mocks.customerDetail.mockReturnValue(
+      new Promise((resolve) => {
+        resolveTarget = resolve;
+      }),
+    );
+    const targetId = '30000000-0000-4000-8000-000000000005';
+    renderPage(`/pos?customerId=${targetId}`);
+    const select = await screen.findByLabelText('Khách hàng');
+    await screen.findByRole('option', { name: 'Khách vừa chọn' });
+    await user.selectOptions(select, selected.id);
+    resolveTarget({
+      id: targetId,
+      code: null,
+      customerType: 'INDIVIDUAL',
+      name: 'Khách trả về muộn',
+      phone: null,
+      email: null,
+      address: null,
+      companyName: null,
+      taxCode: null,
+      customerGroup: null,
+      notes: null,
+      isActive: true,
+      version: 1,
+      salesScope: 'NONE',
+      purchaseSummary: null,
+    });
+
+    expect(
+      await screen.findByText('Khách hàng được mở từ liên kết'),
+    ).toBeInTheDocument();
+    expect(select).toHaveValue(selected.id);
+  });
+
+  it('keeps customer prefill read-only until taking over the lease', async () => {
+    const user = userEvent.setup();
+    const userId = '10000000-0000-4000-8000-000000000099';
+    const targetId = '30000000-0000-4000-8000-000000000006';
+    sessionStorage.setItem(
+      'tuenhi:pos:tab-id',
+      '20000000-0000-4000-8000-000000000002',
+    );
+    acquirePosEditorLease({
+      userId,
+      identity: { kind: 'NEW' },
+      tabId: '20000000-0000-4000-8000-000000000001',
+      now: new Date(),
+    });
+    mocks.customerDetail.mockResolvedValue({
+      id: targetId,
+      code: null,
+      customerType: 'INDIVIDUAL',
+      name: 'Khách từ tab khác',
+      phone: null,
+      email: null,
+      address: null,
+      companyName: null,
+      taxCode: null,
+      customerGroup: null,
+      notes: null,
+      isActive: true,
+      version: 1,
+      salesScope: 'NONE',
+      purchaseSummary: null,
+    });
+    renderPage(`/pos?customerId=${targetId}`);
+
+    const select = await screen.findByLabelText('Khách hàng');
+    expect(select).toHaveValue('');
+    await user.click(
+      screen.getByRole('button', { name: 'Tiếp tục ở tab này' }),
+    );
+    await waitFor(() => expect(select).toHaveValue(targetId));
+  });
+
+  it('rejects malformed and inactive customer intents safely', async () => {
+    const view = renderPage('/pos?customerId=not-a-uuid');
+    expect(
+      await screen.findByText(
+        'Liên kết khách hàng không hợp lệ và đã được bỏ qua.',
+      ),
+    ).toBeInTheDocument();
+    expect(mocks.customerDetail).not.toHaveBeenCalled();
+
+    view.unmount();
+    const inactiveId = '30000000-0000-4000-8000-000000000007';
+    mocks.customerDetail.mockResolvedValue({
+      id: inactiveId,
+      name: 'Khách ngừng hoạt động',
+      isActive: false,
+    });
+    renderPage(`/pos?customerId=${inactiveId}`);
+    expect(
+      await screen.findByText('Khách hàng trong liên kết đã ngừng hoạt động.'),
+    ).toBeInTheDocument();
   });
 });

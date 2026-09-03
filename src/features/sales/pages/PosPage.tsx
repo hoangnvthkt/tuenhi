@@ -4,7 +4,11 @@ import { useParams, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { createCatalogApi, type ProductCatalogItem } from '@/features/catalog';
-import { createDirectoryApi } from '@/features/directories';
+import { createDirectoryApi, type CustomerItem } from '@/features/directories';
+import {
+  createCustomerExplorerApi,
+  type CustomerDetail,
+} from '@/features/connected-explorer';
 import { createSettingsApi } from '@/features/settings';
 import { useSession } from '@/features/auth';
 import { createSalesApi } from '../api/sales-api';
@@ -13,6 +17,7 @@ import { CartPanel } from '../components/CartPanel';
 import { CheckoutDialog } from '../components/CheckoutDialog';
 import { ProductPicker } from '../components/ProductPicker';
 import { PrefilledProductIntent } from '../components/PrefilledProductIntent';
+import { PrefilledCustomerIntent } from '../components/PrefilledCustomerIntent';
 import type { PosCartItem, PosPaymentMethod } from '../model/pos-types';
 import {
   acquirePosEditorLease,
@@ -57,6 +62,7 @@ export function PosPage() {
   const [salesApi] = useState(createSalesApi);
   const [catalogApi] = useState(createCatalogApi);
   const [directoryApi] = useState(createDirectoryApi);
+  const [customerExplorerApi] = useState(createCustomerExplorerApi);
   const [settingsApi] = useState(createSettingsApi);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -76,19 +82,36 @@ export function PosPage() {
   const [focusedProduct, setFocusedProduct] =
     useState<ProductCatalogItem | null>(null);
   const [focusWarning, setFocusWarning] = useState<string | null>(null);
+  const [linkedCustomer, setLinkedCustomer] = useState<CustomerItem | null>(
+    null,
+  );
+  const [customerIntentVisible, setCustomerIntentVisible] = useState(false);
+  const [customerIntentWarning, setCustomerIntentWarning] = useState<
+    string | null
+  >(null);
   const [tabId] = useState(getPosTabId);
   const revisionRef = useRef(0);
+  const customerSelectionRevisionRef = useRef(0);
+  const customerIntentRevisionRef = useRef(0);
   const draftVersionRef = useRef<number | null>(null);
   const identity = useMemo<PosCartIdentity>(
     () => (saleId ? { kind: 'DRAFT', saleId } : { kind: 'NEW' }),
     [saleId],
   );
   const focusProductId = searchParams.get('focusProduct');
+  const linkedCustomerId = searchParams.get('customerId');
   const clearFocusProduct = useCallback(() => {
     const next = new URLSearchParams(searchParams);
     next.delete('focusProduct');
     setSearchParams(next, { replace: true });
     setFocusedProduct(null);
+  }, [searchParams, setSearchParams]);
+  const clearCustomerIntent = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('customerId');
+    setSearchParams(next, { replace: true });
+    setCustomerIntentVisible(false);
+    setCustomerIntentWarning(null);
   }, [searchParams, setSearchParams]);
   useEffect(() => {
     let active = true;
@@ -123,6 +146,61 @@ export function PosPage() {
       active = false;
     };
   }, [catalogApi, focusProductId, saleId]);
+  useEffect(() => {
+    let active = true;
+    if (!linkedCustomerId || saleId) return;
+    setCustomerIntentVisible(false);
+    setCustomerIntentWarning(null);
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        linkedCustomerId,
+      )
+    ) {
+      setCustomerIntentWarning(
+        'Liên kết khách hàng không hợp lệ và đã được bỏ qua.',
+      );
+      return;
+    }
+    const capturedRevision = customerSelectionRevisionRef.current;
+    customerIntentRevisionRef.current = capturedRevision;
+    customerExplorerApi
+      .customerDetail({ customerId: linkedCustomerId })
+      .then((customer: CustomerDetail) => {
+        if (!active) return;
+        if (!customer.isActive) {
+          setCustomerIntentWarning(
+            'Khách hàng trong liên kết đã ngừng hoạt động.',
+          );
+          return;
+        }
+        setLinkedCustomer({
+          id: customer.id,
+          code: customer.code,
+          customerType: customer.customerType,
+          name: customer.name,
+          phone: customer.phone,
+          email: customer.email,
+          address: customer.address,
+          companyName: customer.companyName,
+          taxCode: customer.taxCode,
+          customerGroup: customer.customerGroup,
+          notes: customer.notes,
+          isActive: customer.isActive,
+          version: customer.version,
+        });
+        setCustomerIntentVisible(true);
+      })
+      .catch(() => {
+        if (active) {
+          setCustomerIntentWarning(
+            'Không thể mở khách hàng từ liên kết. Vui lòng thử lại.',
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [customerExplorerApi, linkedCustomerId, saleId]);
   const canDiscount = Boolean(
     session?.permissions.includes('sale.discount.apply'),
   );
@@ -262,6 +340,29 @@ export function PosPage() {
   }, [detail.data, identity, restoreSnapshot, session?.userId]);
 
   useEffect(() => {
+    if (!customerIntentVisible || !linkedCustomer || !workspaceReady) return;
+    if (customerId === linkedCustomer.id) {
+      clearCustomerIntent();
+      return;
+    }
+    if (
+      !customerId &&
+      canEdit &&
+      customerSelectionRevisionRef.current === customerIntentRevisionRef.current
+    ) {
+      setCustomerId(linkedCustomer.id);
+      clearCustomerIntent();
+    }
+  }, [
+    canEdit,
+    clearCustomerIntent,
+    customerId,
+    customerIntentVisible,
+    linkedCustomer,
+    workspaceReady,
+  ]);
+
+  useEffect(() => {
     const userId = session?.userId;
     if (!userId || !workspaceReady || !canEdit) return;
     const nextRevision = revisionRef.current + 1;
@@ -321,6 +422,12 @@ export function PosPage() {
     () => calculatePosTotals(items, orderDiscount),
     [items, orderDiscount],
   );
+  const customerOptions = useMemo(() => {
+    const listed = customers.data?.items ?? [];
+    if (!linkedCustomer || listed.some((item) => item.id === linkedCustomer.id))
+      return listed;
+    return [...listed, linkedCustomer];
+  }, [customers.data?.items, linkedCustomer]);
   const add = (product: {
     id: string;
     name: string;
@@ -464,6 +571,19 @@ export function PosPage() {
           </button>
         </div>
       ) : null}
+      <PrefilledCustomerIntent
+        customer={customerIntentVisible ? linkedCustomer : null}
+        warning={customerIntentWarning}
+        currentCustomerId={customerId}
+        disabled={!workspaceReady || !canEdit}
+        onReplace={() => {
+          if (!linkedCustomer || !workspaceReady || !canEdit) return;
+          setCustomerId(linkedCustomer.id);
+          clearCustomerIntent();
+        }}
+        onKeep={clearCustomerIntent}
+        onDismiss={clearCustomerIntent}
+      />
       <fieldset
         disabled={!workspaceReady || !canEdit}
         className="grid min-w-0 gap-5 disabled:opacity-75 lg:grid-cols-[1fr_420px]"
@@ -502,7 +622,7 @@ export function PosPage() {
         <CartPanel
           items={items}
           channels={channels.data ?? []}
-          customers={customers.data?.items ?? []}
+          customers={customerOptions}
           channelId={channelId}
           customerId={customerId}
           orderDiscount={orderDiscount}
@@ -520,7 +640,10 @@ export function PosPage() {
             )
           }
           onChannelChange={setChannelId}
-          onCustomerChange={setCustomerId}
+          onCustomerChange={(value) => {
+            customerSelectionRevisionRef.current += 1;
+            setCustomerId(value);
+          }}
           onOrderDiscountChange={setOrderDiscount}
           onNoteChange={setNote}
           onSave={() => void save()}
