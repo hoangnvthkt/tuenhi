@@ -38,6 +38,11 @@ const CustomerPage = lazy(() =>
     default: module.CustomerPage,
   })),
 );
+const CustomerDetailPage = lazy(() =>
+  import('@/features/directories').then((module) => ({
+    default: module.CustomerDetailPage,
+  })),
+);
 const SalesChannelPage = lazy(() =>
   import('@/features/settings').then((module) => ({
     default: module.SalesChannelPage,
@@ -103,7 +108,22 @@ export const administrationRoutes: RouteObject[] = [
     element: (
       <RequireSession permission={['customer.read', 'customer.manage']} />
     ),
-    children: [{ path: 'more/customers', element: <CustomerPage /> }],
+    children: [
+      { path: 'more/customers', element: <CustomerPage /> },
+      {
+        path: 'more/customers/:customerId',
+        element: <CustomerDetailPage />,
+      },
+    ],
+  },
+  {
+    element: <RequireSession permission="customer.manage" />,
+    children: [
+      {
+        path: 'more/customers/:customerId/edit',
+        element: <CustomerDetailPage mode="edit" />,
+      },
+    ],
   },
   {
     element: <RequireSession permission="settings.manage" />,

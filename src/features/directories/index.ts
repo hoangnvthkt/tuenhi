@@ -1,4 +1,5 @@
 export { CustomerPage } from './pages/CustomerPage';
+export { CustomerDetailPage } from './pages/CustomerDetailPage';
 export { SupplierPage } from './pages/SupplierPage';
 export { SupplierDetailPage } from './pages/SupplierDetailPage';
 export {

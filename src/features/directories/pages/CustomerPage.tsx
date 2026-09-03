@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { parsePhoneNumber } from 'libphonenumber-js';
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { useSession } from '@/features/auth';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
@@ -135,7 +136,12 @@ export function CustomerPage({
             >
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <strong>{item.name}</strong>
+                  <Link
+                    to={`/more/customers/${item.id}`}
+                    className="font-bold text-teal-800 hover:underline"
+                  >
+                    {item.name}
+                  </Link>
                   <span className="rounded bg-slate-100 px-2 py-1 text-xs">
                     {item.customerType === 'BUSINESS'
                       ? 'Doanh nghiệp'

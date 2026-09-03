@@ -77,7 +77,9 @@ function renderPage(api: DirectoryApi) {
 describe('CustomerPage', () => {
   it('never renders unsupported sensitive or financial fields', async () => {
     renderPage(createApi());
-    expect(await screen.findByText('Khách hàng A')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', { name: 'Khách hàng A' }),
+    ).toHaveAttribute('href', `/more/customers/${customer.id}`);
     for (const label of [
       'CCCD',
       'Ngày sinh',

@@ -54,3 +54,8 @@ export {
   SupplierProductList,
   SupplierRelationshipList,
 } from './components/context-components';
+export {
+  CustomerProductsList,
+  CustomerReturnsList,
+  CustomerSalesList,
+} from './components/customer-context-components';
