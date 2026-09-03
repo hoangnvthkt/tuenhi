@@ -19,6 +19,7 @@ import {
 import { createReturnsApi } from '../api/returns-api';
 import { createPaymentProofApi, PaymentProofLink } from '@/features/payments';
 import { useSession } from '@/features/auth';
+import { createSalesApi } from '@/features/sales';
 
 const money = (value: string) =>
   new Intl.NumberFormat('vi-VN', {
@@ -35,6 +36,7 @@ export function ReturnDetailPage() {
   const { session } = useSession();
   const runFinancialCommand = useFinancialCommand(session?.userId);
   const [api] = useState(createReturnsApi);
+  const [salesApi] = useState(createSalesApi);
   const [paymentProofApi] = useState(createPaymentProofApi);
   const query = useQuery({
     queryKey: ['sale-return', returnId],
@@ -49,6 +51,23 @@ export function ReturnDetailPage() {
   const [busy, setBusy] = useState(false);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const document = query.data;
+  const canViewSale =
+    session?.permissions.some(
+      (permission) =>
+        permission === 'sale.all.read' || permission === 'sale.own.read',
+    ) ?? false;
+  const canViewCustomer =
+    session?.permissions.some(
+      (permission) =>
+        permission === 'customer.read' || permission === 'customer.manage',
+    ) ?? false;
+  const canViewProduct = session?.permissions.includes('catalog.read') ?? false;
+  const relationshipQuery = useQuery({
+    queryKey: ['return-sale-relationship-detail', document?.saleId],
+    queryFn: () => salesApi.detail(document!.saleId),
+    enabled: Boolean(document?.saleId) && canViewCustomer,
+    retry: false,
+  });
 
   const refresh = async () => {
     await refreshOperationalData(queryClient);
@@ -190,9 +209,29 @@ export function ReturnDetailPage() {
           ← Trả hàng
         </Link>
         <h1 className="mt-2 text-2xl font-semibold">
-          {document.returnNumber ?? 'Yêu cầu trả hàng'} · {document.saleNumber}
+          {document.returnNumber ?? 'Yêu cầu trả hàng'} ·{' '}
+          {canViewSale ? (
+            <Link
+              to={`/sales/${document.saleId}`}
+              className="text-teal-800 hover:underline"
+            >
+              {document.saleNumber}
+            </Link>
+          ) : (
+            document.saleNumber
+          )}
         </h1>
         <p className="mt-1 text-sm text-slate-600">{document.reason}</p>
+        {canViewCustomer && relationshipQuery.data?.customerId ? (
+          <p className="mt-2 text-sm">
+            <Link
+              to={`/more/customers/${relationshipQuery.data.customerId}`}
+              className="font-semibold text-teal-800 hover:underline"
+            >
+              Khách hàng
+            </Link>
+          </p>
+        ) : null}
       </div>
       {!online ? (
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">
@@ -206,7 +245,16 @@ export function ReturnDetailPage() {
             className="grid gap-3 border-b border-slate-100 pb-4 last:border-0 sm:grid-cols-[1fr_180px]"
           >
             <div>
-              <strong>{line.productName}</strong>
+              {canViewProduct ? (
+                <Link
+                  to={`/products/${line.productId}`}
+                  className="font-semibold text-teal-800 hover:underline"
+                >
+                  {line.productName}
+                </Link>
+              ) : (
+                <strong>{line.productName}</strong>
+              )}
               <p className="mt-1 text-sm text-slate-600">
                 Yêu cầu {formatViNumber(line.requestedQty)} {line.unitName} · Đã
                 trả trước đó {formatViNumber(line.returnedQtyBefore)}

@@ -103,6 +103,18 @@ export function SaleDetailPage() {
     enabled: Boolean(saleId),
   });
   const invoice = query.data;
+  const canViewCustomer =
+    session?.permissions.some(
+      (permission) =>
+        permission === 'customer.read' || permission === 'customer.manage',
+    ) ?? false;
+  const canViewProduct = session?.permissions.includes('catalog.read') ?? false;
+  const relationshipQuery = useQuery({
+    queryKey: ['sale-relationship-detail', saleId],
+    queryFn: () => api.detail(saleId!),
+    enabled: Boolean(saleId) && (canViewCustomer || canViewProduct),
+    retry: false,
+  });
 
   useEffect(() => {
     const refreshPendingCommand = () =>
@@ -149,7 +161,7 @@ export function SaleDetailPage() {
       return;
     setBusy(true);
     try {
-      const detail = await api.detail(saleId);
+      const detail = relationshipQuery.data ?? (await api.detail(saleId));
       await runFinancialCommand({
         commandName: 'sale.cancel',
         entityId: saleId,
@@ -191,6 +203,10 @@ export function SaleDetailPage() {
       setPdfBusy(false);
     }
   }
+  const relationshipLines = new Map(
+    relationshipQuery.data?.lines.map((line) => [line.id, line.productId]) ??
+      [],
+  );
   return (
     <main className="mx-auto max-w-2xl p-4 sm:p-6">
       <div className="mb-5 flex items-center justify-between">
@@ -236,13 +252,34 @@ export function SaleDetailPage() {
           {invoice.sale.saleNumber} · {invoice.sale.channelName}
         </p>
         <p className="mt-3 text-sm">
-          Khách hàng: {invoice.sale.customerName ?? 'Khách lẻ'}
+          Khách hàng:{' '}
+          {canViewCustomer &&
+          relationshipQuery.data?.customerId &&
+          invoice.sale.customerName ? (
+            <Link
+              to={`/more/customers/${relationshipQuery.data.customerId}`}
+              className="font-semibold text-teal-800 hover:underline"
+            >
+              {invoice.sale.customerName}
+            </Link>
+          ) : (
+            (invoice.sale.customerName ?? 'Khách lẻ')
+          )}
         </p>
         <div className="mt-4 space-y-3">
           {invoice.lines.map((line) => (
             <div key={line.id} className="border-b border-slate-100 pb-3">
               <div className="flex justify-between gap-3">
-                <span className="font-medium">{line.productName}</span>
+                {canViewProduct && relationshipLines.get(line.id) ? (
+                  <Link
+                    to={`/products/${relationshipLines.get(line.id)}`}
+                    className="font-medium text-teal-800 hover:underline"
+                  >
+                    {line.productName}
+                  </Link>
+                ) : (
+                  <span className="font-medium">{line.productName}</span>
+                )}
                 <span>{money(line.netAmount)}</span>
               </div>
               <p className="text-sm text-slate-600">

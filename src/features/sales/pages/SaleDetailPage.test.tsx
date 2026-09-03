@@ -71,7 +71,21 @@ const invoice: Invoice = {
 
 const api = {
   invoice: vi.fn().mockResolvedValue(invoice),
+  detail: vi.fn().mockResolvedValue({
+    id: saleId,
+    customerId: '60000000-0000-4000-8000-000000000001',
+    lines: [
+      {
+        id: '50000000-0000-4000-8000-000000000001',
+        productId: '70000000-0000-4000-8000-000000000001',
+      },
+    ],
+  }),
 };
+
+const authState = vi.hoisted(() => ({
+  permissions: ['sale.own.read', 'return.request.create'] as string[],
+}));
 
 vi.mock('../api/sales-api', () => ({ createSalesApi: () => api }));
 vi.mock('@/shared/hooks/use-online-status', () => ({
@@ -82,7 +96,7 @@ vi.mock('@/features/auth', () => ({
     session: {
       userId,
       roleTemplate: 'BUSINESS',
-      permissions: ['sale.own.read', 'return.request.create'],
+      permissions: authState.permissions,
     },
   }),
 }));
@@ -119,6 +133,17 @@ function renderPage() {
 beforeEach(() => {
   localStorage.clear();
   api.invoice.mockResolvedValue(invoice);
+  api.detail.mockResolvedValue({
+    id: saleId,
+    customerId: '60000000-0000-4000-8000-000000000001',
+    lines: [
+      {
+        id: '50000000-0000-4000-8000-000000000001',
+        productId: '70000000-0000-4000-8000-000000000001',
+      },
+    ],
+  });
+  authState.permissions = ['sale.own.read', 'return.request.create'];
 });
 
 describe('SaleDetailPage productivity actions', () => {
@@ -194,5 +219,34 @@ describe('SaleDetailPage productivity actions', () => {
 
     expect(print).not.toHaveBeenCalled();
     print.mockRestore();
+  });
+
+  it('links customer and products from one sale-detail lookup when permitted', async () => {
+    authState.permissions = ['sale.own.read', 'customer.read', 'catalog.read'];
+    renderPage();
+
+    expect(
+      await screen.findByRole('link', { name: 'Khách thử' }),
+    ).toHaveAttribute(
+      'href',
+      '/more/customers/60000000-0000-4000-8000-000000000001',
+    );
+    expect(screen.getByRole('link', { name: 'Áo thử' })).toHaveAttribute(
+      'href',
+      '/products/70000000-0000-4000-8000-000000000001',
+    );
+    expect(api.detail).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the invoice visible when the optional relationship lookup fails', async () => {
+    authState.permissions = ['sale.own.read', 'customer.read', 'catalog.read'];
+    api.detail.mockRejectedValueOnce(new Error('private raw error'));
+    renderPage();
+
+    expect(
+      await screen.findByRole('heading', { name: 'HD000001' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Khách hàng: Khách thử')).toBeInTheDocument();
+    expect(screen.queryByText('private raw error')).not.toBeInTheDocument();
   });
 });
