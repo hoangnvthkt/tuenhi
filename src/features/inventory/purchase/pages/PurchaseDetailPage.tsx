@@ -147,7 +147,10 @@ export function PurchaseDetailPage({
               .then((detail) => {
                 if (!active) return;
                 const draftCosts = new Map(
-                  detail.lines.map((line) => [line.lineId, line.unitCost ?? '']),
+                  detail.lines.map((line) => [
+                    line.lineId,
+                    line.unitCost ?? '',
+                  ]),
                 );
                 setLines((current) =>
                   current.map((line, index) => ({
@@ -157,7 +160,10 @@ export function PurchaseDetailPage({
                 );
                 setCosts(
                   Object.fromEntries(
-                    detail.lines.map((line) => [line.lineId, line.unitCost ?? '']),
+                    detail.lines.map((line) => [
+                      line.lineId,
+                      line.unitCost ?? '',
+                    ]),
                   ),
                 );
                 setTotalCost(detail.totalCost);
@@ -172,7 +178,17 @@ export function PurchaseDetailPage({
     return () => {
       active = false;
     };
-  }, [api, canDraft, canEnterCost, canReadCost, catalogApi, directoryApi, isCreate, receiptId, session?.userId]);
+  }, [
+    api,
+    canDraft,
+    canEnterCost,
+    canReadCost,
+    catalogApi,
+    directoryApi,
+    isCreate,
+    receiptId,
+    session?.userId,
+  ]);
 
   useEffect(() => {
     if (!isCreate) return;
@@ -215,8 +231,8 @@ export function PurchaseDetailPage({
                 setLines((current) => {
                   const first = current[0];
                   if (!first || first.productId) return current;
-                      return [
-                        { ...first, productId: product.id },
+                  return [
+                    { ...first, productId: product.id },
                     ...current.slice(1),
                   ];
                 });
@@ -466,6 +482,7 @@ export function PurchaseDetailPage({
         setLines={setLinesFromUser}
         setCosts={setCosts}
         canViewProduct={canViewProduct}
+        resolveProducts={api.resolveProductsBySku}
       />
       <PurchaseActions
         api={api}

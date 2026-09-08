@@ -6,6 +6,7 @@ export const IMPORT_TARGETS = [
   'SUPPLIERS',
   'CUSTOMERS',
   'OPENING_BALANCES',
+  'PURCHASE_RECEIPT',
 ] as const satisfies readonly ImportTarget[];
 
 export const CURRENT_TEMPLATE_VERSION = {
@@ -14,6 +15,7 @@ export const CURRENT_TEMPLATE_VERSION = {
   SUPPLIERS: 1,
   CUSTOMERS: 2,
   OPENING_BALANCES: 1,
+  PURCHASE_RECEIPT: 1,
 } as const;
 
 export type ImportFieldType =
@@ -358,6 +360,38 @@ const TEMPLATE_CONTRACTS: readonly TemplateContract[] = [
         type: 'money',
         required: true,
         aliases: ['Giá vốn đầu kỳ'],
+        example: '25000.50',
+      },
+    ],
+  },
+  {
+    target: 'PURCHASE_RECEIPT',
+    version: 1,
+    fileName: 'purchase-receipt-v1.xlsx',
+    displayName: 'Dòng phiếu nhập',
+    columns: [
+      {
+        header: 'SKU',
+        field: 'sku',
+        type: 'text',
+        required: true,
+        maxLength: 64,
+        aliases: ['Mã SP', 'Mã sản phẩm'],
+        example: 'SP-MAU-001',
+        textFormat: true,
+      },
+      {
+        header: 'Số lượng nhận',
+        field: 'receivedQty',
+        type: 'quantity',
+        required: true,
+        example: '10',
+      },
+      {
+        header: 'Đơn giá nhập',
+        field: 'unitCost',
+        type: 'money',
+        required: true,
         example: '25000.50',
       },
     ],

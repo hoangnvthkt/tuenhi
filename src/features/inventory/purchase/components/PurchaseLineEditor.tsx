@@ -1,9 +1,11 @@
-import type { Dispatch, SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { Link } from 'react-router';
 import type { ProductCatalogItem } from '@/features/catalog';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import type { PurchaseReceipt } from '../api/purchase-schemas';
+import type { ResolvedPurchaseProduct } from '../api/purchase-schemas';
 import type { PurchaseDraftLine } from '../model/purchase-draft';
+import { PurchaseExcelImportDialog } from './PurchaseExcelImportDialog';
 import { PurchaseProductCombobox } from './PurchaseProductCombobox';
 
 export function PurchaseLineEditor({
@@ -18,6 +20,7 @@ export function PurchaseLineEditor({
   setLines,
   setCosts,
   canViewProduct,
+  resolveProducts,
 }: {
   lines: PurchaseDraftLine[];
   products: ProductCatalogItem[];
@@ -30,7 +33,9 @@ export function PurchaseLineEditor({
   setLines: Dispatch<SetStateAction<PurchaseDraftLine[]>>;
   setCosts: Dispatch<SetStateAction<Record<string, string>>>;
   canViewProduct: boolean;
+  resolveProducts: (skus: string[]) => Promise<ResolvedPurchaseProduct[]>;
 }) {
+  const [importOpen, setImportOpen] = useState(false);
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="font-bold">Sản phẩm nhận</h2>
@@ -51,9 +56,7 @@ export function PurchaseLineEditor({
                 onSelect={(productId) =>
                   setLines((current) =>
                     current.map((item, itemIndex) =>
-                      itemIndex === index
-                        ? { ...item, productId }
-                        : item,
+                      itemIndex === index ? { ...item, productId } : item,
                     ),
                   )
                 }
@@ -101,7 +104,9 @@ export function PurchaseLineEditor({
                   )
                 }
               />
-            ) : canPost && receipt?.status === 'AWAITING_COST' && persistedLine ? (
+            ) : canPost &&
+              receipt?.status === 'AWAITING_COST' &&
+              persistedLine ? (
               <NumericField
                 label={`Đơn giá ${persistedLine.productName}`}
                 kind="money"
@@ -134,18 +139,38 @@ export function PurchaseLineEditor({
         );
       })}
       {editable ? (
-        <button
-          type="button"
-          onClick={() =>
-            setLines((current) => [
-              ...current,
-              { productId: '', receivedQty: '1', unitCost: '' },
-            ])
-          }
-          className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold"
-        >
-          Thêm dòng
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              setLines((current) => [
+                ...current,
+                { productId: '', receivedQty: '1', unitCost: '' },
+              ])
+            }
+            className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold"
+          >
+            Thêm dòng
+          </button>
+          <button
+            type="button"
+            onClick={() => setImportOpen(true)}
+            className="min-h-11 rounded-lg border border-teal-800 px-4 text-sm font-semibold text-teal-900 hover:bg-teal-50"
+          >
+            Nhập từ Excel
+          </button>
+        </div>
+      ) : null}
+      {importOpen ? (
+        <PurchaseExcelImportDialog
+          existingProductIds={lineProductIds}
+          resolveProducts={resolveProducts}
+          onClose={() => setImportOpen(false)}
+          onApply={(importedLines) => {
+            setLines((current) => [...current, ...importedLines]);
+            setImportOpen(false);
+          }}
+        />
       ) : null}
     </div>
   );

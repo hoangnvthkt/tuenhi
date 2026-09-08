@@ -13,6 +13,7 @@ describe('catalog import template contracts', () => {
       'SUPPLIERS',
       'CUSTOMERS',
       'OPENING_BALANCES',
+      'PURCHASE_RECEIPT',
     ]);
     expect(CURRENT_TEMPLATE_VERSION).toEqual({
       CATEGORIES: 1,
@@ -20,6 +21,7 @@ describe('catalog import template contracts', () => {
       SUPPLIERS: 1,
       CUSTOMERS: 2,
       OPENING_BALANCES: 1,
+      PURCHASE_RECEIPT: 1,
     });
   });
 
@@ -53,6 +55,34 @@ describe('catalog import template contracts', () => {
       contract.columns.find(({ field }) => field === 'openingQuantity')
         ?.example,
     ).toBe('10');
+  });
+
+  it('declares the approved three-column purchase receipt template', () => {
+    const contract = getTemplateContract('PURCHASE_RECEIPT', 1);
+
+    expect(contract.fileName).toBe('purchase-receipt-v1.xlsx');
+    expect(
+      contract.columns.map(({ header, field, type, required }) => ({
+        header,
+        field,
+        type,
+        required,
+      })),
+    ).toEqual([
+      { header: 'SKU', field: 'sku', type: 'text', required: true },
+      {
+        header: 'Số lượng nhận',
+        field: 'receivedQty',
+        type: 'quantity',
+        required: true,
+      },
+      {
+        header: 'Đơn giá nhập',
+        field: 'unitCost',
+        type: 'money',
+        required: true,
+      },
+    ]);
   });
 
   it('keeps the approved product header order and field types', () => {

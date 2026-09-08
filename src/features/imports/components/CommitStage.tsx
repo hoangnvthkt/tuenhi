@@ -8,6 +8,7 @@ const targetLabels: Record<ImportTarget, string> = {
   SUPPLIERS: 'Nhà cung cấp',
   CUSTOMERS: 'Khách hàng',
   OPENING_BALANCES: 'Tồn và giá vốn đầu kỳ',
+  PURCHASE_RECEIPT: 'Phiếu nhập hàng',
 };
 
 export function CommitStage({

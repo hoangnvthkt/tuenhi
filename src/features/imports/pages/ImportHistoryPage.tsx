@@ -13,6 +13,7 @@ const targetLabels = {
   SUPPLIERS: 'Nhà cung cấp',
   CUSTOMERS: 'Khách hàng',
   OPENING_BALANCES: 'Tồn và giá vốn đầu kỳ',
+  PURCHASE_RECEIPT: 'Phiếu nhập hàng',
   LEGACY_SALES_ARCHIVE: 'Dữ liệu bán hàng cũ',
 } as const;
 const statusLabels = {
