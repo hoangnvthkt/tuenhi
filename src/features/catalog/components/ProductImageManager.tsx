@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { useRef, useState, type FormEvent } from 'react';
 import type { ProductDetail } from '../model/catalog-types';
 import {
@@ -6,44 +5,9 @@ import {
   ProductImageApiError,
   type ProductImageApi,
 } from '../api/product-image-api';
+import { ProductImageThumbnail } from './ProductImageThumbnail';
 
 type ProductImage = ProductDetail['images'][number];
-
-function SignedImage({
-  image,
-  api,
-}: {
-  image: ProductImage;
-  api: ProductImageApi;
-}) {
-  const query = useQuery({
-    queryKey: ['catalog', 'product-image-url', image.objectPath],
-    queryFn: () => api.createSignedUrl(image.objectPath),
-    staleTime: 8 * 60 * 1000,
-  });
-  if (query.isPending) {
-    return (
-      <div
-        aria-label="Đang tải ảnh sản phẩm"
-        className="aspect-square animate-pulse rounded-lg bg-slate-200"
-      />
-    );
-  }
-  if (query.isError) {
-    return (
-      <div className="grid aspect-square place-items-center rounded-lg bg-slate-100 p-3 text-center text-xs text-slate-600">
-        Không thể mở ảnh
-      </div>
-    );
-  }
-  return (
-    <img
-      src={query.data}
-      alt="Ảnh sản phẩm"
-      className="aspect-square w-full rounded-lg object-cover"
-    />
-  );
-}
 
 export function ProductImageManager({
   productId,
@@ -142,7 +106,11 @@ export function ProductImageManager({
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
           {images.map((image) => (
             <li key={image.id} className="relative">
-              <SignedImage image={image} api={api} />
+              <ProductImageThumbnail
+                objectPath={image.objectPath}
+                alt="Ảnh sản phẩm"
+                api={api}
+              />
               {image.isPrimary ? (
                 <span className="absolute left-2 top-2 rounded bg-slate-950/80 px-2 py-1 text-xs font-semibold text-white">
                   Ảnh chính

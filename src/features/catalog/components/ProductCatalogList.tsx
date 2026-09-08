@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
 import { CatalogApiError } from '../api/catalog-api';
 import type { ProductCatalogItem } from '../model/catalog-types';
+import { ProductImageThumbnail } from './ProductImageThumbnail';
 
 function formatMoney(value: string | null) {
   return value === null ? 'Chưa đặt giá' : `${formatViNumber(value)} ₫`;
@@ -32,9 +33,11 @@ function ProductRow({ item }: { item: ProductCatalogItem }) {
       data-testid={`product-row-${item.id}`}
       className="grid min-h-20 gap-3 border-b border-slate-200 px-3 py-3 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-teal-700 md:grid-cols-[3rem_minmax(13rem,1.7fr)_minmax(8rem,1fr)_9rem_8rem] md:items-center"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-500">
-        Ảnh
-      </div>
+      <ProductImageThumbnail
+        objectPath={item.primaryImagePath}
+        alt={`Ảnh chính của ${item.name}`}
+        className="h-12 w-12"
+      />
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <p className="truncate text-sm font-semibold text-slate-950">

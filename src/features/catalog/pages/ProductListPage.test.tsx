@@ -152,6 +152,7 @@ describe('ProductListPage', () => {
     const row = screen.getByTestId(
       'product-row-10000000-0000-4000-8000-000000000010',
     );
+    expect(within(row).getByLabelText('Chưa có ảnh')).toBeInTheDocument();
     expect(within(row).getByText('Hết hàng')).toBeInTheDocument();
     expect(within(row).getByText('Ngừng hoạt động')).toBeInTheDocument();
     expect(within(row).getByText(/25\.000/)).toBeInTheDocument();
