@@ -70,6 +70,9 @@ function renderPage(permissions: string[], online = true) {
   const directoryApi = {
     listSuppliers: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
   } as unknown as ReturnType<typeof createDirectoryApi>;
+  const explorerApi = {
+    supplierDetail: vi.fn(),
+  } as unknown as ConnectedExplorerApi;
   renderWithQueryClient(
     <SessionContextValue.Provider
       value={{
@@ -100,6 +103,7 @@ function renderPage(permissions: string[], online = true) {
                   api={inventoryApi}
                   catalogApi={catalogApi}
                   directoryApi={directoryApi}
+                  explorerApi={explorerApi}
                   online={online}
                 />
               }
