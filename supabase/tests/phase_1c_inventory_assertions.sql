@@ -13,6 +13,7 @@ begin
     'api.stock_count_lines',
     'app_private.inventory_cost_balances',
     'app_private.inventory_cost_movements',
+    'app_private.purchase_receipt_draft_line_costs',
     'app_private.purchase_receipt_line_costs',
     'app_private.stock_count_line_costs',
     'app_private.document_sequences'
@@ -31,6 +32,7 @@ begin
     'api.list_purchase_receipts(jsonb,timestamp with time zone,uuid,integer)',
     'api.get_purchase_receipt_operational(uuid)',
     'api.get_purchase_receipt_cost_detail(uuid)',
+    'api.resolve_purchase_receipt_products(text[])',
     'api.save_opening_stock_draft(uuid,bigint,text,jsonb,uuid)',
     'api.submit_opening_stock(uuid,bigint,uuid)',
     'api.cancel_opening_stock(uuid,bigint,text,uuid)',
@@ -70,7 +72,8 @@ begin
       and table_schema = 'app_private'
       and table_name in (
         'inventory_cost_balances', 'inventory_cost_movements',
-        'purchase_receipt_line_costs', 'stock_count_line_costs'
+        'purchase_receipt_draft_line_costs', 'purchase_receipt_line_costs',
+        'stock_count_line_costs'
       )
   ) then
     raise exception 'browser role must not receive direct cost table grants';
@@ -247,29 +250,19 @@ begin
   v_receipt := api.save_purchase_receipt_draft(
     null, null, null, now(), 'Vector 10 x 40000',
     jsonb_build_array(jsonb_build_object(
-      'productId', v_product_one_id, 'receivedQty', '10'
+      'productId', v_product_one_id, 'receivedQty', '10', 'unitCost', '40000'
     )), gen_random_uuid()
   );
   v_receipt_id := (v_receipt #>> '{data,receiptId}')::uuid;
   v_version := (v_receipt #>> '{data,version}')::bigint;
   v_detail := api.get_purchase_receipt_operational(v_receipt_id);
   v_line_id := (v_detail #>> '{data,lines,0,id}')::uuid;
-  v_submit := api.submit_purchase_receipt(
-    v_receipt_id, v_version, gen_random_uuid()
-  );
-  v_version := (v_submit #>> '{data,version}')::bigint;
   v_key := gen_random_uuid();
   v_post := api.post_purchase_receipt(
-    v_receipt_id, v_version,
-    jsonb_build_array(jsonb_build_object(
-      'lineId', v_line_id, 'unitCost', '40000'
-    )), v_key
+    v_receipt_id, v_version, '[]'::jsonb, v_key
   );
   v_retry := api.post_purchase_receipt(
-    v_receipt_id, v_version,
-    jsonb_build_array(jsonb_build_object(
-      'lineId', v_line_id, 'unitCost', '99999'
-    )), v_key
+    v_receipt_id, v_version, '[]'::jsonb, v_key
   );
   if not coalesce((v_post ->> 'ok')::boolean, false) or v_retry <> v_post then
     raise exception 'purchase post or idempotent retry failed';
@@ -278,21 +271,15 @@ begin
   v_receipt := api.save_purchase_receipt_draft(
     null, null, null, now(), 'Vector 5 x 50000',
     jsonb_build_array(jsonb_build_object(
-      'productId', v_product_one_id, 'receivedQty', '5'
+      'productId', v_product_one_id, 'receivedQty', '5', 'unitCost', '50000'
     )), gen_random_uuid()
   );
   v_receipt_id := (v_receipt #>> '{data,receiptId}')::uuid;
   v_detail := api.get_purchase_receipt_operational(v_receipt_id);
   v_line_id := (v_detail #>> '{data,lines,0,id}')::uuid;
-  v_submit := api.submit_purchase_receipt(
-    v_receipt_id, (v_receipt #>> '{data,version}')::bigint,
-    gen_random_uuid()
-  );
   v_post := api.post_purchase_receipt(
-    v_receipt_id, (v_submit #>> '{data,version}')::bigint,
-    jsonb_build_array(jsonb_build_object(
-      'lineId', v_line_id, 'unitCost', '50000'
-    )), gen_random_uuid()
+    v_receipt_id, (v_receipt #>> '{data,version}')::bigint,
+    '[]'::jsonb, gen_random_uuid()
   );
   if not coalesce((v_post ->> 'ok')::boolean, false) then
     raise exception 'second weighted-average receipt failed';
@@ -343,21 +330,15 @@ begin
   v_receipt := api.save_purchase_receipt_draft(
     null, null, null, now(), 'Phiếu được đảo',
     jsonb_build_array(jsonb_build_object(
-      'productId', v_product_three_id, 'receivedQty', '3'
+      'productId', v_product_three_id, 'receivedQty', '3', 'unitCost', '15000'
     )), gen_random_uuid()
   );
   v_receipt_id := (v_receipt #>> '{data,receiptId}')::uuid;
   v_detail := api.get_purchase_receipt_operational(v_receipt_id);
   v_line_id := (v_detail #>> '{data,lines,0,id}')::uuid;
-  v_submit := api.submit_purchase_receipt(
-    v_receipt_id, (v_receipt #>> '{data,version}')::bigint,
-    gen_random_uuid()
-  );
   v_post := api.post_purchase_receipt(
-    v_receipt_id, (v_submit #>> '{data,version}')::bigint,
-    jsonb_build_array(jsonb_build_object(
-      'lineId', v_line_id, 'unitCost', '15000'
-    )), gen_random_uuid()
+    v_receipt_id, (v_receipt #>> '{data,version}')::bigint,
+    '[]'::jsonb, gen_random_uuid()
   );
   v_reverse := api.reverse_purchase_receipt(
     v_receipt_id, 'Kiểm thử đảo phiếu', gen_random_uuid()
