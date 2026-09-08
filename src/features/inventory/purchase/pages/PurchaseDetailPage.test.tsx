@@ -48,7 +48,19 @@ const receipt: PurchaseReceipt = {
 };
 
 function renderPage(permissions: string[], online = true) {
-  const getPurchaseCost = vi.fn();
+  const getPurchaseCost = vi.fn().mockResolvedValue({
+    receiptId: receipt.id,
+    receiptNumber: null,
+    status: 'DRAFT',
+    totalCost: '25000',
+    lines: [
+      {
+        lineId: receipt.lines[0]!.id,
+        unitCost: '12500',
+        lineCost: '25000',
+      },
+    ],
+  });
   const inventoryApi = {
     detail: vi.fn().mockResolvedValue(receipt),
     cost: getPurchaseCost,
@@ -149,6 +161,17 @@ describe('PurchaseDetailPage cost boundary', () => {
     expect(
       await screen.findByRole('link', { name: 'Mở Thuốc A' }),
     ).toHaveAttribute('href', `/products/${receipt.lines[0]!.productId}`);
+  });
+
+  it('loads the creator draft cost for inline editing', async () => {
+    const { getPurchaseCost } = renderPage([
+      'purchase.operational.read',
+      'purchase.draft.manage',
+      'purchase.cost.enter',
+    ]);
+
+    expect(await screen.findByLabelText('Đơn giá nhập')).toHaveValue('12500');
+    expect(getPurchaseCost).toHaveBeenCalledWith(receipt.id);
   });
 
   it('prefills exact product and supplier locally without saving a draft', async () => {
@@ -257,12 +280,7 @@ describe('PurchaseDetailPage cost boundary', () => {
       await screen.findByRole('option', { name: 'NCC prefill' }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Nhà cung cấp')).toHaveValue(supplier.id);
-    expect(
-      await screen.findByRole('option', {
-        name: 'SP-PREFILL — Sản phẩm prefill',
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText('Sản phẩm dòng 1')).toHaveValue(product.id);
+    expect(await screen.findByText('SP-PREFILL — Sản phẩm prefill')).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
   });
 });

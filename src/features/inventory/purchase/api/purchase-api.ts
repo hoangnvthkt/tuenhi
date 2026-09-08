@@ -8,6 +8,7 @@ import {
   purchaseCostSchema,
   purchasePageSchema,
   purchaseReceiptSchema,
+  resolvedPurchaseProductsSchema,
 } from './purchase-schemas';
 
 export function createPurchaseApi() {
@@ -45,7 +46,11 @@ export function createPurchaseApi() {
       supplierId?: string;
       receivedAt: string;
       note: string;
-      lines: Array<{ productId: string; receivedQty: string }>;
+      lines: Array<{
+        productId: string;
+        receivedQty: string;
+        unitCost: string;
+      }>;
       idempotencyKey: string;
     }) {
       return rpc(
@@ -98,6 +103,22 @@ export function createPurchaseApi() {
     post(
       id: string,
       version: number,
+      idempotencyKey: string = crypto.randomUUID(),
+    ) {
+      return rpc(
+        'post_purchase_receipt',
+        {
+          p_receipt_id: id,
+          p_expected_version: version,
+          p_cost_lines: [],
+          p_idempotency_key: idempotencyKey,
+        },
+        inventoryMutationSchema,
+      );
+    },
+    postLegacy(
+      id: string,
+      version: number,
       costs: Array<{ lineId: string; unitCost: string }>,
       idempotencyKey: string = crypto.randomUUID(),
     ) {
@@ -110,6 +131,14 @@ export function createPurchaseApi() {
           p_idempotency_key: idempotencyKey,
         },
         inventoryMutationSchema,
+      );
+    },
+    resolveProductsBySku(skus: string[]) {
+      if (skus.length === 0) return Promise.resolve([]);
+      return rpc(
+        'resolve_purchase_receipt_products',
+        { p_skus: skus },
+        resolvedPurchaseProductsSchema,
       );
     },
     parseMutationResponse(value: unknown) {

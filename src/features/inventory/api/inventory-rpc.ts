@@ -33,6 +33,9 @@ export const inventoryCursorSchema = z.object({
   id: z.uuid(),
 });
 export const inventoryMutationSchema = z.record(z.string(), z.unknown());
+type InventoryRpcName =
+  | Parameters<ReturnType<typeof getSupabaseClient>['rpc']>[0]
+  | 'resolve_purchase_receipt_products';
 
 export function parseInventoryRpc<T>(schema: z.ZodType<T>, value: unknown): T {
   return parseRpcEnvelope(schema, value, {
@@ -49,11 +52,11 @@ export function nullable<T>(value: T | undefined): T {
 export function createInventoryRpc() {
   const client = getSupabaseClient();
   return async function call<T>(
-    name: Parameters<typeof client.rpc>[0],
+    name: InventoryRpcName,
     args: Json,
     schema: z.ZodType<T>,
   ): Promise<T> {
-    const { data, error } = await client.rpc(name, args as never);
+    const { data, error } = await client.rpc(name as never, args as never);
     if (error) {
       throw new FinancialTransportError();
     }

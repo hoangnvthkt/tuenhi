@@ -72,7 +72,7 @@ export function PurchaseDetailPage({
   );
   const [note, setNote] = useState('');
   const [lines, setLines] = useState<PurchaseDraftLine[]>([
-    { productId: '', receivedQty: '1' },
+    { productId: '', receivedQty: '1', unitCost: '' },
   ]);
   const [costs, setCosts] = useState<Record<string, string>>({});
   const [totalCost, setTotalCost] = useState<string | null>(null);
@@ -86,6 +86,7 @@ export function PurchaseDetailPage({
   const canDraft = session?.permissions.includes('purchase.draft.manage');
   const canPost = session?.permissions.includes('purchase.post');
   const canReadCost = session?.permissions.includes('purchase.cost.read');
+  const canEnterCost = session?.permissions.includes('purchase.cost.enter');
   const canViewProduct = session?.permissions.includes('catalog.read') ?? false;
   const canViewSupplier = Boolean(
     session?.permissions.some((permission) =>
@@ -134,30 +135,44 @@ export function PurchaseDetailPage({
             data.lines.map((line) => ({
               productId: line.productId,
               receivedQty: line.receivedQty,
+              unitCost: '',
             })),
           );
+          if (
+            canReadCost ||
+            (data.createdBy === session?.userId && canDraft && canEnterCost)
+          ) {
+            api
+              .cost(receiptId)
+              .then((detail) => {
+                if (!active) return;
+                const draftCosts = new Map(
+                  detail.lines.map((line) => [line.lineId, line.unitCost ?? '']),
+                );
+                setLines((current) =>
+                  current.map((line, index) => ({
+                    ...line,
+                    unitCost: draftCosts.get(data.lines[index]?.id ?? '') ?? '',
+                  })),
+                );
+                setCosts(
+                  Object.fromEntries(
+                    detail.lines.map((line) => [line.lineId, line.unitCost ?? '']),
+                  ),
+                );
+                setTotalCost(detail.totalCost);
+              })
+              .catch(() => undefined);
+          }
         })
         .catch(
           (reason: unknown) => active && setError(safeInventoryMessage(reason)),
         );
-      if (canReadCost) {
-        api
-          .cost(receiptId)
-          .then((detail) => {
-            if (!active) return;
-            const serverCosts = Object.fromEntries(
-              detail.lines.map((line) => [line.lineId, line.unitCost ?? '']),
-            );
-            setCosts((current) => ({ ...serverCosts, ...current }));
-            setTotalCost(detail.totalCost);
-          })
-          .catch(() => undefined);
-      }
     }
     return () => {
       active = false;
     };
-  }, [api, canReadCost, catalogApi, directoryApi, isCreate, receiptId]);
+  }, [api, canDraft, canEnterCost, canReadCost, catalogApi, directoryApi, isCreate, receiptId, session?.userId]);
 
   useEffect(() => {
     if (!isCreate) return;
@@ -200,8 +215,8 @@ export function PurchaseDetailPage({
                 setLines((current) => {
                   const first = current[0];
                   if (!first || first.productId) return current;
-                  return [
-                    { ...first, productId: product.id },
+                      return [
+                        { ...first, productId: product.id },
                     ...current.slice(1),
                   ];
                 });
@@ -318,11 +333,16 @@ export function PurchaseDetailPage({
           kind: 'quantity',
           precision: 18,
           positive: true,
+        }).ok &&
+        validateCanonicalNumber(line.unitCost, {
+          kind: 'money',
+          precision: 20,
+          positive: true,
         }).ok,
     );
     if (validLines.length === 0 || validLines.length !== lineProductIds.size) {
       setError(
-        'Mỗi sản phẩm chỉ được chọn một lần và phải có số lượng lớn hơn 0.',
+        'Mỗi sản phẩm chỉ được chọn một lần, có số lượng và đơn giá nhập lớn hơn 0.',
       );
       return;
     }
@@ -441,6 +461,7 @@ export function PurchaseDetailPage({
         costs={costs}
         editable={editable}
         canPost={Boolean(canPost)}
+        canEnterCost={Boolean(canEnterCost)}
         lineProductIds={lineProductIds}
         setLines={setLinesFromUser}
         setCosts={setCosts}

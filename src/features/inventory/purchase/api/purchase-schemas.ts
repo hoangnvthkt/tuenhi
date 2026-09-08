@@ -76,5 +76,19 @@ export const purchaseCostSchema = z.object({
   ),
 });
 
+export const resolvedPurchaseProductSchema = z.object({
+  requestedSku: z.string().min(1).max(64),
+  productId: z.uuid().nullable(),
+  sku: z.string().min(1).max(64).nullable(),
+  productName: z.string().min(1).max(200).nullable(),
+  unitName: z.string().min(1).max(50).nullable(),
+  isActive: z.boolean(),
+});
+
+export const resolvedPurchaseProductsSchema = z.array(
+  resolvedPurchaseProductSchema,
+);
+
 export type PurchaseReceipt = z.infer<typeof purchaseReceiptSchema>;
 export type PurchaseReceiptCost = z.infer<typeof purchaseCostSchema>;
+export type ResolvedPurchaseProduct = z.infer<typeof resolvedPurchaseProductSchema>;

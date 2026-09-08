@@ -44,18 +44,27 @@ export function PurchaseActions({
         </button>
       ) : null}
       {receipt?.status === 'DRAFT' && canDraft ? (
-        <button
-          disabled={!online || busy}
-          onClick={() =>
-            void onPerform(
-              () => api.command('submit', receipt.id, receipt.version),
-              'Đã gửi phiếu chờ nhập giá',
-            )
-          }
-          className="min-h-11 rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          Gửi owner nhập giá
-        </button>
+        canPost ? (
+          <button
+            disabled={!online || busy}
+            onClick={() =>
+              void onPerform(
+                () =>
+                  runFinancialCommand({
+                    commandName: 'purchase.post',
+                    entityId: receipt.id,
+                    invoke: (idempotencyKey) =>
+                      api.post(receipt.id, receipt.version, idempotencyKey),
+                    parseCachedResponse: api.parseMutationResponse,
+                  }),
+                'Đã ghi sổ phiếu nhập',
+              )
+            }
+            className="min-h-11 rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            Ghi sổ
+          </button>
+        ) : null
       ) : null}
       {receipt?.status === 'AWAITING_COST' && canPost ? (
         <button
@@ -69,7 +78,7 @@ export function PurchaseActions({
                   commandName: 'purchase.post',
                   entityId: receipt.id,
                   invoke: (idempotencyKey) =>
-                    api.post(
+                    api.postLegacy(
                       receipt.id,
                       receipt.version,
                       receipt.lines.map((line) => ({

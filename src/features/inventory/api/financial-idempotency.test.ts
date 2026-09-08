@@ -23,7 +23,7 @@ describe('financial inventory idempotency keys', () => {
   it('forwards the supplied key when posting and reversing a purchase', async () => {
     const api = createPurchaseApi();
 
-    await api.post('receipt-id', 2, [], 'purchase-post-key');
+    await api.post('receipt-id', 2, 'purchase-post-key');
     await api.command(
       'reverse',
       'receipt-id',

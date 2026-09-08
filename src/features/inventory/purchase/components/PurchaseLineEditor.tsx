@@ -4,6 +4,7 @@ import type { ProductCatalogItem } from '@/features/catalog';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import type { PurchaseReceipt } from '../api/purchase-schemas';
 import type { PurchaseDraftLine } from '../model/purchase-draft';
+import { PurchaseProductCombobox } from './PurchaseProductCombobox';
 
 export function PurchaseLineEditor({
   lines,
@@ -12,6 +13,7 @@ export function PurchaseLineEditor({
   costs,
   editable,
   canPost,
+  canEnterCost,
   lineProductIds,
   setLines,
   setCosts,
@@ -23,6 +25,7 @@ export function PurchaseLineEditor({
   costs: Record<string, string>;
   editable: boolean;
   canPost: boolean;
+  canEnterCost: boolean;
   lineProductIds: Set<string>;
   setLines: Dispatch<SetStateAction<PurchaseDraftLine[]>>;
   setCosts: Dispatch<SetStateAction<Record<string, string>>>;
@@ -39,35 +42,22 @@ export function PurchaseLineEditor({
             className="grid gap-3 rounded-lg bg-slate-50 p-3 md:grid-cols-[1fr_11rem_11rem_auto]"
           >
             <div>
-              <select
-                aria-label={`Sản phẩm dòng ${index + 1}`}
+              <PurchaseProductCombobox
+                label={`Sản phẩm dòng ${index + 1}`}
                 disabled={!editable}
-                value={line.productId}
-                onChange={(event) =>
+                products={products}
+                selectedProductId={line.productId}
+                selectedProductIds={lineProductIds}
+                onSelect={(productId) =>
                   setLines((current) =>
                     current.map((item, itemIndex) =>
                       itemIndex === index
-                        ? { ...item, productId: event.target.value }
+                        ? { ...item, productId }
                         : item,
                     ),
                   )
                 }
-                className="min-h-11 w-full rounded-lg border border-slate-300 px-3"
-              >
-                <option value="">Chọn sản phẩm</option>
-                {products.map((product) => (
-                  <option
-                    disabled={
-                      lineProductIds.has(product.id) &&
-                      product.id !== line.productId
-                    }
-                    key={product.id}
-                    value={product.id}
-                  >
-                    {product.sku} — {product.name}
-                  </option>
-                ))}
-              </select>
+              />
               {canViewProduct && line.productId ? (
                 <Link
                   to={`/products/${line.productId}`}
@@ -95,7 +85,23 @@ export function PurchaseLineEditor({
                 )
               }
             />
-            {canPost && receipt?.status === 'AWAITING_COST' && persistedLine ? (
+            {editable && canEnterCost ? (
+              <NumericField
+                label="Đơn giá nhập"
+                disabled={!editable}
+                kind="money"
+                precision={20}
+                positive
+                value={line.unitCost}
+                onChange={(value) =>
+                  setLines((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, unitCost: value } : item,
+                    ),
+                  )
+                }
+              />
+            ) : canPost && receipt?.status === 'AWAITING_COST' && persistedLine ? (
               <NumericField
                 label={`Đơn giá ${persistedLine.productName}`}
                 kind="money"
@@ -133,7 +139,7 @@ export function PurchaseLineEditor({
           onClick={() =>
             setLines((current) => [
               ...current,
-              { productId: '', receivedQty: '1' },
+              { productId: '', receivedQty: '1', unitCost: '' },
             ])
           }
           className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold"
