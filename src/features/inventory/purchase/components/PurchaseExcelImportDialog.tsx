@@ -2,10 +2,7 @@ import { useState } from 'react';
 import type { ResolvedPurchaseProduct } from '../api/purchase-schemas';
 import type { PurchaseDraftLine } from '../model/purchase-draft';
 import { validatePurchaseReceiptRows } from '../model/purchase-excel-import';
-import {
-  inspectWorkbook,
-  type InspectedWorkbook,
-} from '@/features/imports';
+import { inspectWorkbook, type InspectedWorkbook } from '@/features/imports';
 
 type ImportPreview = Awaited<ReturnType<typeof validatePurchaseReceiptRows>>;
 

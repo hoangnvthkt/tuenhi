@@ -21,6 +21,7 @@ export function PurchaseLineEditor({
   setCosts,
   canViewProduct,
   resolveProducts,
+  searchProducts,
 }: {
   lines: PurchaseDraftLine[];
   products: ProductCatalogItem[];
@@ -34,6 +35,7 @@ export function PurchaseLineEditor({
   setCosts: Dispatch<SetStateAction<Record<string, string>>>;
   canViewProduct: boolean;
   resolveProducts: (skus: string[]) => Promise<ResolvedPurchaseProduct[]>;
+  searchProducts: (query: string) => Promise<ProductCatalogItem[]>;
 }) {
   const [importOpen, setImportOpen] = useState(false);
   return (
@@ -60,6 +62,7 @@ export function PurchaseLineEditor({
                     ),
                   )
                 }
+                onSearch={searchProducts}
               />
               {canViewProduct && line.productId ? (
                 <Link

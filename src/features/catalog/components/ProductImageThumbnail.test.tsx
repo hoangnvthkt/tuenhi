@@ -54,4 +54,17 @@ describe('ProductImageThumbnail', () => {
 
     expect(screen.getByLabelText('Chưa có ảnh')).toBeInTheDocument();
   });
+
+  it('uses the same fallback when signing the image URL fails', async () => {
+    renderThumbnail({
+      objectPath: 'products/product-a/main.jpg',
+      api: {
+        createSignedUrl: vi.fn().mockRejectedValue(new Error('failed')),
+        upload: vi.fn(),
+        remove: vi.fn(),
+      },
+    });
+
+    expect(await screen.findByLabelText('Chưa có ảnh')).toBeInTheDocument();
+  });
 });

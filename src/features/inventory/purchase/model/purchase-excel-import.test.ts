@@ -63,4 +63,27 @@ describe('validatePurchaseReceiptRows', () => {
       lines: [{ productId, receivedQty: '2', unitCost: '12500.50' }],
     });
   });
+
+  it('normalizes Unicode SKU values before resolving them', async () => {
+    const resolveProducts = vi.fn().mockResolvedValue([
+      {
+        requestedSku: 'MÃ-001',
+        productId,
+        sku: 'MÃ-001',
+        productName: 'Sản phẩm A',
+        unitName: 'Hộp',
+        isActive: true,
+      },
+    ]);
+
+    const result = await validatePurchaseReceiptRows({
+      headers: ['SKU', 'Số lượng nhận', 'Đơn giá nhập'],
+      rows: [{ rowNumber: 2, cells: ['MA\u0303-001', '2', '12500'] }],
+      existingProductIds: new Set(),
+      resolveProducts,
+    });
+
+    expect(resolveProducts).toHaveBeenCalledWith(['MÃ-001']);
+    expect(result.canApply).toBe(true);
+  });
 });

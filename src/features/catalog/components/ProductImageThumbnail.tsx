@@ -5,6 +5,17 @@ import {
   type ProductImageApi,
 } from '../api/product-image-api';
 
+function MissingImage({ className }: { className: string }) {
+  return (
+    <div
+      aria-label="Chưa có ảnh"
+      className={`grid place-items-center bg-slate-100 text-xs font-semibold text-slate-500 ${className}`}
+    >
+      Ảnh
+    </div>
+  );
+}
+
 export function ProductImageThumbnail({
   objectPath,
   alt,
@@ -26,14 +37,7 @@ export function ProductImageThumbnail({
   const baseClass = `aspect-square rounded-lg ${className}`;
 
   if (!objectPath) {
-    return (
-      <div
-        aria-label="Chưa có ảnh"
-        className={`grid place-items-center bg-slate-100 text-xs font-semibold text-slate-500 ${baseClass}`}
-      >
-        Ảnh
-      </div>
-    );
+    return <MissingImage className={baseClass} />;
   }
   if (query.isPending) {
     return (
@@ -44,14 +48,7 @@ export function ProductImageThumbnail({
     );
   }
   if (query.isError || !query.data) {
-    return (
-      <div
-        aria-label="Không thể tải ảnh"
-        className={`grid place-items-center bg-slate-100 p-2 text-center text-xs text-slate-600 ${baseClass}`}
-      >
-        Không thể mở ảnh
-      </div>
-    );
+    return <MissingImage className={baseClass} />;
   }
   return (
     <img

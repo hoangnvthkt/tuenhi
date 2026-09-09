@@ -43,7 +43,7 @@ export function PurchaseActions({
           Lưu nháp
         </button>
       ) : null}
-      {receipt?.status === 'DRAFT' && canDraft ? (
+      {receipt?.status === 'DRAFT' && canPost ? (
         canPost ? (
           <button
             disabled={!online || busy}

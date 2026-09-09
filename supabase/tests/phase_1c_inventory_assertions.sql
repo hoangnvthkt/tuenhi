@@ -247,6 +247,39 @@ begin
   v_product_three_id := (v_product_three #>> '{data,productId}')::uuid;
   v_product_four_id := (v_product_four #>> '{data,productId}')::uuid;
 
+  v_blocked := api.save_purchase_receipt_draft(
+    null, null, null, now(), 'Thiếu giá nhập',
+    jsonb_build_array(jsonb_build_object(
+      'productId', v_product_one_id, 'receivedQty', '1', 'unitCost', '0'
+    )), gen_random_uuid()
+  );
+  if v_blocked #>> '{error,code}' <> 'VALIDATION_FAILED' then
+    raise exception 'zero purchase cost must be rejected';
+  end if;
+  v_blocked := api.save_purchase_receipt_draft(
+    null, null, null, now(), 'Trùng sản phẩm',
+    jsonb_build_array(
+      jsonb_build_object(
+        'productId', v_product_one_id, 'receivedQty', '1', 'unitCost', '100'
+      ),
+      jsonb_build_object(
+        'productId', v_product_one_id, 'receivedQty', '2', 'unitCost', '100'
+      )
+    ), gen_random_uuid()
+  );
+  if v_blocked #>> '{error,code}' <> 'VALIDATION_FAILED' then
+    raise exception 'duplicate purchase product must be rejected';
+  end if;
+  v_detail := api.resolve_purchase_receipt_products(array[
+    ' P1C-A-' || left(v_suffix, 20) || ' ', 'UNKNOWN-' || left(v_suffix, 20)
+  ]);
+  if not coalesce((v_detail ->> 'ok')::boolean, false)
+    or v_detail #>> '{data,0,productId}' <> v_product_one_id::text
+    or v_detail #>> '{data,1,productId}' is not null
+  then
+    raise exception 'purchase product resolver must retain known and unknown SKU positions';
+  end if;
+
   v_receipt := api.save_purchase_receipt_draft(
     null, null, null, now(), 'Vector 10 x 40000',
     jsonb_build_array(jsonb_build_object(
@@ -256,7 +289,19 @@ begin
   v_receipt_id := (v_receipt #>> '{data,receiptId}')::uuid;
   v_version := (v_receipt #>> '{data,version}')::bigint;
   v_detail := api.get_purchase_receipt_operational(v_receipt_id);
+  if v_detail::text ilike '%unitCost%' then
+    raise exception 'operational purchase DTO must not expose cost';
+  end if;
   v_line_id := (v_detail #>> '{data,lines,0,id}')::uuid;
+  if not exists (
+    select 1
+    from app_private.purchase_receipt_draft_line_costs draft_cost
+    where draft_cost.purchase_receipt_line_id = v_line_id
+      and draft_cost.unit_cost = 40000
+      and draft_cost.entered_by = v_owner_id
+  ) then
+    raise exception 'draft cost must be private and attributed to its creator';
+  end if;
   v_key := gen_random_uuid();
   v_post := api.post_purchase_receipt(
     v_receipt_id, v_version, '[]'::jsonb, v_key

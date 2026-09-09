@@ -25,6 +25,10 @@ function asText(value: unknown) {
   return value === null || value === undefined ? '' : String(value).trim();
 }
 
+function asSku(value: unknown) {
+  return asText(value).normalize('NFC');
+}
+
 export async function validatePurchaseReceiptRows({
   headers,
   rows,
@@ -62,7 +66,7 @@ export async function validatePurchaseReceiptRows({
 
   const normalized = rows.map((row) => ({
     rowNumber: row.rowNumber,
-    sku: asText(row.cells[0]),
+    sku: asSku(row.cells[0]),
     receivedQty: asText(row.cells[1]),
     unitCost: asText(row.cells[2]),
   }));

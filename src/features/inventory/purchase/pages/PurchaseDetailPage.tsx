@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
@@ -15,13 +15,13 @@ import {
   type ConnectedExplorerApi,
 } from '@/features/connected-explorer';
 import { useSession } from '@/features/auth';
-import { validateCanonicalNumber } from '@/shared/lib/numeric/canonical-number';
 import { createPurchaseApi } from '../api/purchase-api';
 import type { PurchaseReceipt } from '../api/purchase-schemas';
 import { PurchaseActions } from '../components/PurchaseActions';
 import { PurchaseLineEditor } from '../components/PurchaseLineEditor';
 import { PurchasePrefillIntent } from '../components/PurchasePrefillIntent';
 import type { PurchaseDraftLine } from '../model/purchase-draft';
+import { validatePurchaseDraftLines } from '../model/purchase-draft-validation';
 import {
   formatMoney,
   safeInventoryMessage,
@@ -310,6 +310,19 @@ export function PurchaseDetailPage({
     linesTouchedRef.current = true;
     setLines(action);
   };
+  const searchProducts = useCallback(
+    async (query: string) => {
+      const page = await catalogApi.list({ search: query, limit: 20 });
+      setProducts((current) => [
+        ...current,
+        ...page.items.filter(
+          (item) => !current.some((existing) => existing.id === item.id),
+        ),
+      ]);
+      return page.items;
+    },
+    [catalogApi],
+  );
   async function perform(
     action: () => Promise<unknown>,
     success: string,
@@ -342,21 +355,8 @@ export function PurchaseDetailPage({
     }
   }
   async function save() {
-    const validLines = lines.filter(
-      (line) =>
-        line.productId &&
-        validateCanonicalNumber(line.receivedQty, {
-          kind: 'quantity',
-          precision: 18,
-          positive: true,
-        }).ok &&
-        validateCanonicalNumber(line.unitCost, {
-          kind: 'money',
-          precision: 20,
-          positive: true,
-        }).ok,
-    );
-    if (validLines.length === 0 || validLines.length !== lineProductIds.size) {
+    const validated = validatePurchaseDraftLines(lines);
+    if (!validated.ok) {
       setError(
         'Mỗi sản phẩm chỉ được chọn một lần, có số lượng và đơn giá nhập lớn hơn 0.',
       );
@@ -369,7 +369,7 @@ export function PurchaseDetailPage({
         supplierId: supplierId || undefined,
         receivedAt: new Date(receivedAt).toISOString(),
         note,
-        lines: validLines,
+        lines: validated.lines,
         idempotencyKey: crypto.randomUUID(),
       });
       const id = String(result.receiptId);
@@ -483,6 +483,7 @@ export function PurchaseDetailPage({
         setCosts={setCosts}
         canViewProduct={canViewProduct}
         resolveProducts={api.resolveProductsBySku}
+        searchProducts={searchProducts}
       />
       <PurchaseActions
         api={api}
