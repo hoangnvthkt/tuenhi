@@ -6,6 +6,10 @@ export {
   type ImportApi,
 } from './api/import-api';
 export type { ImportMode, ImportTarget } from './model/contracts';
+export {
+  inspectWorkbook,
+  type InspectedWorkbook,
+} from './parser/workbook-parser';
 export type {
   LegacyResolutions,
   LegacyTargets,

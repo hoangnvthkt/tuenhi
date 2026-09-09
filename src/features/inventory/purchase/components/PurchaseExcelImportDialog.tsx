@@ -5,7 +5,7 @@ import { validatePurchaseReceiptRows } from '../model/purchase-excel-import';
 import {
   inspectWorkbook,
   type InspectedWorkbook,
-} from '@/features/imports/parser/workbook-parser';
+} from '@/features/imports';
 
 type ImportPreview = Awaited<ReturnType<typeof validatePurchaseReceiptRows>>;
 
