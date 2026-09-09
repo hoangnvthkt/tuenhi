@@ -47,7 +47,13 @@ function createApi(overrides: Partial<CatalogApi> = {}): CatalogApi {
 
 function renderPage({
   api,
-  explorerApi,
+  explorerApi = {
+    productContext: vi.fn(),
+    productSuppliers: vi.fn(),
+    supplierDetail: vi.fn(),
+    supplierProducts: vi.fn(),
+    postedPurchaseHistory: vi.fn(),
+  } as unknown as ConnectedExplorerApi,
   mode = 'view',
   permissions = ['catalog.read'],
   initialEntry,

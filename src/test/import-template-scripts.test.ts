@@ -52,6 +52,7 @@ describe('official import template scripts', () => {
       'customers-v2.xlsx',
       'opening-balances-v1.xlsx',
       'products-v1.xlsx',
+      'purchase-receipt-v1.xlsx',
       'suppliers-v1.xlsx',
     ]);
 
