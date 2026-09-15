@@ -94,6 +94,31 @@ describe('AppShell', () => {
     }
   });
 
+  it('keeps navigation icons decorative so link names stay concise', async () => {
+    renderAppRoute('/');
+
+    await screen.findByRole(
+      'heading',
+      { name: 'Tổng quan' },
+      { timeout: 5_000 },
+    );
+
+    const desktopNavigation = screen.getByRole('navigation', {
+      name: 'Điều hướng máy tính',
+    });
+
+    for (const label of [
+      'Tổng quan',
+      'Hàng hóa',
+      'Bán hàng',
+      'Hóa đơn',
+      'Nhiều hơn',
+    ]) {
+      const link = within(desktopNavigation).getByRole('link', { name: label });
+      expect(link.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    }
+  });
+
   it('renders the POS page at /pos', async () => {
     renderAppRoute('/pos');
 

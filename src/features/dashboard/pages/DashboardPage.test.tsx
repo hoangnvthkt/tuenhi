@@ -125,6 +125,16 @@ function renderPage() {
 }
 
 describe('DashboardPage', () => {
+  it('groups each metric as a labelled summary with a decorative icon', async () => {
+    renderPage();
+
+    const metric = await screen.findByRole('article', {
+      name: 'Sản phẩm hoạt động',
+    });
+    expect(metric).toHaveTextContent('Sản phẩm hoạt động');
+    expect(metric.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+  });
+
   it('keeps the selected period in the URL and manually refreshes all dashboard data', async () => {
     const user = userEvent.setup();
     const api = renderPage();

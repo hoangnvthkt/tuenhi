@@ -8,15 +8,24 @@ import {
 } from '@/features/reports';
 import { useDashboardData } from '../hooks/use-dashboard-data';
 import { formatReportMoney, formatReportNumber } from '@/features/reports';
+import { ChartBar } from '@phosphor-icons/react';
 
 function Card({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-sm text-slate-600">{label}</p>
-      <p className="mt-1 text-xl font-bold tabular-nums text-slate-950">
+    <article
+      aria-label={label}
+      className="metric-card min-w-0 rounded-2xl border bg-white p-4 shadow-sm"
+    >
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <p className="text-sm font-medium leading-6 text-slate-600">{label}</p>
+        <span className="metric-icon">
+          <ChartBar size={20} aria-hidden="true" />
+        </span>
+      </div>
+      <p className="metric-value text-xl font-bold tabular-nums text-slate-950">
         {value}
       </p>
-    </div>
+    </article>
   );
 }
 export function DashboardPage() {

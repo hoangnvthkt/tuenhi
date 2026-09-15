@@ -50,6 +50,15 @@ function renderLogin(api: SessionApi) {
 }
 
 describe('LoginPage', () => {
+  it('shows the Tuệ Nhi brand mark without changing the login heading', () => {
+    renderLogin(createApi());
+
+    expect(screen.getByRole('img', { name: 'Tuệ Nhi' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Đăng nhập bán hàng' }),
+    ).toBeVisible();
+  });
+
   it('links anonymous users to password recovery', () => {
     renderLogin(createApi());
 

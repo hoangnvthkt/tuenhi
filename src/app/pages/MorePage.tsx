@@ -1,5 +1,34 @@
 import { Link } from 'react-router';
 import { useSession } from '@/features/auth';
+import {
+  Archive,
+  FileArrowUp,
+  Truck,
+  BookOpen,
+  ClipboardText,
+  ArrowUUpLeft,
+  ChartBar,
+  Calculator,
+  Buildings,
+  Users,
+  Storefront,
+  Gear,
+} from '@phosphor-icons/react';
+
+const destinationVisuals = [
+  { icon: Archive, tone: 'slate' },
+  { icon: FileArrowUp, tone: 'blue' },
+  { icon: Truck, tone: 'orange' },
+  { icon: BookOpen, tone: 'teal' },
+  { icon: ClipboardText, tone: 'blue' },
+  { icon: ArrowUUpLeft, tone: 'rose' },
+  { icon: ChartBar, tone: 'violet' },
+  { icon: Calculator, tone: 'teal' },
+  { icon: Buildings, tone: 'orange' },
+  { icon: Users, tone: 'rose' },
+  { icon: Storefront, tone: 'violet' },
+  { icon: Gear, tone: 'slate' },
+];
 
 const destinations = [
   {
@@ -88,11 +117,16 @@ const destinations = [
 
 export function MorePage() {
   const { session } = useSession();
-  const visible = destinations.filter((destination) =>
-    destination.permissions.some((permission) =>
-      session?.permissions.includes(permission),
-    ),
-  );
+  const visible = destinations
+    .map((destination, index) => ({
+      ...destination,
+      ...(destinationVisuals[index] ?? { icon: Gear, tone: 'slate' }),
+    }))
+    .filter((destination) =>
+      destination.permissions.some((permission) =>
+        session?.permissions.includes(permission),
+      ),
+    );
 
   return (
     <section className="space-y-5">
@@ -109,17 +143,24 @@ export function MorePage() {
           Bạn chưa có quyền sử dụng chức năng bổ sung nào.
         </p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="module-grid grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
           {visible.map((destination) => (
             <Link
               key={destination.to}
               to={destination.to}
-              className="group min-h-28 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-teal-300 hover:bg-teal-50/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+              className={`module-card tone-${destination.tone} group min-w-0 rounded-2xl border bg-white p-4 text-center sm:p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700`}
             >
-              <h2 className="font-bold text-slate-950 group-hover:text-teal-800">
+              <span className="module-icon">
+                <destination.icon
+                  size={30}
+                  weight="regular"
+                  aria-hidden="true"
+                />
+              </span>
+              <h2 className="module-title font-bold text-slate-800">
                 {destination.title}
               </h2>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm leading-6 text-slate-600">
                 {destination.description}
               </p>
             </Link>

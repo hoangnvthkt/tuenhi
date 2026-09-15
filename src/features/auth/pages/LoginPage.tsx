@@ -47,9 +47,14 @@ export function LoginPage() {
   });
 
   return (
-    <main className="grid min-h-screen bg-slate-50 px-4 py-10 sm:place-items-center">
-      <section className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <main className="login-surface grid min-h-screen place-items-center px-4 py-10">
+      <section className="login-card w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="mb-8">
+          <img
+            src="/logo.svg"
+            alt="Tuệ Nhi"
+            className="mb-5 h-14 w-14 rounded-2xl"
+          />
           <p className="text-sm font-semibold text-teal-700">TUỆ NHI</p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
             Đăng nhập bán hàng

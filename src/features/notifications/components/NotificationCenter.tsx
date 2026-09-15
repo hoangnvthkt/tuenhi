@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Bell } from '@phosphor-icons/react';
 import { useContext, useEffect, useState } from 'react';
 import { NotificationApiContext } from '../model/notification-context';
 import type {
@@ -136,7 +137,7 @@ export function NotificationCenter({
         onClick={() => setOpen(true)}
         className="relative min-h-11 rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
       >
-        Thông báo
+        <Bell size={22} aria-hidden="true" />
         {query.data && query.data.unreadCount > 0 ? (
           <span
             aria-label={`${query.data.unreadCount} thông báo chưa đọc`}

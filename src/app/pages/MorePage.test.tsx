@@ -60,6 +60,17 @@ describe('MorePage', () => {
       'href',
       '/legacy-sales',
     );
+
+    for (const destination of [
+      'Nhà cung cấp',
+      'Khách hàng',
+      'Kênh bán',
+      'Nhập dữ liệu',
+      'Dữ liệu cũ',
+    ]) {
+      const link = screen.getByRole('link', { name: new RegExp(destination) });
+      expect(link.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    }
   });
 
   it('does not leak inaccessible destinations', () => {
