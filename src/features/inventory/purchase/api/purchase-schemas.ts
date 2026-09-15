@@ -91,4 +91,6 @@ export const resolvedPurchaseProductsSchema = z.array(
 
 export type PurchaseReceipt = z.infer<typeof purchaseReceiptSchema>;
 export type PurchaseReceiptCost = z.infer<typeof purchaseCostSchema>;
-export type ResolvedPurchaseProduct = z.infer<typeof resolvedPurchaseProductSchema>;
+export type ResolvedPurchaseProduct = z.infer<
+  typeof resolvedPurchaseProductSchema
+>;
