@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const rpc = vi.fn();
 
 vi.mock('../../api/inventory-rpc', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../api/inventory-rpc')>();
+  const actual =
+    await importOriginal<typeof import('../../api/inventory-rpc')>();
   return { ...actual, createInventoryRpc: () => rpc };
 });
 

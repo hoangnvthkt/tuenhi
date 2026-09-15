@@ -280,7 +280,9 @@ describe('PurchaseDetailPage cost boundary', () => {
       await screen.findByRole('option', { name: 'NCC prefill' }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Nhà cung cấp')).toHaveValue(supplier.id);
-    expect(await screen.findByText('SP-PREFILL — Sản phẩm prefill')).toBeInTheDocument();
+    expect(
+      await screen.findByText('SP-PREFILL — Sản phẩm prefill'),
+    ).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
   });
 });
