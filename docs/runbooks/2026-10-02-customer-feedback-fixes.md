@@ -1,7 +1,9 @@
 # Phản ánh khách hàng 02/10/2026 — triển khai và UAT
 
 Trạng thái: đã triển khai trên nhánh `codex/tuenhi-feedback-fixes`; chưa apply
-migration, deploy Edge Function hoặc frontend lên Cloud trong task này.
+migration, deploy Edge Function hoặc frontend Production trong task này. PR có
+thể tự tạo Vercel Preview; preview chưa có đầy đủ chức năng mới cho tới khi
+backend được triển khai đúng thứ tự bên dưới.
 
 ## Hành vi bàn giao
 
