@@ -13,6 +13,7 @@ import { createSettingsApi } from '@/features/settings';
 import { useSession } from '@/features/auth';
 import { createSalesApi } from '../api/sales-api';
 import type { Sale } from '../api/sales-schemas';
+import { DraftPrintDialog } from '../components/DraftPrintDialog';
 import { CartPanel } from '../components/CartPanel';
 import { CheckoutDialog } from '../components/CheckoutDialog';
 import { ProductPicker } from '../components/ProductPicker';
@@ -340,29 +341,6 @@ export function PosPage() {
   }, [detail.data, identity, restoreSnapshot, session?.userId]);
 
   useEffect(() => {
-    if (!customerIntentVisible || !linkedCustomer || !workspaceReady) return;
-    if (customerId === linkedCustomer.id) {
-      clearCustomerIntent();
-      return;
-    }
-    if (
-      !customerId &&
-      canEdit &&
-      customerSelectionRevisionRef.current === customerIntentRevisionRef.current
-    ) {
-      setCustomerId(linkedCustomer.id);
-      clearCustomerIntent();
-    }
-  }, [
-    canEdit,
-    clearCustomerIntent,
-    customerId,
-    customerIntentVisible,
-    linkedCustomer,
-    workspaceReady,
-  ]);
-
-  useEffect(() => {
     const userId = session?.userId;
     if (!userId || !workspaceReady || !canEdit) return;
     const nextRevision = revisionRef.current + 1;
@@ -475,7 +453,15 @@ export function PosPage() {
     setItems((current) =>
       current.map((x) => (x.productId === id ? { ...x, [field]: value } : x)),
     );
-  const { discard, pay, save, saving } = usePosCommands({
+  const {
+    discard,
+    pay,
+    save,
+    saving,
+    preparePrint,
+    provisionalDocument,
+    closePrint,
+  } = usePosCommands({
     api: salesApi,
     online,
     userId: session?.userId,
@@ -493,6 +479,38 @@ export function PosPage() {
     setPayment,
   });
   useEffect(() => {
+    if (
+      !customerIntentVisible ||
+      !linkedCustomer ||
+      !workspaceReady ||
+      saving ||
+      provisionalDocument
+    )
+      return;
+    if (customerId === linkedCustomer.id) {
+      clearCustomerIntent();
+      return;
+    }
+    if (
+      !customerId &&
+      canEdit &&
+      customerSelectionRevisionRef.current === customerIntentRevisionRef.current
+    ) {
+      setCustomerId(linkedCustomer.id);
+      clearCustomerIntent();
+    }
+  }, [
+    canEdit,
+    clearCustomerIntent,
+    customerId,
+    customerIntentVisible,
+    linkedCustomer,
+    saving,
+    provisionalDocument,
+    workspaceReady,
+  ]);
+
+  useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {
       if (event.isComposing) return;
       const target = event.target;
@@ -508,6 +526,7 @@ export function PosPage() {
         event.key === 'Enter' &&
         (event.ctrlKey || event.metaKey) &&
         !payment &&
+        !provisionalDocument &&
         workspaceReady &&
         canEdit &&
         online &&
@@ -520,9 +539,20 @@ export function PosPage() {
     };
     window.addEventListener('keydown', onShortcut);
     return () => window.removeEventListener('keydown', onShortcut);
-  }, [canEdit, items.length, online, payment, saving, workspaceReady]);
+  }, [
+    canEdit,
+    items.length,
+    online,
+    payment,
+    provisionalDocument,
+    saving,
+    workspaceReady,
+  ]);
   return (
-    <main className="mx-auto max-w-7xl p-4 sm:p-6">
+    <main
+      inert={Boolean(provisionalDocument)}
+      className="mx-auto max-w-7xl p-4 sm:p-6"
+    >
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-slate-950">Bán hàng</h1>
@@ -575,9 +605,18 @@ export function PosPage() {
         customer={customerIntentVisible ? linkedCustomer : null}
         warning={customerIntentWarning}
         currentCustomerId={customerId}
-        disabled={!workspaceReady || !canEdit}
+        disabled={
+          !workspaceReady || !canEdit || saving || Boolean(provisionalDocument)
+        }
         onReplace={() => {
-          if (!linkedCustomer || !workspaceReady || !canEdit) return;
+          if (
+            !linkedCustomer ||
+            !workspaceReady ||
+            !canEdit ||
+            saving ||
+            provisionalDocument
+          )
+            return;
           setCustomerId(linkedCustomer.id);
           clearCustomerIntent();
         }}
@@ -585,7 +624,7 @@ export function PosPage() {
         onDismiss={clearCustomerIntent}
       />
       <fieldset
-        disabled={!workspaceReady || !canEdit}
+        disabled={!workspaceReady || !canEdit || saving}
         className="grid min-w-0 gap-5 disabled:opacity-75 lg:grid-cols-[1fr_420px]"
       >
         <div className="space-y-3">
@@ -646,10 +685,14 @@ export function PosPage() {
           }}
           onOrderDiscountChange={setOrderDiscount}
           onNoteChange={setNote}
+          onPrint={() => void preparePrint()}
           onSave={() => void save()}
           onCheckout={() => setPayment('CASH')}
         />
       </fieldset>
+      {provisionalDocument ? (
+        <DraftPrintDialog document={provisionalDocument} onClose={closePrint} />
+      ) : null}
       {payment ? (
         <CheckoutDialog
           payment={payment}

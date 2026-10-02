@@ -18,7 +18,7 @@ import { useFinancialCommand } from '@/shared/hooks/use-financial-command';
 import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createSalesApi } from '../api/sales-api';
-import type { Invoice } from '../api/sales-schemas';
+import { downloadInvoicePdf } from '../model/sales-pdf';
 import { getSupabaseClient } from '@/shared/supabase/client';
 import { useSession } from '@/features/auth';
 import { PaymentProofLink } from '@/features/payments';
@@ -28,41 +28,6 @@ const money = (v: string) =>
     currency: 'VND',
     maximumFractionDigits: 0,
   }).format(Number(v));
-async function downloadPdf(invoice: Invoice) {
-  const module = await import('pdfmake/build/pdfmake');
-  const pdfMake = (module.default ?? module) as unknown as {
-    createPdf: (content: unknown) => { download: (name: string) => void };
-  };
-  pdfMake
-    .createPdf({
-      content: [
-        { text: invoice.store.displayName, style: 'header' },
-        { text: `HÓA ĐƠN ${invoice.sale.saleNumber}` },
-        { text: new Date(invoice.sale.completedAt).toLocaleString('vi-VN') },
-        { text: ' ' },
-        {
-          table: {
-            widths: ['*', 'auto', 'auto'],
-            body: [
-              ['Sản phẩm', 'SL', 'Thành tiền'],
-              ...invoice.lines.map((x) => [
-                x.productName,
-                formatViNumber(x.quantity),
-                money(x.netAmount),
-              ]),
-              ['Tổng cộng', '', '' + money(invoice.totals.netTotal)],
-            ],
-          },
-        },
-        invoice.store.invoiceFooter
-          ? { text: '\n' + invoice.store.invoiceFooter }
-          : {},
-      ],
-      styles: { header: { fontSize: 16, bold: true } },
-    })
-    .download(`Hoa-don-${invoice.sale.saleNumber}.pdf`);
-}
-
 function findSalePendingCommand(userId?: string, saleId?: string) {
   if (!userId || !saleId) return undefined;
   try {
@@ -196,7 +161,7 @@ export function SaleDetailPage() {
     if (pdfBusy) return;
     setPdfBusy(true);
     try {
-      await downloadPdf(invoice!);
+      await downloadInvoicePdf(invoice!);
     } catch {
       toast.show({ kind: 'error', title: 'Không thể tạo PDF' });
     } finally {

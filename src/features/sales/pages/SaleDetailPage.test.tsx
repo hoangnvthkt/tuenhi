@@ -1,5 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,64 +17,22 @@ import {
 } from '@/shared/api/financial-command';
 import { FINANCIAL_COMMAND_RECONCILE_EVENT } from '@/shared/api/financial-command-recovery';
 import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
-import type { Invoice } from '../api/sales-schemas';
+import { invoiceFixture as invoice } from '../testing/invoice-fixture';
 import { SaleDetailPage } from './SaleDetailPage';
+
+const pdfMocks = vi.hoisted(() => ({
+  download: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('pdfmake/build/pdfmake', () => ({
+  default: {
+    addFonts: vi.fn(),
+    createPdf: () => ({ download: pdfMocks.download }),
+  },
+}));
 
 const userId = '10000000-0000-4000-8000-000000000001';
 const saleId = '20000000-0000-4000-8000-000000000001';
 const requestId = '30000000-0000-4000-8000-000000000001';
-
-const invoice: Invoice = {
-  version: 2,
-  store: {
-    displayName: 'Tuệ Nhi',
-    logoPath: null,
-    address: 'Hà Nội',
-    contactPhone: null,
-    zalo: null,
-    invoiceFooter: 'Cảm ơn quý khách',
-  },
-  sale: {
-    id: saleId,
-    saleNumber: 'HD000001',
-    completedAt: '2026-08-31T07:00:00.000Z',
-    status: 'COMPLETED',
-    channelCode: 'IN_STORE',
-    channelName: 'Tại quầy',
-    staffName: 'Chủ cửa hàng',
-    customerName: 'Khách thử',
-    customerPhone: null,
-    paymentMethod: 'CASH',
-    paymentStatus: 'CAPTURED',
-    transferProofPath: null,
-    cancelledAt: null,
-    cancelReason: null,
-  },
-  lines: [
-    {
-      id: '50000000-0000-4000-8000-000000000001',
-      productName: 'Áo thử',
-      sku: 'AO-001',
-      unitName: 'Cái',
-      quantity: '1',
-      unitSalePrice: '150000',
-      grossAmount: '150000',
-      lineDiscountAmount: '0',
-      allocatedOrderDiscount: '0',
-      netAmount: '150000',
-      returnedQty: '0',
-      returnableQty: '1',
-    },
-  ],
-  totals: {
-    subtotal: '150000',
-    lineDiscountTotal: '0',
-    orderDiscountTotal: '0',
-    netTotal: '150000',
-    capturedAmount: '150000',
-  },
-  lifecycle: { canReturn: true, canCancel: true, returns: [] },
-};
 
 const api = {
   invoice: vi.fn().mockResolvedValue(invoice),
@@ -147,6 +112,28 @@ beforeEach(() => {
 });
 
 describe('SaleDetailPage productivity actions', () => {
+  it('reports a rejected asynchronous PDF download and releases the busy button', async () => {
+    const user = userEvent.setup();
+    let rejectDownload!: (reason: Error) => void;
+    pdfMocks.download.mockImplementationOnce(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectDownload = reject;
+        }),
+    );
+    renderPage();
+    await screen.findByRole('heading', { name: 'HD000001' });
+    const download = screen.getByRole('button', { name: 'Tải PDF' });
+    await user.click(download);
+    await waitFor(() => expect(pdfMocks.download).toHaveBeenCalled());
+    expect(download).toBeDisabled();
+    await act(async () => {
+      rejectDownload(new Error('download failed'));
+    });
+    expect(await screen.findByText('Không thể tạo PDF')).toBeVisible();
+    expect(download).toBeEnabled();
+  });
+
   it('does not print automatically and exposes print, PDF and new-order actions', async () => {
     const user = userEvent.setup();
     const print = vi.spyOn(window, 'print').mockImplementation(() => undefined);

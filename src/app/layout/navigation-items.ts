@@ -8,7 +8,14 @@ import {
 } from '@phosphor-icons/react';
 
 export const navigationItems = [
-  { to: '/', label: 'Tổng quan', end: true, icon: ChartPie, tone: 'blue' },
+  {
+    to: '/',
+    label: 'Tổng quan',
+    end: true,
+    icon: ChartPie,
+    tone: 'blue',
+    permission: 'dashboard.operational.read',
+  },
   {
     to: '/products',
     label: 'Hàng hóa',
@@ -20,11 +27,19 @@ export const navigationItems = [
   {
     to: '/pos',
     label: 'Bán hàng',
+    permission: 'sale.draft.manage',
     end: false,
     icon: ShoppingCart,
     tone: 'teal',
   },
-  { to: '/sales', label: 'Hóa đơn', end: false, icon: Receipt, tone: 'violet' },
+  {
+    to: '/sales',
+    label: 'Hóa đơn',
+    end: false,
+    icon: Receipt,
+    tone: 'violet',
+    permission: 'sale.own.read',
+  },
   {
     to: '/more',
     label: 'Nhiều hơn',

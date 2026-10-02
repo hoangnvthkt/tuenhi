@@ -7,7 +7,7 @@ import type { CreateStaffInput } from '../api/staff-api';
 const staffFormSchema = z.object({
   email: z.email('Email chưa đúng định dạng.'),
   displayName: z.string().trim().min(1, 'Vui lòng nhập tên hiển thị.').max(120),
-  roleTemplate: z.enum(['SALES_WAREHOUSE', 'BUSINESS']),
+  roleTemplate: z.enum(['SALES_WAREHOUSE', 'BUSINESS', 'WAREHOUSE_VIEWER']),
   temporaryPassword: z
     .string()
     .regex(
@@ -109,6 +109,7 @@ export function StaffForm({
         >
           <option value="SALES_WAREHOUSE">Bán hàng &amp; Kho</option>
           <option value="BUSINESS">Nhân viên kinh doanh</option>
+          <option value="WAREHOUSE_VIEWER">Kho — chỉ xem</option>
         </select>
       </div>
 

@@ -1,4 +1,5 @@
-export type RoleTemplate = 'SALES_WAREHOUSE' | 'BUSINESS' | 'OWNER';
+export type RoleTemplate =
+  'SALES_WAREHOUSE' | 'BUSINESS' | 'WAREHOUSE_VIEWER' | 'OWNER';
 
 export interface AuthSession {
   userId: string;

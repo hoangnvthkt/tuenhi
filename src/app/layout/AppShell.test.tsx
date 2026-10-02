@@ -47,14 +47,14 @@ beforeAll(() => {
   vi.stubEnv('VITE_SUPABASE_PUBLISHABLE_KEY', 'test-publishable-key');
 });
 
-function renderAppRoute(initialEntry: string) {
+function renderAppRoute(initialEntry: string, api: SessionApi = sessionApi) {
   const router = createMemoryRouter(appRoutes, {
     initialEntries: [initialEntry],
   });
 
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <AuthProvider api={sessionApi}>
+      <AuthProvider api={api}>
         <NotificationApiContext.Provider value={notificationApi}>
           <ToastProvider>
             <RouterProvider router={router} />
@@ -147,4 +147,33 @@ describe('AppShell', () => {
       ),
     ).not.toBeInTheDocument();
   });
+});
+
+it('lands inventory viewers on products and hides inaccessible navigation', async () => {
+  renderAppRoute('/', {
+    ...sessionApi,
+    getSessionContext: vi.fn().mockResolvedValue({
+      userId: '00000000-0000-4000-8000-000000000001',
+      email: 'kho@example.com',
+      displayName: 'Nhân viên kho',
+      roleTemplate: 'WAREHOUSE_VIEWER',
+      isActive: true,
+      mustChangePassword: false,
+      permissions: ['catalog.read', 'inventory.read'],
+    }),
+  });
+  expect(
+    await screen.findByRole('heading', { name: 'Hàng hóa' }, { timeout: 5000 }),
+  ).toBeVisible();
+  for (const name of ['Điều hướng máy tính', 'Điều hướng di động']) {
+    const navigation = screen.getByRole('navigation', { name });
+    expect(
+      within(navigation)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['Hàng hóa']);
+  }
+  expect(
+    screen.queryByRole('link', { name: /Thêm sản phẩm/ }),
+  ).not.toBeInTheDocument();
 });

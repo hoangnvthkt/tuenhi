@@ -7,6 +7,7 @@ import { PosPage } from './PosPage';
 import { acquirePosEditorLease } from '../model/pos-storage';
 
 const mocks = vi.hoisted(() => ({
+  preparePrint: vi.fn(),
   catalogList: vi.fn().mockResolvedValue({ items: [] }),
   catalogDetail: vi.fn(),
   customerDetail: vi.fn(),
@@ -76,6 +77,9 @@ vi.mock('../api/sales-api', () => ({
 
 vi.mock('../hooks/use-pos-commands', () => ({
   usePosCommands: () => ({
+    preparePrint: mocks.preparePrint,
+    provisionalDocument: null,
+    closePrint: vi.fn(),
     discard: vi.fn(),
     pay: vi.fn(),
     save: vi.fn(),
@@ -109,6 +113,36 @@ describe('PosPage', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('allows provisional printing with an in-stock quantity of zero', async () => {
+    localStorage.setItem(
+      'tuenhi:pos:cart:10000000-0000-4000-8000-000000000099',
+      JSON.stringify({
+        items: [
+          {
+            productId: '10000000-0000-4000-8000-000000000001',
+            productName: 'Sữa hộp',
+            sku: 'SUA',
+            unitName: 'Hộp',
+            quantity: '2',
+            unitSalePrice: '50000',
+            lineDiscountAmount: '0',
+            lineOrder: 0,
+            onHandQty: '0',
+          },
+        ],
+        channelId: channels[0]!.id,
+        customerId: '',
+        orderDiscount: '0',
+        note: '',
+      }),
+    );
+    renderPage();
+    const print = await screen.findByRole('button', { name: 'In tạm tính' });
+    expect(print).toBeEnabled();
+    await userEvent.click(print);
+    expect(mocks.preparePrint).toHaveBeenCalledOnce();
   });
 
   it('keeps the selected sales channel instead of restoring stale cart state', async () => {

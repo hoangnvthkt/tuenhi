@@ -11,6 +11,7 @@ export function useDashboardData({
   from,
   to,
   canAll,
+  canOwn,
   canProfit,
   online,
 }: {
@@ -18,6 +19,7 @@ export function useDashboardData({
   from: string;
   to: string;
   canAll: boolean;
+  canOwn: boolean;
   canProfit: boolean;
   online: boolean;
 }) {
@@ -39,6 +41,7 @@ export function useDashboardData({
       canAll
         ? revenueApi.revenue(from, to, 'ALL')
         : revenueApi.mySummary(from, to),
+    enabled: canAll || canOwn,
     ...refreshOptions,
   });
   const owner = useQuery({
@@ -50,7 +53,7 @@ export function useDashboardData({
   });
   const refresh = () => {
     void operational.refetch();
-    void revenue.refetch();
+    if (canAll || canOwn) void revenue.refetch();
     if (canProfit) void owner.refetch();
   };
   return { operational, revenue, owner, refresh };

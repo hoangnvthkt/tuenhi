@@ -48,6 +48,7 @@ describe('CartPanel', () => {
           onCustomerChange={vi.fn()}
           onOrderDiscountChange={vi.fn()}
           onNoteChange={vi.fn()}
+          onPrint={vi.fn()}
           onSave={vi.fn()}
           onCheckout={vi.fn()}
         />
@@ -107,6 +108,7 @@ describe('CartPanel', () => {
           onCustomerChange={vi.fn()}
           onOrderDiscountChange={vi.fn()}
           onNoteChange={vi.fn()}
+          onPrint={vi.fn()}
           onSave={vi.fn()}
           onCheckout={vi.fn()}
         />

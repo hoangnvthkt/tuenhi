@@ -129,7 +129,10 @@ function renderPage({
 
 describe('ProductDetailPage', () => {
   it('shows operational catalog data without any cost field', async () => {
-    renderPage({ api: createApi(), permissions: ['catalog.read'] });
+    renderPage({
+      api: createApi(),
+      permissions: ['catalog.read', 'pricing.sale.read'],
+    });
     expect(await screen.findByText('Sản phẩm A')).toBeInTheDocument();
     expect(screen.getByText(/25\.000/)).toBeInTheDocument();
     expect(screen.getByText('4 Hộp')).toBeInTheDocument();
@@ -270,4 +273,20 @@ describe('ProductDetailPage', () => {
       ),
     );
   });
+});
+
+it('hides sale price and all actions when only inventory and catalog reads are granted', async () => {
+  renderPage({
+    api: createApi(),
+    permissions: ['catalog.read', 'inventory.read'],
+  });
+  expect(await screen.findByText('4 Hộp')).toBeVisible();
+  expect(screen.queryByText(/25\.000/)).not.toBeInTheDocument();
+  expect(screen.queryByText('Giá bán hiện hành')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('link', { name: 'Sửa sản phẩm' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('link', { name: /Bán hàng|Nhập hàng/ }),
+  ).not.toBeInTheDocument();
 });

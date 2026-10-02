@@ -113,6 +113,9 @@ export function ProductListPage({ api: apiProp }: { api?: CatalogApi }) {
       />
 
       <ProductCatalogList
+        canReadSalePrice={
+          session?.permissions.includes('pricing.sale.read') ?? false
+        }
         canManage={canManage}
         error={error}
         isError={query.isError}

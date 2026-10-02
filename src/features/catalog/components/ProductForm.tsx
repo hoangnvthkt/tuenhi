@@ -228,6 +228,7 @@ export function ProductForm({
           precision={18}
           required
           error={fieldErrors.minStockQty}
+          helperText="Báo khi tồn thấp hơn ngưỡng, kể cả hết hàng. Đơn vị hộp để 0 sẽ dùng ngưỡng 50; đơn vị khác để 0 sẽ tắt cảnh báo."
         />
         {canManageSalePrice ? (
           <NumericField

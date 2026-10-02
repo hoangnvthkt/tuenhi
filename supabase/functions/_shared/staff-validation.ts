@@ -1,4 +1,4 @@
-export type EmployeeRole = 'SALES_WAREHOUSE' | 'BUSINESS';
+export type EmployeeRole = 'SALES_WAREHOUSE' | 'BUSINESS' | 'WAREHOUSE_VIEWER';
 
 export type ValidationResult<T> =
   { ok: true; value: T } | { ok: false; message: string };
@@ -58,7 +58,11 @@ export function parseCreateEmployeeInput(
   if (displayName.length < 1 || displayName.length > 120) {
     return invalid('Tên hiển thị phải có từ 1 đến 120 ký tự.');
   }
-  if (roleTemplate !== 'SALES_WAREHOUSE' && roleTemplate !== 'BUSINESS') {
+  if (
+    roleTemplate !== 'SALES_WAREHOUSE' &&
+    roleTemplate !== 'BUSINESS' &&
+    roleTemplate !== 'WAREHOUSE_VIEWER'
+  ) {
     return invalid('Vai trò nhân viên chưa hợp lệ.');
   }
   if (

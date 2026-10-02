@@ -94,6 +94,15 @@ Migration P2.3 là additive, assertion Cloud chỉ đọc được gắn vào
 `pnpm p2:release:verify`. Chi tiết release/UAT/rollback nằm tại
 [runbook P2.3](docs/runbooks/phase-2-p2-3-customer-purchase-history.md).
 
+## Phản ánh khách hàng 02/10/2026
+
+Bổ sung in tạm tính, sửa/hủy phiếu nhập và chọn/sửa nhà cung cấp trong phiếu,
+vai trò kho chỉ xem, cảnh báo tồn dưới ngưỡng. Thứ tự ba migration, Edge Function,
+frontend và checklist UAT nằm tại
+[runbook phản ánh khách hàng](docs/runbooks/2026-10-02-customer-feedback-fixes.md).
+Các fixture ghi dữ liệu chỉ chạy trên PostgreSQL tạm local; release gate Cloud
+chỉ chạy assertion read-only. Migration vẫn cần Owner duyệt trước khi apply.
+
 ## Quy trình cloud — migration đã được duyệt
 
 Không dùng Supabase local hoặc Docker. Mọi lệnh migration chạy trên project Cloud đã link và phải nạp `.env` từ vị trí an toàn mà không in giá trị ra terminal:

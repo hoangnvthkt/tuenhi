@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { lazy } from 'react';
-import type { RouteObject } from 'react-router';
-import { RequireSession } from '@/features/auth';
+import { Navigate, type RouteObject } from 'react-router';
+import { RequireSession, useSession } from '@/features/auth';
 
 const DashboardPage = lazy(() =>
   import('@/features/dashboard').then((module) => ({
@@ -19,9 +19,18 @@ const InventoryValuationPage = lazy(() =>
   })),
 );
 
+function HomeAccess() {
+  const { session } = useSession();
+  return session?.roleTemplate === 'WAREHOUSE_VIEWER' ? (
+    <Navigate replace to="/products" />
+  ) : (
+    <RequireSession permission="dashboard.operational.read" />
+  );
+}
+
 export const reportRoutes: RouteObject[] = [
   {
-    element: <RequireSession permission="dashboard.operational.read" />,
+    element: <HomeAccess />,
     children: [{ index: true, element: <DashboardPage /> }],
   },
   {

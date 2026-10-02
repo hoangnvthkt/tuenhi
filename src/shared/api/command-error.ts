@@ -7,6 +7,12 @@ export const businessErrorMessages = {
     'Giá bán đã thay đổi. Vui lòng kiểm tra và xác nhận lại giỏ hàng.',
   SALES_CHANNEL_INACTIVE: 'Kênh bán đã ngừng sử dụng. Vui lòng chọn kênh khác.',
   INSUFFICIENT_STOCK: 'Tồn kho không đủ để hoàn tất hóa đơn.',
+  PURCHASE_REVERSAL_BLOCKED:
+    'Không thể đảo vì tồn kho đã phát sinh thay đổi sau phiếu nhập hoặc không còn đủ tồn. Hãy kiểm tra lịch sử hàng hóa và liên hệ chủ cửa hàng để xử lý.',
+  COST_LINES_REQUIRED:
+    'Vui lòng nhập và lưu đơn giá cho tất cả sản phẩm trước khi ghi sổ.',
+  REFERENCE_INACTIVE:
+    'Sản phẩm hoặc nhà cung cấp đã ngừng hoạt động. Vui lòng chọn lại.',
   LINE_DISCOUNT_EXCEEDED: 'Giảm giá từng dòng không được vượt tiền hàng.',
   ORDER_DISCOUNT_EXCEEDED: 'Giảm giá toàn đơn vượt số tiền còn lại.',
   RETURN_QTY_EXCEEDED: 'Số lượng trả vượt quá số lượng còn được phép trả.',

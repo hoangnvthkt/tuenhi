@@ -1,0 +1,53 @@
+import type { Invoice } from '../api/sales-schemas';
+
+export const invoiceFixture: Invoice = {
+  version: 2,
+  store: {
+    displayName: 'Tuệ Nhi',
+    logoPath: null,
+    address: 'Hà Nội',
+    contactPhone: null,
+    zalo: null,
+    invoiceFooter: 'Cảm ơn quý khách',
+  },
+  sale: {
+    id: '20000000-0000-4000-8000-000000000001',
+    saleNumber: 'HD000001',
+    completedAt: '2026-08-31T07:00:00.000Z',
+    status: 'COMPLETED',
+    channelCode: 'IN_STORE',
+    channelName: 'Tại quầy',
+    staffName: 'Chủ cửa hàng',
+    customerName: 'Khách thử',
+    customerPhone: null,
+    paymentMethod: 'CASH',
+    paymentStatus: 'CAPTURED',
+    transferProofPath: null,
+    cancelledAt: null,
+    cancelReason: null,
+  },
+  lines: [
+    {
+      id: '50000000-0000-4000-8000-000000000001',
+      productName: 'Áo thử',
+      sku: 'AO-001',
+      unitName: 'Cái',
+      quantity: '1',
+      unitSalePrice: '150000',
+      grossAmount: '150000',
+      lineDiscountAmount: '0',
+      allocatedOrderDiscount: '0',
+      netAmount: '150000',
+      returnedQty: '0',
+      returnableQty: '1',
+    },
+  ],
+  totals: {
+    subtotal: '150000',
+    lineDiscountTotal: '0',
+    orderDiscountTotal: '0',
+    netTotal: '150000',
+    capturedAmount: '150000',
+  },
+  lifecycle: { canReturn: true, canCancel: true, returns: [] },
+};

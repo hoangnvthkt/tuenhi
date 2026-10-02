@@ -73,6 +73,62 @@ beforeEach(() => {
 });
 
 describe('usePosCommands', () => {
+  it('saves and reads the scoped provisional document at zero stock without payment', async () => {
+    const savedDraft = { ...draft, version: 3 };
+    const document = { kind: 'PROVISIONAL', totals: { netTotal: '97000' } };
+    const saveDraft = vi
+      .fn()
+      .mockResolvedValue({ sale: savedDraft, priceRefreshed: true });
+    const draftPrint = vi.fn().mockResolvedValue(document);
+    const complete = vi.fn();
+    const { result } = renderHook(
+      () =>
+        usePosCommands({
+          api: { saveDraft, draftPrint, complete } as unknown as SalesApi,
+          online: true,
+          userId,
+          saleId,
+          draft,
+          items: [
+            {
+              productId: '50000000-0000-4000-8000-000000000001',
+              productName: 'Sữa hộp',
+              sku: 'SUA',
+              unitName: 'Hộp',
+              quantity: '2',
+              unitSalePrice: '50000',
+              lineDiscountAmount: '3000',
+              lineOrder: 0,
+              onHandQty: '0',
+            },
+          ],
+          customerId: '',
+          channelId: draft.salesChannelId,
+          orderDiscount: '0',
+          note: 'Giao buổi chiều',
+          canDiscount: true,
+          payment: null,
+          setDraft: vi.fn(),
+          setItems: vi.fn(),
+          setPayment: vi.fn(),
+        }),
+      { wrapper },
+    );
+    await act(() => result.current.preparePrint());
+    expect(saveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        saleId,
+        expectedVersion: 2,
+        note: 'Giao buổi chiều',
+      }),
+    );
+    expect(draftPrint).toHaveBeenCalledWith(saleId);
+    expect(result.current.provisionalDocument).toEqual(document);
+    expect(complete).not.toHaveBeenCalled();
+    expect(mocks.runFinancialCommand).not.toHaveBeenCalled();
+    expect(mocks.upload).not.toHaveBeenCalled();
+  });
+
   it('reconciles a pending completion without saving the draft again', async () => {
     await expect(
       executeFinancialCommand({

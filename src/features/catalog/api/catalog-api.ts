@@ -43,6 +43,7 @@ const catalogItemSchema = z.object({
   categoryName: z.string().max(120).nullable(),
   unitName: z.string().min(1).max(50),
   minStockQty: z.string().regex(INTEGER_FINAL),
+  effectiveMinStockQty: z.string().regex(INTEGER_FINAL).optional(),
   isActive: z.boolean(),
   version: z.number().int().positive(),
   primaryImagePath: z.string().max(500).nullable(),

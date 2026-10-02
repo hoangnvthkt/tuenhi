@@ -361,6 +361,9 @@ export function ProductDetailPage({
       {contextUrl.value.tab === 'overview' ? (
         <>
           <ProductDetailView
+            canReadSalePrice={
+              session?.permissions.includes('pricing.sale.read') ?? false
+            }
             canManage={canManage}
             canManageSalePrice={canManageSalePrice}
             detail={detail}

@@ -27,7 +27,7 @@ export function StaffActions({
 }) {
   const [activeReason, setActiveReason] = useState('');
   const [role, setRole] = useState<EmployeeRole>(
-    member.roleTemplate === 'BUSINESS' ? 'BUSINESS' : 'SALES_WAREHOUSE',
+    member.roleTemplate === 'OWNER' ? 'SALES_WAREHOUSE' : member.roleTemplate,
   );
   const [roleReason, setRoleReason] = useState('');
   const [permissionReason, setPermissionReason] = useState('');
@@ -114,6 +114,7 @@ export function StaffActions({
             >
               <option value="SALES_WAREHOUSE">Bán hàng &amp; Kho</option>
               <option value="BUSINESS">Nhân viên kinh doanh</option>
+              <option value="WAREHOUSE_VIEWER">Kho — chỉ xem</option>
             </select>
           </div>
           <div>
@@ -144,18 +145,28 @@ export function StaffActions({
           Phân quyền
         </summary>
         <div className="mt-3">
-          <label
-            htmlFor={`permission-reason-${member.id}`}
-            className="mb-2 block text-sm font-medium"
-          >
-            Lý do thay đổi quyền
-          </label>
-          <input
-            id={`permission-reason-${member.id}`}
-            value={permissionReason}
-            onChange={(event) => setPermissionReason(event.target.value)}
-            className="min-h-11 w-full rounded-lg border border-slate-300 px-3"
-          />
+          {member.roleTemplate === 'WAREHOUSE_VIEWER' ? (
+            <p className="mb-3 text-sm text-slate-600">
+              Tài khoản kho chỉ được xem hàng hóa và tồn kho. Đổi vai trò để cấp
+              các quyền khác.
+            </p>
+          ) : null}
+          {member.roleTemplate !== 'WAREHOUSE_VIEWER' ? (
+            <>
+              <label
+                htmlFor={`permission-reason-${member.id}`}
+                className="mb-2 block text-sm font-medium"
+              >
+                Lý do thay đổi quyền
+              </label>
+              <input
+                id={`permission-reason-${member.id}`}
+                value={permissionReason}
+                onChange={(event) => setPermissionReason(event.target.value)}
+                className="min-h-11 w-full rounded-lg border border-slate-300 px-3"
+              />
+            </>
+          ) : null}
           <div className="mt-3 divide-y divide-slate-200 rounded-xl border border-slate-200">
             {permissions.map((permission) => (
               <div
@@ -175,34 +186,44 @@ export function StaffActions({
                     </p>
                   ) : null}
                 </div>
-                <select
-                  aria-label={permission.label}
-                  disabled={
-                    pending ||
-                    permission.ownerOnly ||
-                    member.roleTemplate === 'OWNER'
-                  }
-                  value={currentEffect(member, permission.code)}
-                  onChange={(event) => {
-                    if (!permissionReason.trim()) {
-                      setError('Vui lòng nhập lý do thay đổi quyền.');
-                      return;
+                {member.roleTemplate === 'WAREHOUSE_VIEWER' ? (
+                  <p className="self-center text-sm font-medium text-slate-700">
+                    {['catalog.read', 'inventory.read'].includes(
+                      permission.code,
+                    ) && currentEffect(member, permission.code) !== 'REVOKE'
+                      ? 'Được xem'
+                      : 'Không được cấp'}
+                  </p>
+                ) : (
+                  <select
+                    aria-label={permission.label}
+                    disabled={
+                      pending ||
+                      permission.ownerOnly ||
+                      member.roleTemplate === 'OWNER'
                     }
-                    void run(() =>
-                      api.setPermissionOverride({
-                        userId: member.id,
-                        permissionCode: permission.code,
-                        effect: event.target.value as PermissionEffect,
-                        reason: permissionReason.trim(),
-                      }),
-                    );
-                  }}
-                  className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 disabled:bg-slate-100"
-                >
-                  <option value="DEFAULT">Theo vai trò</option>
-                  <option value="GRANT">Cấp riêng</option>
-                  <option value="REVOKE">Thu hồi riêng</option>
-                </select>
+                    value={currentEffect(member, permission.code)}
+                    onChange={(event) => {
+                      if (!permissionReason.trim()) {
+                        setError('Vui lòng nhập lý do thay đổi quyền.');
+                        return;
+                      }
+                      void run(() =>
+                        api.setPermissionOverride({
+                          userId: member.id,
+                          permissionCode: permission.code,
+                          effect: event.target.value as PermissionEffect,
+                          reason: permissionReason.trim(),
+                        }),
+                      );
+                    }}
+                    className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 disabled:bg-slate-100"
+                  >
+                    <option value="DEFAULT">Theo vai trò</option>
+                    <option value="GRANT">Cấp riêng</option>
+                    <option value="REVOKE">Thu hồi riêng</option>
+                  </select>
+                )}
               </div>
             ))}
           </div>

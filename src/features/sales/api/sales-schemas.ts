@@ -96,6 +96,32 @@ export const invoiceSchema = z.object({
   }),
 });
 
+export const draftPrintSchema = z.object({
+  version: z.literal(1),
+  kind: z.literal('PROVISIONAL'),
+  store: invoiceSchema.shape.store,
+  draft: z.object({
+    id: z.uuid(),
+    status: z.literal('DRAFT'),
+    version: z.number().int(),
+    updatedAt: z.string(),
+    channelName: z.string(),
+    staffName: z.string(),
+    customerName: z.string().nullable(),
+    customerPhone: z.string().nullable(),
+    note: z.string().nullable(),
+  }),
+  lines: z.array(saleLineSchema.omit({ productId: true, lineOrder: true })),
+  totals: z.object({
+    subtotal: z.string(),
+    lineDiscountTotal: z.string(),
+    orderDiscountTotal: z.string(),
+    netTotal: z.string(),
+  }),
+});
+
+export type DraftPrint = z.infer<typeof draftPrintSchema>;
+
 export const saleListSchema = z.object({
   items: z.array(
     z.object({
