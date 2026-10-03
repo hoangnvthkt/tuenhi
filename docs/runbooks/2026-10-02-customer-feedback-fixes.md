@@ -1,9 +1,9 @@
 # Phản ánh khách hàng 02/10/2026 — triển khai và UAT
 
-Trạng thái: đã triển khai trên nhánh `codex/tuenhi-feedback-fixes`; chưa apply
-migration, deploy Edge Function hoặc frontend Production trong task này. PR có
-thể tự tạo Vercel Preview; preview chưa có đầy đủ chức năng mới cho tới khi
-backend được triển khai đúng thứ tự bên dưới.
+Owner đã phê duyệt triển khai production trong task này. Bản sửa và bằng chứng
+triển khai được theo dõi tại [PR #1](https://github.com/hoangnvthkt/tuenhi/pull/1).
+Các bước dưới đây áp dụng theo thứ tự database → Edge Function → frontend;
+Vercel Preview được tạo trước đó chưa bao gồm các migration backend mới.
 
 ## Hành vi bàn giao
 
