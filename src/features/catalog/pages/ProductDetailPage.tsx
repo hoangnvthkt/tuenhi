@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { useSession } from '@/features/auth';
@@ -62,7 +62,6 @@ export function ProductDetailPage({
     () => explorerApiProp ?? createConnectedExplorerApi(),
   );
   const { productId } = useParams();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -206,18 +205,17 @@ export function ProductDetailPage({
   });
 
   async function save(request: ProductSaveRequest) {
-    const current = detailQuery.data;
     const { salePrice, ...productValues } = request.values;
     try {
       const result = await api.saveProduct({
         productId: mode === 'edit' ? productId : undefined,
-        expectedVersion: mode === 'edit' ? current?.version : undefined,
+        expectedVersion: mode === 'edit' ? request.expectedVersion : undefined,
         values: productValues,
         idempotencyKey: request.productIdempotencyKey,
       });
 
       const priceChanged =
-        salePrice !== '' && salePrice !== current?.currentSalePrice;
+        salePrice !== '' && salePrice !== request.initialSalePrice;
       if (canManageSalePrice && priceChanged) {
         await api.setSalePrice({
           productId: result.productId,
@@ -233,9 +231,13 @@ export function ProductDetailPage({
         kind: 'success',
         title: mode === 'create' ? 'Đã thêm sản phẩm' : 'Đã cập nhật sản phẩm',
       });
-      navigate(`/products/${result.productId}`);
+      return result.productId;
     } catch (error) {
-      if (mode === 'edit' && !(error instanceof CatalogApiError)) {
+      if (
+        mode === 'edit' &&
+        (!(error instanceof CatalogApiError) ||
+          error.code === 'VERSION_CONFLICT')
+      ) {
         await detailQuery.refetch();
       }
       throw error;
@@ -245,7 +247,7 @@ export function ProductDetailPage({
   if (mode !== 'create' && detailQuery.isPending) return <LoadingDetail />;
   if (mode !== 'view' && categoriesQuery.isPending) return <LoadingDetail />;
 
-  if (mode !== 'create' && detailQuery.isError) {
+  if (mode !== 'create' && detailQuery.isError && !detailQuery.data) {
     return (
       <div
         role="alert"
@@ -274,7 +276,7 @@ export function ProductDetailPage({
   }
 
   if (mode !== 'view') {
-    if (categoriesQuery.isError) {
+    if (categoriesQuery.isError && !categoriesQuery.data) {
       return (
         <div
           role="alert"
@@ -287,6 +289,7 @@ export function ProductDetailPage({
     const detail = detailQuery.data;
     return (
       <ProductEditor
+        key={productId ?? 'new'}
         canManageSalePrice={canManageSalePrice}
         categories={categoriesQuery.data ?? []}
         detail={detail}

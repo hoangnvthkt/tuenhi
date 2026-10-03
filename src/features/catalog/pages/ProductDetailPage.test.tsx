@@ -1,7 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import {
+  createMemoryRouter,
+  createRoutesFromElements,
+  RouterProvider,
+  Route,
+} from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import { SessionContextValue } from '@/features/auth';
@@ -90,37 +95,42 @@ function renderPage({
         }}
       >
         <ToastProvider>
-          <MemoryRouter
-            initialEntries={[
-              initialEntry ??
-                (mode === 'create'
-                  ? '/products/new'
-                  : `/products/${detail.id}${mode === 'edit' ? '/edit' : ''}`),
-            ]}
-          >
-            <Routes>
-              <Route
-                path={
-                  mode === 'create'
-                    ? '/products/new'
-                    : mode === 'edit'
-                      ? '/products/:productId/edit'
-                      : '/products/:productId'
-                }
-                element={
-                  <ProductDetailPage
-                    api={api}
-                    explorerApi={explorerApi}
-                    mode={mode}
+          <RouterProvider
+            router={createMemoryRouter(
+              createRoutesFromElements(
+                <>
+                  <Route
+                    path={
+                      mode === 'create'
+                        ? '/products/new'
+                        : mode === 'edit'
+                          ? '/products/:productId/edit'
+                          : '/products/:productId'
+                    }
+                    element={
+                      <ProductDetailPage
+                        api={api}
+                        explorerApi={explorerApi}
+                        mode={mode}
+                      />
+                    }
                   />
-                }
-              />
-              <Route
-                path="/products/:productId"
-                element={<p>Đã lưu sản phẩm</p>}
-              />
-            </Routes>
-          </MemoryRouter>
+                  <Route
+                    path="/products/:productId"
+                    element={<p>Đã lưu sản phẩm</p>}
+                  />
+                </>,
+              ),
+              {
+                initialEntries: [
+                  initialEntry ??
+                    (mode === 'create'
+                      ? '/products/new'
+                      : `/products/${detail.id}${mode === 'edit' ? '/edit' : ''}`),
+                ],
+              },
+            )}
+          />
         </ToastProvider>
       </SessionContextValue.Provider>
     </QueryClientProvider>,
