@@ -13,10 +13,14 @@ import {
 export function createOpeningApi() {
   const rpc = createInventoryRpc();
   return {
-    list() {
+    list(cursor?: { updatedAt: string; id: string }) {
       return rpc(
         'list_opening_stock_documents',
-        { p_cursor_updated_at: null, p_cursor_id: null, p_limit: 100 },
+        {
+          p_cursor_updated_at: cursor?.updatedAt ?? null,
+          p_cursor_id: cursor?.id ?? null,
+          p_limit: 100,
+        },
         openingPageSchema,
       );
     },

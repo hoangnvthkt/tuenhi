@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { ProductCatalogItem } from '@/features/catalog';
+import { ProductSelect, type ProductCatalogItem } from '@/features/catalog';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { formatNumber } from '../../model/inventory-ui';
 import type { PeriodicStockCount } from '../api/stock-count-schemas';
@@ -57,34 +57,28 @@ export function StockCountEditor({
             className="grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-[1fr_190px_auto]"
           >
             {editable ? (
-              <select
+              <ProductSelect
+                label={`Sản phẩm kiểm kho dòng ${index + 1}`}
                 value={line.productId}
-                onChange={(event) =>
+                includeInactive
+                excludedIds={selectedIds}
+                selectedSnapshot={
+                  detail
+                    ? {
+                        id: line.productId,
+                        name: detail.productName,
+                        sku: detail.sku,
+                      }
+                    : selected
+                }
+                onChange={(productId) =>
                   setLines((current) =>
                     current.map((item, itemIndex) =>
-                      itemIndex === index
-                        ? { ...item, productId: event.target.value }
-                        : item,
+                      itemIndex === index ? { ...item, productId } : item,
                     ),
                   )
                 }
-                className="min-h-11 rounded-lg border border-slate-300 px-3"
-              >
-                <option value="">Chọn sản phẩm</option>
-                {products.map((product) => (
-                  <option
-                    key={product.id}
-                    value={product.id}
-                    disabled={
-                      selectedIds.has(product.id) &&
-                      product.id !== line.productId
-                    }
-                  >
-                    {product.sku} — {product.name}
-                    {product.isActive ? '' : ' (ngừng kinh doanh)'}
-                  </option>
-                ))}
-              </select>
+              />
             ) : (
               <p>
                 <strong>{detail?.productName ?? selected?.name}</strong>

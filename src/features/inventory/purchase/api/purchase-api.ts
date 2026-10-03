@@ -14,13 +14,13 @@ import {
 export function createPurchaseApi() {
   const rpc = createInventoryRpc();
   return {
-    list(status?: string) {
+    list(status?: string, cursor?: { updatedAt: string; id: string }) {
       return rpc(
         'list_purchase_receipts',
         {
           p_filters: status ? { status } : {},
-          p_cursor_updated_at: null,
-          p_cursor_id: null,
+          p_cursor_updated_at: cursor?.updatedAt ?? null,
+          p_cursor_id: cursor?.id ?? null,
           p_limit: 100,
         },
         purchasePageSchema,
@@ -61,7 +61,11 @@ export function createPurchaseApi() {
           p_supplier_id: nullable(input.supplierId),
           p_received_at: input.receivedAt,
           p_note: input.note || null,
-          p_lines: input.lines,
+          p_lines: input.lines.map(({ productId, receivedQty, unitCost }) => ({
+            productId,
+            receivedQty,
+            unitCost,
+          })),
           p_idempotency_key: input.idempotencyKey,
         },
         inventoryMutationSchema,

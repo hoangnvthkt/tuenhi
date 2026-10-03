@@ -1,31 +1,26 @@
-import { useEffect, useState } from 'react';
+import { usePrivateQueryKey } from '@/features/auth';
+import { useCursorList } from '@/shared/hooks/use-cursor-list';
+import { ListPagination } from '@/shared/ui/feedback/ListPagination';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { createOpeningApi } from '../api/opening-api';
 import {
   formatMoney,
   formatNumber,
-  safeInventoryMessage,
   statusLabel,
 } from '../../model/inventory-ui';
 
 export function OpeningListPage() {
   const [api] = useState(createOpeningApi);
-  const [items, setItems] = useState<
-    Awaited<ReturnType<typeof api.list>>['items']
-  >([]);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let active = true;
-    api
-      .list()
-      .then((page) => active && setItems(page.items))
-      .catch(
-        (reason: unknown) => active && setError(safeInventoryMessage(reason)),
-      );
-    return () => {
-      active = false;
-    };
-  }, [api]);
+  const privateKey = usePrivateQueryKey();
+  const query = useCursorList({
+    queryKey: privateKey('opening-stock'),
+    load: (cursor: { updatedAt: string; id: string } | undefined) =>
+      api.list(cursor),
+    id: (item) => item.id,
+  });
+  const items = query.items;
+
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -54,14 +49,6 @@ export function OpeningListPage() {
         Phiếu Excel và gợi ý dữ liệu cũ luôn bắt đầu ở trạng thái nháp. Chỉ nút
         “Ghi sổ” mới thay đổi tồn kho.
       </p>
-      {error ? (
-        <p
-          role="alert"
-          className="rounded-lg bg-red-50 p-3 text-sm text-red-800"
-        >
-          {error}
-        </p>
-      ) : null}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <ul className="divide-y divide-slate-200">
           {items.map((item) => (
@@ -89,10 +76,11 @@ export function OpeningListPage() {
             </li>
           ))}
         </ul>
-        {items.length === 0 && !error ? (
+        {query.isSuccess && items.length === 0 ? (
           <p className="p-5 text-sm text-slate-600">Chưa có phiếu mở sổ.</p>
         ) : null}
       </div>
+      <ListPagination query={query} />
     </section>
   );
 }

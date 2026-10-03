@@ -55,6 +55,7 @@ for (const file of [
   'checkout_confirmation_guards.sql',
   'inventory_form_guards.sql',
   'return_lifecycle_behavior.sql',
+  'operational_pagination.sql',
 ]) {
   await query(database, undefined, `supabase/tests/isolated/${file}`);
   console.log(`PASS ${file}`);

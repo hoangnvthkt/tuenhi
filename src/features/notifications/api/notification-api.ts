@@ -67,7 +67,10 @@ export type UserNotification = z.infer<typeof notificationSchema>;
 export type NotificationFeed = z.infer<typeof feedSchema>;
 
 export interface NotificationApi {
-  list(): Promise<NotificationFeed>;
+  list(input?: {
+    unreadOnly?: boolean;
+    cursor?: { createdAt: string; id: string };
+  }): Promise<NotificationFeed>;
   markRead(id: string): Promise<void>;
   markAllRead(): Promise<void>;
   subscribe(listener: () => void): () => void;
@@ -91,9 +94,11 @@ export function createNotificationApi(): NotificationApi {
   const client = getSupabaseClient();
 
   return {
-    async list() {
+    async list(input = {}) {
       const { data, error } = await client.rpc('get_my_notifications', {
-        p_unread_only: false,
+        p_unread_only: input.unreadOnly ?? false,
+        p_cursor_created_at: input.cursor?.createdAt,
+        p_cursor_id: input.cursor?.id,
         p_limit: 50,
       });
       if (error) throw safeRpcFailure();

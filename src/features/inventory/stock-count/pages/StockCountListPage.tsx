@@ -1,5 +1,6 @@
+import { useCursorList } from '@/shared/hooks/use-cursor-list';
+import { ListPagination } from '@/shared/ui/feedback/ListPagination';
 import { usePrivateQueryKey } from '@/features/auth';
-import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { createStockCountApi } from '../api/stock-count-api';
@@ -9,9 +10,11 @@ export function StockCountListPage() {
   const privateKey = usePrivateQueryKey();
   const [api] = useState(createStockCountApi);
   const [status, setStatus] = useState('');
-  const query = useQuery({
+  const query = useCursorList({
     queryKey: privateKey(...['stock-counts', status]),
-    queryFn: () => api.list(status || undefined),
+    load: (cursor: { updatedAt: string; id: string } | undefined) =>
+      api.list(status || undefined, cursor),
+    id: (item) => item.id,
   });
   return (
     <main className="mx-auto max-w-6xl p-4 sm:p-6">
@@ -41,7 +44,7 @@ export function StockCountListPage() {
         <option value="CANCELLED">Đã hủy</option>
       </select>
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        {query.data?.items.map((item) => (
+        {query.items.map((item) => (
           <Link
             key={item.id}
             to={`/stock-counts/${item.id}`}
@@ -61,12 +64,13 @@ export function StockCountListPage() {
         {query.isLoading ? (
           <p className="p-5 text-sm text-slate-500">Đang tải phiếu kiểm kho…</p>
         ) : null}
-        {query.data && query.data.items.length === 0 ? (
+        {query.isSuccess && query.items.length === 0 ? (
           <p className="p-8 text-center text-sm text-slate-500">
             Chưa có phiếu kiểm kho phù hợp.
           </p>
         ) : null}
       </section>
+      <ListPagination query={query} />
     </main>
   );
 }

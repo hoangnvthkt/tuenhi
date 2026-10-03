@@ -1,3 +1,4 @@
+import { CustomerPicker } from './CustomerPicker';
 import type { CustomerItem } from '@/features/directories';
 import type { SalesChannelItem } from '@/features/settings';
 import { NumericField } from '@/shared/ui/forms/NumericField';
@@ -121,22 +122,12 @@ export function CartPanel({
             ))}
           </select>
         </label>
-        <label className="block text-sm font-medium">
-          Khách hàng
-          <select
-            value={customerId}
-            onChange={(event) => onCustomerChange(event.target.value)}
-            className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"
-          >
-            <option value="">Khách lẻ</option>
-            {customers.map((customer) => (
-              <option value={customer.id} key={customer.id}>
-                {customer.name}
-                {customer.phone ? ` · ${customer.phone}` : ''}
-              </option>
-            ))}
-          </select>
-        </label>
+        <CustomerPicker
+          value={customerId || null}
+          disabled={saving}
+          selectedSnapshot={customers.find((item) => item.id === customerId)}
+          onChange={(id) => onCustomerChange(id ?? '')}
+        />
         <NumericField
           label="Giảm toàn đơn"
           value={orderDiscount}

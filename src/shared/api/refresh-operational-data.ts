@@ -7,6 +7,13 @@ import type { QueryClient } from '@tanstack/react-query';
  */
 const operationalQueryRoots = new Set([
   'catalog',
+  'catalog-select',
+  'catalog-product',
+  'pos-customer',
+  'purchase-receipts',
+  'opening-stock',
+  'import-history',
+  'import-result',
   'directories',
   'settings',
   'pos-products',

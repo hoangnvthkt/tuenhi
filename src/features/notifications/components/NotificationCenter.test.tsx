@@ -1,8 +1,8 @@
 import { SessionContextValue, type SessionValue } from '@/features/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   NotificationCenter,
   type NotificationApi,
@@ -212,3 +212,157 @@ it('does not reuse fresh owner notifications for another account', async () => {
     screen.queryByText('Mật khẩu đã được cập nhật'),
   ).not.toBeInTheDocument();
 });
+
+it('loads the next notifications and switches to unread without marking all read', async () => {
+  const user = userEvent.setup();
+  const cursor = {
+    createdAt: unreadFeed.items[0]!.createdAt,
+    id: unreadFeed.items[0]!.id,
+  };
+  const list = vi.fn().mockImplementation(({ cursor: next, unreadOnly }) =>
+    Promise.resolve(
+      unreadOnly
+        ? { ...unreadFeed, items: [], nextCursor: null }
+        : next
+          ? {
+              ...unreadFeed,
+              items: [
+                { ...unreadFeed.items[0], id: '51', title: 'Thông báo 51' },
+              ],
+            }
+          : { ...unreadFeed, nextCursor: cursor },
+    ),
+  );
+  const api = createApi({ list });
+  renderCenter(api);
+  await user.click(screen.getByRole('button', { name: 'Thông báo' }));
+  await user.click(await screen.findByRole('button', { name: 'Tải thêm' }));
+  await screen.findByText('Thông báo 51');
+  expect(
+    screen.queryByRole('button', { name: 'Tải thêm' }),
+  ).not.toBeInTheDocument();
+  await user.click(screen.getByLabelText('Chỉ chưa đọc'));
+  await screen.findByText('Bạn chưa có thông báo.');
+  expect(list).toHaveBeenLastCalledWith({
+    unreadOnly: true,
+    cursor: undefined,
+  });
+  expect(api.markAllRead).not.toHaveBeenCalled();
+});
+
+beforeAll(() => {
+  // jsdom has no native top-layer dialog methods; keyboard/focus behavior stays in the real component.
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+it('traps keyboard focus, closes with Escape and returns focus to the trigger', async () => {
+  const user = userEvent.setup();
+  renderCenter(createApi());
+  const trigger = screen.getByRole('button', { name: 'Thông báo' });
+  await user.click(trigger);
+  const dialog = screen.getByRole('dialog');
+  expect(dialog.tagName).toBe('DIALOG');
+  expect(dialog).toHaveAttribute('open');
+  const close = within(dialog).getByRole('button', {
+    name: 'Đóng trung tâm thông báo',
+  });
+  expect(close).toHaveFocus();
+  await screen.findByText('Mật khẩu đã được cập nhật');
+  const controls = within(dialog).getAllByRole('button');
+  const last = controls.at(-1)!;
+  last.focus();
+  await user.tab();
+  expect(close).toHaveFocus();
+  await user.tab({ shift: true });
+  expect(last).toHaveFocus();
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+});
+
+it.each(['one', 'all', 'realtime'] as const)(
+  'invalidates both cached filters after %s with production staleTime',
+  async (action) => {
+    const user = userEvent.setup();
+    let read = false;
+    let notify = () => {};
+    const list = vi.fn(async ({ unreadOnly }: { unreadOnly?: boolean } = {}) =>
+      read
+        ? {
+            unreadCount: 0,
+            nextCursor: null,
+            items: unreadOnly
+              ? []
+              : unreadFeed.items.map((item) => ({
+                  ...item,
+                  readAt: '2026-10-03T00:00:00Z',
+                })),
+          }
+        : unreadFeed,
+    );
+    const api = createApi({
+      list,
+      markRead: vi.fn(async () => {
+        read = true;
+      }),
+      markAllRead: vi.fn(async () => {
+        read = true;
+      }),
+      subscribe: (callback) => {
+        notify = callback;
+        return () => {};
+      },
+    });
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 30_000,
+          retry: false,
+          refetchOnWindowFocus: false,
+        },
+      },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <SessionContextValue.Provider value={authValue('owner')}>
+          <NotificationCenter api={api} />
+        </SessionContextValue.Provider>
+      </QueryClientProvider>,
+    );
+    await screen.findByLabelText('1 thông báo chưa đọc');
+    await user.click(screen.getByRole('button', { name: 'Thông báo' }));
+    await user.click(screen.getByLabelText('Chỉ chưa đọc'));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    await user.click(screen.getByLabelText('Chỉ chưa đọc'));
+    if (action === 'realtime') {
+      read = true;
+      act(() => notify());
+    } else
+      await user.click(
+        screen.getByRole('button', {
+          name:
+            action === 'all'
+              ? 'Đánh dấu tất cả đã đọc'
+              : 'Đánh dấu đã đọc: Mật khẩu đã được cập nhật',
+        }),
+      );
+    await waitFor(() =>
+      expect(
+        screen.queryByLabelText('1 thông báo chưa đọc'),
+      ).not.toBeInTheDocument(),
+    );
+    await user.click(screen.getByLabelText('Chỉ chưa đọc'));
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Mật khẩu đã được cập nhật'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByLabelText('1 thông báo chưa đọc'),
+    ).not.toBeInTheDocument();
+  },
+);

@@ -137,7 +137,9 @@ export const saleListSchema = z.object({
       version: z.number().int(),
     }),
   ),
-  nextCursor: z.null(),
+  nextCursor: z
+    .object({ sortAt: z.iso.datetime({ offset: true }), id: z.uuid() })
+    .nullable(),
 });
 
 export type Sale = z.infer<typeof saleSchema>;

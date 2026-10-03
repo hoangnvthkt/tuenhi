@@ -1,6 +1,7 @@
+import { useCursorList } from '@/shared/hooks/use-cursor-list';
+import { ListPagination } from '@/shared/ui/feedback/ListPagination';
 import { usePrivateQueryKey } from '@/features/auth';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { createSalesApi } from '../api/sales-api';
 const money = (v: string) =>
@@ -28,10 +29,11 @@ export function SalesListPage() {
     const timer = window.setTimeout(() => setDebouncedSearch(search), 250);
     return () => window.clearTimeout(timer);
   }, [search]);
-  const query = useQuery({
+  const query = useCursorList({
     queryKey: privateKey(...['sales', debouncedSearch, status]),
-    queryFn: () => api.list({ search: debouncedSearch, status }),
-    placeholderData: keepPreviousData,
+    load: (cursor: { sortAt: string; id: string } | undefined) =>
+      api.list({ search: debouncedSearch, status }, cursor),
+    id: (item) => item.id,
   });
   const updateParams = (nextSearch: string, nextStatus: string) => {
     setSearchParams(
@@ -47,7 +49,7 @@ export function SalesListPage() {
   const openExactInvoice = () => {
     if (search.trim() !== debouncedSearch.trim()) return;
     const normalized = search.trim().toLocaleLowerCase('vi');
-    const exact = (query.data?.items ?? []).filter(
+    const exact = query.items.filter(
       (item) => item.saleNumber?.trim().toLocaleLowerCase('vi') === normalized,
     );
     if (exact.length !== 1) return;
@@ -115,16 +117,8 @@ export function SalesListPage() {
           Đang cập nhật danh sách…
         </p>
       ) : null}
-      {query.isError ? (
-        <p
-          role="alert"
-          className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-800"
-        >
-          Không thể tải danh sách hóa đơn.
-        </p>
-      ) : null}
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        {query.data?.items.map((item) => (
+        {query.items.map((item) => (
           <Link
             key={item.id}
             to={
@@ -150,12 +144,16 @@ export function SalesListPage() {
         {query.isLoading ? (
           <p className="p-5 text-sm text-slate-500">Đang tải hóa đơn…</p>
         ) : null}
-        {query.data && !query.data.items.length ? (
+        {query.isSuccess && !query.items.length ? (
           <p className="p-8 text-center text-sm text-slate-500">
             Chưa có hóa đơn phù hợp.
           </p>
         ) : null}
       </section>
+      <ListPagination
+        query={query}
+        errorMessage="Không thể tải danh sách hóa đơn."
+      />
     </main>
   );
 }

@@ -115,6 +115,11 @@ export async function validatePurchaseReceiptRows({
     lines: canApply
       ? preview.map((row) => ({
           productId: bySku.get(row.sku)!.productId!,
+          selectedSnapshot: {
+            id: bySku.get(row.sku)!.productId!,
+            name: row.productName!,
+            sku: row.sku,
+          },
           receivedQty: row.receivedQty,
           unitCost: row.unitCost,
         }))

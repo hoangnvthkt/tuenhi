@@ -51,7 +51,9 @@ export const stockCountPageSchema = z.object({
       updatedAt: inventoryDateTimeSchema,
     }),
   ),
-  nextCursor: z.null(),
+  nextCursor: z
+    .object({ updatedAt: z.iso.datetime({ offset: true }), id: z.uuid() })
+    .nullable(),
 });
 
 export type PeriodicStockCount = z.infer<typeof stockCountSchema>;

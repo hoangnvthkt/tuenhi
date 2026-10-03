@@ -17,6 +17,8 @@ const emptyProduct: ProductFormValues = {
 };
 
 export type ProductSaveRequest = {
+  expectedVersion?: number;
+  initialSalePrice?: string | null;
   values: ProductFormValues;
   productIdempotencyKey: string;
   priceIdempotencyKey: string;
@@ -41,6 +43,7 @@ export function ProductForm({
   canManageSalePrice,
   isOnline,
   onSave,
+  onDirtyChange,
   submitLabel = 'Lưu sản phẩm',
 }: {
   initialValues?: ProductFormValues;
@@ -49,6 +52,7 @@ export function ProductForm({
   isOnline: boolean;
   onSave: (request: ProductSaveRequest) => Promise<void>;
   submitLabel?: string;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [values, setValues] = useState(initialValues);
   const [fieldErrors, setFieldErrors] = useState<
@@ -67,7 +71,9 @@ export function ProductForm({
     field: K,
     value: ProductFormValues[K],
   ) {
-    setValues((current) => ({ ...current, [field]: value }));
+    const next = { ...values, [field]: value };
+    setValues(next);
+    onDirtyChange?.(JSON.stringify(next) !== JSON.stringify(initialValues));
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
   }
 
@@ -100,10 +106,12 @@ export function ProductForm({
     setServerError(null);
     setCorrelationId(null);
     setIsSubmitting(true);
+    onDirtyChange?.(true);
     try {
       await onSave({ values: validation.data, ...keys.current });
       keys.current = null;
       setUnknownOutcome(false);
+      onDirtyChange?.(false);
     } catch (error) {
       if (error instanceof CatalogApiError) {
         keys.current = null;
@@ -125,7 +133,10 @@ export function ProductForm({
     'min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15';
   return (
     <form noValidate onSubmit={submit} className="space-y-6">
-      <div className="grid gap-5 md:grid-cols-2">
+      <fieldset
+        disabled={isSubmitting || unknownOutcome}
+        className="grid gap-5 md:grid-cols-2"
+      >
         <div>
           <label
             htmlFor="product-sku"
@@ -270,7 +281,7 @@ export function ProductForm({
           />
           Sản phẩm đang hoạt động
         </label>
-      </div>
+      </fieldset>
 
       {!isOnline ? (
         <p

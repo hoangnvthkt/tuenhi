@@ -1,5 +1,5 @@
 import { usePrivateQueryKey } from '@/features/auth';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
   createOwnerReportsApi,
@@ -39,13 +39,32 @@ export function useReportData({
     gcTime: 0,
     ...queryOptions,
   });
-  const profit = useQuery({
+  const profitPages = useInfiniteQuery({
     queryKey: privateKey(...['profit-report', from, to]),
-    queryFn: () => ownerApi.profit(from, to),
+    queryFn: ({ pageParam }) => ownerApi.profit(from, to, pageParam),
+    initialPageParam: undefined as
+      { occurredAt: string; id: string } | undefined,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
     enabled: canProfit,
     gcTime: 0,
     ...queryOptions,
   });
 
+  const profit = {
+    error: profitPages.error,
+    isLoading: profitPages.isLoading,
+    isFetching: profitPages.isFetching,
+    hasNextPage: profitPages.hasNextPage,
+    fetchNextPage: profitPages.fetchNextPage,
+    refetch: profitPages.refetch,
+    data: profitPages.data?.pages[0],
+    items: [
+      ...new Map(
+        (profitPages.data?.pages.flatMap((page) => page.items) ?? []).map(
+          (item) => [item.id, item],
+        ),
+      ).values(),
+    ],
+  };
   return { report, owner, profit, ownerApi };
 }

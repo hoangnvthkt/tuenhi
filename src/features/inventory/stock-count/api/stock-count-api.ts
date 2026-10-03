@@ -9,13 +9,13 @@ import { stockCountPageSchema, stockCountSchema } from './stock-count-schemas';
 export function createStockCountApi() {
   const rpc = createInventoryRpc();
   return {
-    list(status?: string) {
+    list(status?: string, cursor?: { updatedAt: string; id: string }) {
       return rpc(
-        'list_stock_counts',
+        'list_stock_counts_v2',
         {
           p_filters: status ? { status } : {},
-          p_cursor_updated_at: null,
-          p_cursor_id: null,
+          p_cursor_updated_at: cursor?.updatedAt ?? null,
+          p_cursor_id: cursor?.id ?? null,
           p_limit: 100,
         },
         stockCountPageSchema,

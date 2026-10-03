@@ -1,8 +1,10 @@
+import { useCursorList } from '@/shared/hooks/use-cursor-list';
+import { ListPagination } from '@/shared/ui/feedback/ListPagination';
 import { SessionContextValue } from '@/features/auth';
 import { privateQueryKey } from '@/shared/api/private-query-key';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell } from '@phosphor-icons/react';
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { NotificationApiContext } from '../model/notification-context';
 import type {
   NotificationApi,
@@ -96,31 +98,55 @@ export function NotificationCenter({
 
   const auth = useContext(SessionContextValue);
   const userId = auth?.session?.userId;
-  const notificationQueryKey = useMemo(
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const notificationFamilyKey = useMemo(
     () => privateQueryKey(userId ?? 'no-session', 'notifications', 'mine'),
     [userId],
   );
+  const notificationQueryKey = useMemo(
+    () => [...notificationFamilyKey, unreadOnly],
+    [notificationFamilyKey, unreadOnly],
+  );
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const dialog = dialogRef.current;
+    const trigger = triggerRef.current;
+    if (!dialog) return;
+    dialog.showModal();
+    closeRef.current?.focus();
+    return () => {
+      dialog.close();
+      trigger?.focus();
+    };
+  }, [open]);
   const [actionError, setActionError] = useState<string | null>(null);
-  const query = useQuery({
+  const query = useCursorList({
     queryKey: notificationQueryKey,
-    queryFn: () => api.list(),
+    load: (cursor: { createdAt: string; id: string } | undefined) =>
+      api.list({ unreadOnly, cursor }),
+    id: (item) => item.id,
     enabled: !!userId,
   });
+
+  const unreadCount = query.data?.pages[0]?.unreadCount ?? 0;
 
   useEffect(() => {
     if (!userId) return;
     return api.subscribe(() => {
-      void queryClient.invalidateQueries({ queryKey: notificationQueryKey });
+      void queryClient.invalidateQueries({ queryKey: notificationFamilyKey });
     });
-  }, [api, queryClient, notificationQueryKey, userId]);
+  }, [api, queryClient, notificationFamilyKey, userId]);
 
   const markRead = useMutation({
     mutationFn: (id: string) => api.markRead(id),
     onSuccess: () => {
       setActionError(null);
-      void queryClient.invalidateQueries({ queryKey: notificationQueryKey });
+      void queryClient.invalidateQueries({ queryKey: notificationFamilyKey });
     },
     onError: () =>
       setActionError('Không thể cập nhật thông báo. Vui lòng thử lại.'),
@@ -129,7 +155,7 @@ export function NotificationCenter({
     mutationFn: () => api.markAllRead(),
     onSuccess: () => {
       setActionError(null);
-      void queryClient.invalidateQueries({ queryKey: notificationQueryKey });
+      void queryClient.invalidateQueries({ queryKey: notificationFamilyKey });
     },
     onError: () =>
       setActionError('Không thể cập nhật thông báo. Vui lòng thử lại.'),
@@ -139,6 +165,7 @@ export function NotificationCenter({
     <>
       <button
         type="button"
+        ref={triggerRef}
         aria-label="Thông báo"
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -146,25 +173,54 @@ export function NotificationCenter({
         className="relative min-h-11 rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
       >
         <Bell size={22} aria-hidden="true" />
-        {query.data && query.data.unreadCount > 0 ? (
+        {query.data && unreadCount > 0 ? (
           <span
-            aria-label={`${query.data.unreadCount} thông báo chưa đọc`}
+            aria-label={`${unreadCount} thông báo chưa đọc`}
             className="absolute right-1 top-1 min-w-5 rounded-full bg-teal-700 px-1 text-center text-xs font-semibold leading-5 text-white"
           >
-            {query.data.unreadCount > 99 ? '99+' : query.data.unreadCount}
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         ) : null}
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-40 bg-slate-950/30 sm:flex sm:justify-end">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="notification-title"
-            className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-hidden rounded-t-xl bg-white shadow-xl sm:inset-y-0 sm:left-auto sm:w-[28rem] sm:max-h-none sm:rounded-none"
-          >
-            <header className="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 px-5">
+        <dialog
+          ref={dialogRef}
+          aria-labelledby="notification-title"
+          aria-modal="true"
+          onCancel={(event) => {
+            event.preventDefault();
+            setOpen(false);
+          }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setOpen(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              setOpen(false);
+              return;
+            }
+            if (event.key !== 'Tab') return;
+            const controls = [
+              ...event.currentTarget.querySelectorAll<HTMLElement>(
+                'button:not(:disabled),a[href],input:not(:disabled),[tabindex="0"]',
+              ),
+            ];
+            const first = controls[0];
+            const last = controls.at(-1);
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first?.focus();
+            }
+          }}
+          className="fixed inset-0 m-0 h-full max-h-none w-full max-w-none border-0 bg-transparent p-0 backdrop:bg-slate-950/30 open:sm:flex open:sm:justify-end"
+        >
+          <section className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-xl bg-white shadow-xl sm:inset-y-0 sm:left-auto sm:w-[28rem] sm:max-h-none sm:rounded-none">
+            <header className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-5">
               <div>
                 <h2
                   id="notification-title"
@@ -174,12 +230,13 @@ export function NotificationCenter({
                 </h2>
                 {query.data ? (
                   <p className="text-sm text-slate-600">
-                    {query.data.unreadCount} thông báo chưa đọc
+                    {unreadCount} thông báo chưa đọc
                   </p>
                 ) : null}
               </div>
               <button
                 type="button"
+                ref={closeRef}
                 aria-label="Đóng trung tâm thông báo"
                 onClick={() => setOpen(false)}
                 className="min-h-11 min-w-11 rounded-lg text-xl text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
@@ -188,8 +245,8 @@ export function NotificationCenter({
               </button>
             </header>
 
-            {query.data && query.data.unreadCount > 0 ? (
-              <div className="border-b border-slate-200 px-5 py-2 text-right">
+            {query.data && unreadCount > 0 ? (
+              <div className="shrink-0 border-b border-slate-200 px-5 py-2 text-right">
                 <button
                   type="button"
                   disabled={markAllRead.isPending}
@@ -201,6 +258,14 @@ export function NotificationCenter({
               </div>
             ) : null}
 
+            <label className="flex min-h-11 shrink-0 items-center gap-2 px-5">
+              <input
+                type="checkbox"
+                checked={unreadOnly}
+                onChange={(event) => setUnreadOnly(event.target.checked)}
+              />
+              Chỉ chưa đọc
+            </label>
             {actionError ? (
               <p
                 role="alert"
@@ -210,7 +275,7 @@ export function NotificationCenter({
               </p>
             ) : null}
 
-            <div className="max-h-[calc(85vh-4rem)] overflow-y-auto sm:max-h-[calc(100vh-4rem)]">
+            <div className="min-h-0 overflow-y-auto">
               {query.isPending ? (
                 <div
                   data-testid="notification-loading"
@@ -220,7 +285,7 @@ export function NotificationCenter({
                   <div className="h-3 w-full rounded bg-slate-100" />
                   <div className="h-3 w-4/5 rounded bg-slate-100" />
                 </div>
-              ) : query.isError ? (
+              ) : query.isError && !query.data ? (
                 <div className="p-5">
                   <p role="alert" className="text-sm text-red-800">
                     Không thể tải thông báo. Vui lòng thử lại.
@@ -233,13 +298,13 @@ export function NotificationCenter({
                     Thử lại
                   </button>
                 </div>
-              ) : !query.data || query.data.items.length === 0 ? (
+              ) : !query.data || query.items.length === 0 ? (
                 <p className="p-5 text-sm text-slate-600">
                   Bạn chưa có thông báo.
                 </p>
               ) : (
                 <ul>
-                  {query.data.items.map((notification) => (
+                  {query.items.map((notification) => (
                     <NotificationRow
                       key={notification.id}
                       notification={notification}
@@ -249,9 +314,10 @@ export function NotificationCenter({
                   ))}
                 </ul>
               )}
+              {query.data ? <ListPagination query={query} /> : null}
             </div>
           </section>
-        </div>
+        </dialog>
       ) : null}
     </>
   );

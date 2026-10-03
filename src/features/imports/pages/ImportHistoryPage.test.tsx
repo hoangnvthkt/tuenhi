@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { renderWithQueryClient as render } from '@/shared/testing/render-with-query-client';
+import { fireEvent, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import type { ImportApi } from '../api/import-api';
@@ -125,4 +126,29 @@ describe('ImportHistoryPage', () => {
     expect(link).toHaveAttribute('href', `/legacy-sales?importRunId=${runId}`);
     expect(screen.getByText(/Dữ liệu bán hàng cũ/)).toBeInTheDocument();
   });
+});
+
+it('loads import31 with its cursor and stops at the final page', async () => {
+  const api = apiMock();
+  const first = await api.listHistory();
+  const cursor = { createdAt: first.items[0]!.createdAt, id: runId };
+  vi.mocked(api.listHistory)
+    .mockResolvedValueOnce({ ...first, nextCursor: cursor })
+    .mockResolvedValue({
+      ...first,
+      items: [
+        { ...first.items[0]!, importRunId: 'next', fileName: 'import31.xlsx' },
+      ],
+    });
+  render(
+    <MemoryRouter>
+      <ImportHistoryPage api={api} />
+    </MemoryRouter>,
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Tải thêm' }));
+  await screen.findByText('import31.xlsx');
+  expect(api.listHistory).toHaveBeenLastCalledWith({ limit: 30, cursor });
+  expect(
+    screen.queryByRole('button', { name: 'Tải thêm' }),
+  ).not.toBeInTheDocument();
 });

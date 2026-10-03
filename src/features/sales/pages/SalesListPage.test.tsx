@@ -79,10 +79,13 @@ describe('SalesListPage', () => {
       'COMPLETED',
     );
     await waitFor(() =>
-      expect(list).toHaveBeenCalledWith({
-        search: 'HD000001',
-        status: 'COMPLETED',
-      }),
+      expect(list).toHaveBeenCalledWith(
+        {
+          search: 'HD000001',
+          status: 'COMPLETED',
+        },
+        undefined,
+      ),
     );
   });
 
@@ -101,10 +104,13 @@ describe('SalesListPage', () => {
     expect(list).not.toHaveBeenCalled();
     await waitFor(
       () =>
-        expect(list).toHaveBeenCalledWith({
-          search: 'HD000002',
-          status: '',
-        }),
+        expect(list).toHaveBeenCalledWith(
+          {
+            search: 'HD000002',
+            status: '',
+          },
+          undefined,
+        ),
       { timeout: 700 },
     );
   });

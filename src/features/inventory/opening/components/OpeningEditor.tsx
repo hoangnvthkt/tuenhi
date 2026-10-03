@@ -1,10 +1,12 @@
+import type { OpeningDocument } from '../api/opening-schemas';
 import type { Dispatch, SetStateAction } from 'react';
-import type { ProductCatalogItem } from '@/features/catalog';
+import { ProductSelect, type ProductCatalogItem } from '@/features/catalog';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import type { OpeningSuggestion } from '../api/opening-schemas';
 import type { OpeningDraftLine } from '../model/opening-draft';
 
 export function OpeningEditor({
+  document,
   editable,
   groupedSuggestions,
   note,
@@ -15,6 +17,7 @@ export function OpeningEditor({
   setNote,
   setLines,
 }: {
+  document: OpeningDocument | null;
   editable: boolean;
   groupedSuggestions: OpeningSuggestion[][];
   note: string;
@@ -73,34 +76,32 @@ export function OpeningEditor({
             key={`${index}-${line.productId}`}
             className="grid gap-3 rounded-lg bg-slate-50 p-3 md:grid-cols-[1fr_11rem_11rem_auto]"
           >
-            <select
-              aria-label={`Sản phẩm mở sổ dòng ${index + 1}`}
-              disabled={!editable || line.sourceSuggestionId !== null}
+            <ProductSelect
+              label={`Sản phẩm mở sổ dòng ${index + 1}`}
               value={line.productId}
-              onChange={(event) =>
+              readOnly={!editable}
+              disabled={line.sourceSuggestionId !== null}
+              excludedIds={selectedIds}
+              selectedSnapshot={(() => {
+                const saved = document?.lines.find(
+                  (item) => item.productId === line.productId,
+                );
+                return saved
+                  ? {
+                      id: line.productId,
+                      name: saved.productName,
+                      sku: saved.sku,
+                    }
+                  : products.find((item) => item.id === line.productId);
+              })()}
+              onChange={(productId) =>
                 setLines((current) =>
                   current.map((item, itemIndex) =>
-                    itemIndex === index
-                      ? { ...item, productId: event.target.value }
-                      : item,
+                    itemIndex === index ? { ...item, productId } : item,
                   ),
                 )
               }
-              className="min-h-11 rounded-lg border border-slate-300 px-3"
-            >
-              <option value="">Chọn sản phẩm</option>
-              {products.map((product) => (
-                <option
-                  disabled={
-                    selectedIds.has(product.id) && product.id !== line.productId
-                  }
-                  key={product.id}
-                  value={product.id}
-                >
-                  {product.sku} — {product.name}
-                </option>
-              ))}
-            </select>
+            />
             <NumericField
               label="Tồn đầu kỳ"
               disabled={!editable}

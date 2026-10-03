@@ -124,13 +124,16 @@ export function createSalesApi() {
         await rpc('get_sale_detail', { p_sale_id: saleId }),
       );
     },
-    async list(filters: { status?: string; search?: string } = {}) {
+    async list(
+      filters: { status?: string; search?: string } = {},
+      cursor?: { sortAt: string; id: string },
+    ) {
       return parseSalesRpc(
         saleListSchema,
-        await rpc('list_sales', {
+        await rpc('list_sales_v2', {
           p_filters: filters,
-          p_cursor_sort_at: null,
-          p_cursor_id: null,
+          p_cursor_sort_at: cursor?.sortAt ?? null,
+          p_cursor_id: cursor?.id ?? null,
           p_limit: 50,
         }),
       );
