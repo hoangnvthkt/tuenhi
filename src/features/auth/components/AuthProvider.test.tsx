@@ -140,7 +140,10 @@ it('clears private queries and ignores their late responses after external logou
   client.setQueryData(['notifications', 'mine'], 'owner private data');
   const late = deferred<string>();
   const request = client
-    .fetchQuery({ queryKey: ['reports'], queryFn: () => late.promise })
+    .fetchQuery({
+      queryKey: ['reports'],
+      queryFn: vi.fn().mockReturnValue(late.promise),
+    })
     .catch(() => undefined);
   vi.mocked(api.getAuthSession).mockResolvedValue(null);
   act(() => api.emitAuthChange());
