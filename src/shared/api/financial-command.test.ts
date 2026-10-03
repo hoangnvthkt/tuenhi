@@ -429,3 +429,22 @@ describe('executeFinancialCommand', () => {
     );
   });
 });
+
+it('does not create another request when a recovery races with marker resolution', async () => {
+  const storage = new MemoryStorage();
+  const invoke = vi.fn();
+  const lookup = vi.fn();
+  await expect(
+    executeFinancialCommand({
+      ...baseInput,
+      storage,
+      resumeOnly: true,
+      invoke,
+      lookup,
+      parseCachedResponse: (value) => value,
+    }),
+  ).rejects.toBeInstanceOf(FinancialBusinessError);
+  expect(invoke).not.toHaveBeenCalled();
+  expect(lookup).not.toHaveBeenCalled();
+  expect(storage.length).toBe(0);
+});

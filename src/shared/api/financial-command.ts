@@ -223,6 +223,8 @@ async function executeFinancialCommandUnlocked<T>({
   invoke,
   lookup,
   parseCachedResponse,
+  resumeOnly = false,
+  retryPending = true,
   storage = browserStorage(),
   createId = () => crypto.randomUUID(),
   now = () => new Date(),
@@ -239,6 +241,8 @@ async function executeFinancialCommandUnlocked<T>({
     idempotencyKey: string,
   ) => Promise<FinancialCommandOutcome>;
   parseCachedResponse: (response: unknown) => T;
+  resumeOnly?: boolean;
+  retryPending?: boolean;
   storage?: FinancialCommandStorage;
   createId?: () => string;
   now?: () => Date;
@@ -249,6 +253,11 @@ async function executeFinancialCommandUnlocked<T>({
   let pending = findPendingFinancialCommand(identity, storage);
   const isResuming = Boolean(pending);
 
+  if (!pending && resumeOnly) {
+    throw new FinancialBusinessError(
+      'Yêu cầu đã được đối soát. Vui lòng mở lại chứng từ.',
+    );
+  }
   if (!pending) {
     pending = pendingFinancialCommandSchema.parse({
       version: 1,
@@ -318,7 +327,7 @@ async function executeFinancialCommandUnlocked<T>({
     if (recovered.resolved) return recovered.value;
   }
 
-  if (!isOnline()) {
+  if ((isResuming && !retryPending) || !isOnline()) {
     throw unknownFinancialOutcome(pending, storage);
   }
 

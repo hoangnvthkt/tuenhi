@@ -13,10 +13,6 @@ import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import type { SalesApi } from '../api/sales-api';
 import type { Sale } from '../api/sales-schemas';
 import type { PosCartItem } from '../model/pos-types';
-import {
-  readPosCartSnapshot,
-  writePosCartSnapshot,
-} from '../model/pos-storage';
 import { usePosCommands } from './use-pos-commands';
 
 const mocks = vi.hoisted(() => ({
@@ -143,98 +139,6 @@ describe('usePosCommands', () => {
     expect(complete).not.toHaveBeenCalled();
     expect(mocks.runFinancialCommand).not.toHaveBeenCalled();
     expect(mocks.upload).not.toHaveBeenCalled();
-  });
-
-  it('reconciles a pending completion without saving the draft again', async () => {
-    await expect(
-      executeFinancialCommand({
-        userId,
-        commandName: 'sale.complete',
-        entityId: saleId,
-        createId: () => '30000000-0000-4000-8000-000000000001',
-        invoke: async () => {
-          throw new FinancialTransportError();
-        },
-        lookup: async () => ({ status: 'NOT_FOUND', response: null }),
-        parseCachedResponse: (response) => response as never,
-        isOnline: () => false,
-        wait: async () => undefined,
-      }),
-    ).rejects.toBeInstanceOf(FinancialOutcomeUnknownError);
-
-    const saveDraft = vi.fn();
-    const complete = vi.fn().mockResolvedValue({
-      saleId,
-      saleNumber: 'HD000001',
-      status: 'COMPLETED',
-      version: 3,
-    });
-    mocks.runFinancialCommand.mockImplementation(
-      async ({ invoke }: { invoke: (key: string) => Promise<unknown> }) =>
-        invoke('30000000-0000-4000-8000-000000000001'),
-    );
-    writePosCartSnapshot({
-      version: 2,
-      userId,
-      identity: { kind: 'DRAFT', saleId },
-      serverVersion: draft.version,
-      revision: 1,
-      updatedAt: '2026-08-31T07:00:00.000Z',
-      lastWriterTabId: '60000000-0000-4000-8000-000000000001',
-      items: [],
-      channelId: draft.salesChannelId,
-      customerId: '',
-      orderDiscount: '0',
-      note: '',
-    });
-
-    const { result } = renderHook(
-      () =>
-        usePosCommands({
-          api: { saveDraft, complete } as unknown as SalesApi,
-          online: true,
-          userId,
-          saleId,
-          draft,
-          items: [
-            {
-              productId: '50000000-0000-4000-8000-000000000001',
-              productName: 'Sản phẩm thử',
-              sku: 'SP001',
-              unitName: 'cái',
-              quantity: '1',
-              unitSalePrice: '100000',
-              lineDiscountAmount: '0',
-              lineOrder: 0,
-              onHandQty: '10',
-            },
-          ],
-          customerId: '',
-          channelId: draft.salesChannelId,
-          orderDiscount: '0',
-          note: '',
-          canDiscount: true,
-          payment: 'CASH',
-          setDraft: vi.fn(),
-          setItems: vi.fn(),
-          setPayment: vi.fn(),
-        }),
-      { wrapper },
-    );
-
-    await act(() => result.current.pay());
-
-    expect(saveDraft).not.toHaveBeenCalled();
-    expect(complete).toHaveBeenCalledWith(
-      saleId,
-      draft.version,
-      'CASH',
-      '30000000-0000-4000-8000-000000000001',
-      undefined,
-    );
-    expect(
-      readPosCartSnapshot(userId, { kind: 'DRAFT', saleId }),
-    ).toBeUndefined();
   });
 
   it('uploads a bank-transfer proof once across same-key invocations', async () => {
@@ -448,7 +352,7 @@ function renderCheckout(api: SalesApi) {
         setItems,
         setPayment,
       });
-      return { ...commands, items, payment, setPayment };
+      return { ...commands, items, payment, setPayment, setItems };
     },
     { wrapper },
   );
@@ -525,4 +429,109 @@ it('does not block an unchanged price even if save reports priceRefreshed', asyn
   act(() => result.current.setPayment('CASH'));
   await act(() => result.current.pay());
   expect(complete).toHaveBeenCalledOnce();
+});
+
+for (const recovered of [false, true]) {
+  it(`recovers original checkout after attempted edits (cached=${recovered})`, async () => {
+    let online = false;
+    const response = {
+      saleId,
+      saleNumber: 'HD1',
+      status: 'COMPLETED',
+      version: 3,
+    };
+    const complete = vi.fn().mockRejectedValue(new FinancialTransportError());
+    const saveDraft = vi
+      .fn()
+      .mockResolvedValue({ sale: draft, priceRefreshed: false });
+    mocks.upload.mockResolvedValue({ objectPath: 'original-proof.jpg' });
+    mocks.runFinancialCommand.mockImplementation((input) =>
+      executeFinancialCommand({
+        ...input,
+        userId,
+        wait: async () => undefined,
+        isOnline: () => online,
+        lookup: async () =>
+          recovered && online
+            ? { status: 'RESOLVED', response }
+            : { status: 'NOT_FOUND', response: null },
+      }),
+    );
+    const { result } = renderCheckout({
+      saveDraft,
+      complete,
+      parseCompleteResponse: (value: unknown) => value,
+    } as unknown as SalesApi);
+    await act(() =>
+      result.current.pay(
+        new File(['proof'], 'proof.jpg', { type: 'image/jpeg' }),
+      ),
+    );
+    expect(readPendingFinancialCommands()).toHaveLength(1);
+    expect(result.current.checkoutPending).toBe(true);
+    expect(mocks.remove).not.toHaveBeenCalled();
+    const originalKey = complete.mock.calls[0]?.[3];
+    act(() => {
+      result.current.setItems((items) =>
+        items.map((item) => ({ ...item, quantity: '2' })),
+      );
+      result.current.setPayment('CASH');
+    });
+    await act(() => result.current.pay());
+    await act(() => result.current.save());
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    online = true;
+    complete.mockResolvedValue(response);
+    await act(() => result.current.reconcilePayment());
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    expect(mocks.upload).toHaveBeenCalledTimes(1);
+    expect(complete).toHaveBeenCalledTimes(recovered ? 1 : 2);
+    if (!recovered)
+      expect(complete).toHaveBeenLastCalledWith(
+        saleId,
+        draft.version,
+        'BANK_TRANSFER',
+        originalKey,
+        'original-proof.jpg',
+      );
+    expect(readPendingFinancialCommands()).toEqual([]);
+  });
+}
+
+it('only looks up a pending checkout after reload without inventing its payment method', async () => {
+  await expect(
+    executeFinancialCommand({
+      userId,
+      commandName: 'sale.complete',
+      entityId: saleId,
+      invoke: async () => {
+        throw new FinancialTransportError();
+      },
+      lookup: async () => ({ status: 'NOT_FOUND', response: null }),
+      parseCachedResponse: (value) => value,
+      isOnline: () => false,
+      wait: async () => undefined,
+    }),
+  ).rejects.toBeInstanceOf(FinancialOutcomeUnknownError);
+  const key = readPendingFinancialCommands()[0]!.idempotencyKey;
+  const complete = vi.fn();
+  const saveDraft = vi.fn();
+  mocks.runFinancialCommand.mockImplementation((input) =>
+    executeFinancialCommand({
+      ...input,
+      userId,
+      wait: async () => undefined,
+      lookup: async () => ({ status: 'NOT_FOUND', response: null }),
+    }),
+  );
+  const { result } = renderCheckout({
+    saveDraft,
+    complete,
+    parseCompleteResponse: (value: unknown) => value,
+  } as unknown as SalesApi);
+  await act(() => result.current.reconcilePayment());
+  expect(complete).not.toHaveBeenCalled();
+  expect(saveDraft).not.toHaveBeenCalled();
+  expect(result.current.checkoutPending).toBe(true);
+  expect(readPendingFinancialCommands()[0]?.idempotencyKey).toBe(key);
 });

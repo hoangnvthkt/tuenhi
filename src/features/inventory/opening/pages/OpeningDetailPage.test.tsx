@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -19,6 +20,7 @@ const mocks = vi.hoisted(() => ({
     suggestions: vi.fn(),
   },
   catalog: { list: vi.fn() },
+  refresh: vi.fn(),
 }));
 vi.mock('@/features/inventory/stock-count/api/stock-count-api', () => ({
   createStockCountApi: () => mocks.stock,
@@ -39,7 +41,7 @@ vi.mock('@/shared/hooks/use-online-status', () => ({
   useOnlineStatus: () => true,
 }));
 vi.mock('@/shared/api/refresh-operational-data', () => ({
-  refreshOperationalData: vi.fn(),
+  refreshOperationalData: mocks.refresh,
 }));
 vi.mock('@/shared/ui/feedback/use-toast', () => ({
   useToast: () => ({ show: vi.fn() }),
@@ -158,4 +160,59 @@ describe('opening saved form', () => {
     expect(screen.getByLabelText('Tồn đầu kỳ')).toHaveValue('9');
     expect(screen.getByText('Hoàn tất kiểm đếm')).toBeDisabled();
   });
+});
+
+it('unlocks the saved document when creation navigates before refresh finishes', async () => {
+  let finish!: () => void;
+  mocks.refresh.mockReturnValueOnce(
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    }),
+  );
+  mocks.opening.save.mockResolvedValueOnce({ countId: 'doc' });
+  mocks.opening.detail.mockResolvedValue({
+    ...stock(),
+    totalValue: '500',
+    lines: [
+      {
+        productId: 'product-a',
+        countedQty: '5',
+        openingUnitCost: '100',
+        sourceSuggestionId: null,
+        unverifiedSourceConfirmed: false,
+      },
+    ],
+  });
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={['/more/inventory/opening/new']}>
+        <Routes>
+          <Route
+            path="/more/inventory/opening/new"
+            element={<OpeningDetailPage mode="create" />}
+          />
+          <Route
+            path="/more/inventory/opening/:countId"
+            element={<OpeningDetailPage />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await screen.findByText('A — Product A');
+  fireEvent.change(screen.getByLabelText('Sản phẩm mở sổ dòng 1'), {
+    target: { value: 'product-a' },
+  });
+  fireEvent.change(screen.getByLabelText('Tồn đầu kỳ'), {
+    target: { value: '5' },
+  });
+  fireEvent.click(screen.getByText('Lưu nháp'));
+  await waitFor(() => expect(mocks.opening.detail).toHaveBeenCalledWith('doc'));
+  await act(async () => {
+    finish?.();
+  });
+  await waitFor(() =>
+    expect(screen.getByLabelText('Tồn đầu kỳ')).toBeEnabled(),
+  );
+  expect(screen.getByText('Lưu nháp')).toBeEnabled();
 });
