@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
@@ -42,9 +42,32 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isCreate = mode === 'create';
+  const documentGeneration = useRef(0);
+  const hydrate = useCallback((value: PeriodicStockCount) => {
+    setDocument(value);
+    setNote(value.note ?? '');
+    setLines(
+      value.lines.map((line) => ({
+        productId: line.productId,
+        countedQty: line.countedQty,
+      })),
+    );
+    setEstimates({});
+  }, []);
+  const hasUnsavedChanges =
+    document !== null &&
+    (note !== (document.note ?? '') ||
+      JSON.stringify(lines) !==
+        JSON.stringify(
+          document.lines.map((line) => ({
+            productId: line.productId,
+            countedQty: line.countedQty,
+          })),
+        ));
 
   useEffect(() => {
     let active = true;
+    documentGeneration.current += 1;
     catalogApi
       .list({ limit: 100, includeInactive: true })
       .then((page) => active && setProducts(page.items))
@@ -54,14 +77,7 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
         .detail(countId)
         .then((value) => {
           if (!active) return;
-          setDocument(value);
-          setNote(value.note ?? '');
-          setLines(
-            value.lines.map((line) => ({
-              productId: line.productId,
-              countedQty: line.countedQty,
-            })),
-          );
+          hydrate(value);
         })
         .catch(
           (reason: unknown) => active && setError(safeInventoryMessage(reason)),
@@ -69,8 +85,9 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
     }
     return () => {
       active = false;
+      documentGeneration.current += 1;
     };
-  }, [api, catalogApi, countId, isCreate]);
+  }, [api, catalogApi, countId, isCreate, hydrate]);
 
   const editable = isCreate || document?.status === 'DRAFT';
   const selectedIds = useMemo(
@@ -78,24 +95,27 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
     [lines],
   );
 
-  async function reload() {
-    if (countId) setDocument(await api.detail(countId));
-  }
   async function perform(
     action: () => Promise<unknown>,
     title: string,
     redirect = false,
   ) {
     if (!online || busy) return;
+    const generation = documentGeneration.current;
     setBusy(true);
     setError(null);
     try {
       await action();
+      if (generation !== documentGeneration.current) return;
       await refreshOperationalData(queryClient);
       toast.show({ kind: 'success', title });
       if (redirect) navigate('/stock-counts');
-      else await reload();
+      else if (countId) {
+        const fresh = await api.detail(countId);
+        if (generation === documentGeneration.current) hydrate(fresh);
+      }
     } catch (reason) {
+      if (generation !== documentGeneration.current) return;
       const message = safeInventoryMessage(reason);
       setError(message);
       toast.show({
@@ -109,7 +129,7 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
         correlationId: getFinancialCorrelationId(reason),
       });
     } finally {
-      setBusy(false);
+      if (generation === documentGeneration.current) setBusy(false);
     }
   }
   async function save() {
@@ -143,6 +163,14 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
   }
   async function action(command: 'submit' | 'refresh' | 'cancel') {
     if (!document) return;
+    if (
+      command === 'submit' &&
+      (hasUnsavedChanges ||
+        document.lines.some((line) => line.countedQty === null))
+    ) {
+      setError('Nhập đủ số đếm và lưu thay đổi trước khi gửi.');
+      return;
+    }
     if (command === 'cancel' && reason.trim().length === 0) {
       setError('Vui lòng nhập lý do hủy phiếu kiểm kho.');
       return;
@@ -229,20 +257,23 @@ export function StockCountDetailPage({ mode }: { mode?: 'create' }) {
           {error}
         </p>
       ) : null}
-      <StockCountEditor
-        document={document}
-        editable={editable}
-        lines={lines}
-        products={products}
-        selectedIds={selectedIds}
-        note={note}
-        online={online}
-        busy={busy}
-        setNote={setNote}
-        setLines={setLines}
-        onSave={save}
-      />
+      <fieldset disabled={busy || !online}>
+        <StockCountEditor
+          document={document}
+          editable={editable}
+          lines={lines}
+          products={products}
+          selectedIds={selectedIds}
+          note={note}
+          online={online}
+          busy={busy}
+          setNote={setNote}
+          setLines={setLines}
+          onSave={save}
+        />
+      </fieldset>
       <StockCountActions
+        hasUnsavedChanges={hasUnsavedChanges}
         document={document}
         estimates={estimates}
         reason={reason}

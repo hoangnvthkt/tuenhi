@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
@@ -52,8 +52,37 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isCreate = mode === 'create';
+  const documentGeneration = useRef(0);
+  const hydrate = useCallback((value: OpeningDocument) => {
+    setDocument(value);
+    setNote(value.note ?? '');
+    setLines(
+      value.lines.map((line) => ({
+        productId: line.productId,
+        countedQty: line.countedQty,
+        openingUnitCost: line.openingUnitCost,
+        sourceSuggestionId: line.sourceSuggestionId,
+        confirmedUnverified: line.unverifiedSourceConfirmed,
+      })),
+    );
+  }, []);
+  const hasUnsavedChanges =
+    document !== null &&
+    (note !== (document.note ?? '') ||
+      JSON.stringify(lines) !==
+        JSON.stringify(
+          document.lines.map((line) => ({
+            productId: line.productId,
+            countedQty: line.countedQty,
+            openingUnitCost: line.openingUnitCost,
+            sourceSuggestionId: line.sourceSuggestionId,
+            confirmedUnverified: line.unverifiedSourceConfirmed,
+          })),
+        ));
+
   useEffect(() => {
     let active = true;
+    documentGeneration.current += 1;
     catalogApi
       .list({ limit: 100 })
       .then((page) => active && setProducts(page.items))
@@ -67,25 +96,16 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
         .detail(countId)
         .then((data) => {
           if (!active) return;
-          setDocument(data);
-          setNote(data.note ?? '');
-          setLines(
-            data.lines.map((line) => ({
-              productId: line.productId,
-              countedQty: line.countedQty,
-              openingUnitCost: line.openingUnitCost,
-              sourceSuggestionId: line.sourceSuggestionId,
-              confirmedUnverified: line.unverifiedSourceConfirmed,
-            })),
-          );
+          hydrate(data);
         })
         .catch(
           (reason: unknown) => active && setError(safeInventoryMessage(reason)),
         );
     return () => {
       active = false;
+      documentGeneration.current += 1;
     };
-  }, [api, catalogApi, countId, isCreate]);
+  }, [api, catalogApi, countId, isCreate, hydrate]);
   const selectedIds = useMemo(
     () => new Set(lines.map((line) => line.productId).filter(Boolean)),
     [lines],
@@ -128,15 +148,21 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
     redirect = false,
   ) {
     if (!online || busy) return;
+    const generation = documentGeneration.current;
     setBusy(true);
     setError(null);
     try {
       await action();
+      if (generation !== documentGeneration.current) return;
       await refreshOperationalData(queryClient);
       toast.show({ kind: 'success', title, message: title });
       if (redirect) navigate('/more/inventory/opening');
-      else if (countId) setDocument(await api.detail(countId));
+      else if (countId) {
+        const fresh = await api.detail(countId);
+        if (generation === documentGeneration.current) hydrate(fresh);
+      }
     } catch (reason) {
+      if (generation !== documentGeneration.current) return;
       const message = safeInventoryMessage(reason);
       setError(message);
       toast.show({
@@ -150,7 +176,7 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
         correlationId: getFinancialCorrelationId(reason),
       });
     } finally {
-      setBusy(false);
+      if (generation === documentGeneration.current) setBusy(false);
     }
   }
   async function save() {
@@ -162,9 +188,17 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
           precision: 18,
           positive: true,
         }).ok &&
-        line.openingUnitCost !== '',
+        validateCanonicalNumber(line.openingUnitCost, {
+          kind: 'money',
+          precision: 20,
+          required: true,
+        }).ok,
     );
-    if (valid.length === 0 || valid.length !== selectedIds.size) {
+    if (
+      valid.length === 0 ||
+      valid.length !== selectedIds.size ||
+      lines.filter((line) => line.productId).length !== selectedIds.size
+    ) {
       setError(
         'Mỗi sản phẩm chỉ xuất hiện một lần, số lượng phải lớn hơn 0 và phải có đơn giá vốn.',
       );
@@ -228,18 +262,21 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
           {error}
         </p>
       ) : null}
-      <OpeningEditor
-        editable={editable}
-        groupedSuggestions={groupedSuggestions}
-        note={note}
-        lines={lines}
-        products={products}
-        selectedIds={selectedIds}
-        onApplySuggestion={applySuggestion}
-        setNote={setNote}
-        setLines={setLines}
-      />
+      <fieldset disabled={busy || !online}>
+        <OpeningEditor
+          editable={editable}
+          groupedSuggestions={groupedSuggestions}
+          note={note}
+          lines={lines}
+          products={products}
+          selectedIds={selectedIds}
+          onApplySuggestion={applySuggestion}
+          setNote={setNote}
+          setLines={setLines}
+        />
+      </fieldset>
       <OpeningActions
+        hasUnsavedChanges={hasUnsavedChanges}
         api={api}
         document={document}
         editable={editable}
