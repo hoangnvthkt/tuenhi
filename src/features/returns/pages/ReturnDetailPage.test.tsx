@@ -22,7 +22,8 @@ const salesApi = vi.hoisted(() => ({ detail: vi.fn() }));
 
 vi.mock('../api/returns-api', () => ({ createReturnsApi: () => returnsApi }));
 vi.mock('@/features/sales', () => ({ createSalesApi: () => salesApi }));
-vi.mock('@/features/auth', () => ({
+vi.mock('@/features/auth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/auth')>()),
   useSession: () => ({
     session: {
       userId: '20000000-0000-4000-8000-000000000001',

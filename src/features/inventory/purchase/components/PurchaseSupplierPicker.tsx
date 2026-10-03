@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useEffect, useState } from 'react';
 import {
   useInfiniteQuery,
@@ -38,6 +39,7 @@ export function PurchaseSupplierPicker({
   canManage: boolean;
   online: boolean;
 }) {
+  const privateKey = usePrivateQueryKey();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -62,7 +64,7 @@ export function PurchaseSupplierPicker({
     return () => window.clearTimeout(timeout);
   }, [search]);
   const suppliers = useInfiniteQuery({
-    queryKey: ['purchase-suppliers', debouncedSearch],
+    queryKey: privateKey(...['purchase-suppliers', debouncedSearch]),
     queryFn: ({ pageParam }) =>
       api.listSuppliers({
         search: debouncedSearch,
@@ -79,7 +81,7 @@ export function PurchaseSupplierPicker({
     (item) => item?.id === supplierId,
   );
   const selectedQuery = useQuery({
-    queryKey: ['purchase-supplier', supplierId],
+    queryKey: privateKey(...['purchase-supplier', supplierId]),
     queryFn: () => explorerApi.supplierDetail(supplierId),
     enabled: canRead && Boolean(supplierId) && !known,
     retry: false,
@@ -100,7 +102,10 @@ export function PurchaseSupplierPicker({
           version: result.version,
         };
         setSavedSupplier(saved);
-        queryClient.setQueryData(['purchase-supplier', saved.id], saved);
+        queryClient.setQueryData(
+          privateKey('purchase-supplier', saved.id),
+          saved,
+        );
         onChange(saved.id);
         return result;
       } finally {

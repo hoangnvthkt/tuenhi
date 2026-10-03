@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { useState } from 'react';
@@ -18,11 +19,12 @@ const label: Record<string, string> = {
 };
 
 export function ReturnListPage() {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(createReturnsApi);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const query = useQuery({
-    queryKey: ['sale-returns', search, status],
+    queryKey: privateKey(...['sale-returns', search, status]),
     queryFn: () => api.list({ search, status }),
   });
 

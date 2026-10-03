@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -16,6 +17,7 @@ const statusLabels: Record<string, string> = {
   CANCELLED: 'Đã hủy',
 };
 export function SalesListPage() {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(createSalesApi);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -27,7 +29,7 @@ export function SalesListPage() {
     return () => window.clearTimeout(timer);
   }, [search]);
   const query = useQuery({
-    queryKey: ['sales', debouncedSearch, status],
+    queryKey: privateKey(...['sales', debouncedSearch, status]),
     queryFn: () => api.list({ search: debouncedSearch, status }),
     placeholderData: keepPreviousData,
   });

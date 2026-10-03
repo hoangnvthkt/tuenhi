@@ -1,6 +1,8 @@
+import { SessionContextValue } from '@/features/auth';
+import { privateQueryKey } from '@/shared/api/private-query-key';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell } from '@phosphor-icons/react';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { NotificationApiContext } from '../model/notification-context';
 import type {
   NotificationApi,
@@ -11,8 +13,6 @@ export type {
   NotificationApi,
   NotificationFeed,
 } from '../api/notification-api';
-
-const notificationQueryKey = ['notifications', 'mine'] as const;
 
 const severityLabels = {
   INFO: 'Thông tin',
@@ -94,19 +94,27 @@ export function NotificationCenter({
     throw new Error('NotificationCenter cần NotificationApi.');
   }
 
+  const auth = useContext(SessionContextValue);
+  const userId = auth?.session?.userId;
+  const notificationQueryKey = useMemo(
+    () => privateQueryKey(userId ?? 'no-session', 'notifications', 'mine'),
+    [userId],
+  );
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const query = useQuery({
     queryKey: notificationQueryKey,
     queryFn: () => api.list(),
+    enabled: !!userId,
   });
 
   useEffect(() => {
+    if (!userId) return;
     return api.subscribe(() => {
       void queryClient.invalidateQueries({ queryKey: notificationQueryKey });
     });
-  }, [api, queryClient]);
+  }, [api, queryClient, notificationQueryKey, userId]);
 
   const markRead = useMutation({
     mutationFn: (id: string) => api.markRead(id),
@@ -225,7 +233,7 @@ export function NotificationCenter({
                     Thử lại
                   </button>
                 </div>
-              ) : query.data.items.length === 0 ? (
+              ) : !query.data || query.data.items.length === 0 ? (
                 <p className="p-5 text-sm text-slate-600">
                   Bạn chưa có thông báo.
                 </p>

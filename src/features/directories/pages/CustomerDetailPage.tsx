@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import {
   keepPreviousData,
   useInfiniteQuery,
@@ -82,6 +83,7 @@ export function CustomerDetailPage({
   api?: CustomerExplorerApi;
   directoryApi?: DirectoryApi;
 }) {
+  const privateKey = usePrivateQueryKey();
   const { customerId } = useParams();
   const [api] = useState(() => apiProp ?? createCustomerExplorerApi());
   const [directoryApi] = useState(
@@ -106,11 +108,13 @@ export function CustomerDetailPage({
   }, [contextUrl.changed, contextUrlKey, setSearchParams]);
 
   const detailQuery = useQuery({
-    queryKey: customerExplorerKeys.detail({
-      customerId: customerId ?? 'missing',
-      from: contextUrl.value.from,
-      to: contextUrl.value.to,
-    }),
+    queryKey: privateKey(
+      ...customerExplorerKeys.detail({
+        customerId: customerId ?? 'missing',
+        from: contextUrl.value.from,
+        to: contextUrl.value.to,
+      }),
+    ),
     queryFn: () =>
       api.customerDetail({
         customerId: customerId!,
@@ -136,12 +140,14 @@ export function CustomerDetailPage({
 
   const salesLimit = contextUrl.value.tab === 'overview' ? 5 : 25;
   const salesQuery = useInfiniteQuery({
-    queryKey: customerExplorerKeys.sales({
-      customerId,
-      from: contextUrl.value.from,
-      to: contextUrl.value.to,
-      limit: salesLimit,
-    }),
+    queryKey: privateKey(
+      ...customerExplorerKeys.sales({
+        customerId,
+        from: contextUrl.value.from,
+        to: contextUrl.value.to,
+        limit: salesLimit,
+      }),
+    ),
     queryFn: ({ pageParam }) =>
       api.customerSales({
         customerId: customerId!,
@@ -161,12 +167,14 @@ export function CustomerDetailPage({
   });
   const returnsLimit = contextUrl.value.tab === 'overview' ? 5 : 25;
   const returnsQuery = useInfiniteQuery({
-    queryKey: customerExplorerKeys.returns({
-      customerId,
-      from: contextUrl.value.from,
-      to: contextUrl.value.to,
-      limit: returnsLimit,
-    }),
+    queryKey: privateKey(
+      ...customerExplorerKeys.returns({
+        customerId,
+        from: contextUrl.value.from,
+        to: contextUrl.value.to,
+        limit: returnsLimit,
+      }),
+    ),
     queryFn: ({ pageParam }) =>
       api.customerReturns({
         customerId: customerId!,
@@ -186,13 +194,15 @@ export function CustomerDetailPage({
     placeholderData: keepPreviousData,
   });
   const productsQuery = useInfiniteQuery({
-    queryKey: customerExplorerKeys.products({
-      customerId,
-      search: contextUrl.value.q,
-      from: contextUrl.value.from,
-      to: contextUrl.value.to,
-      limit: 25,
-    }),
+    queryKey: privateKey(
+      ...customerExplorerKeys.products({
+        customerId,
+        search: contextUrl.value.q,
+        from: contextUrl.value.from,
+        to: contextUrl.value.to,
+        limit: 25,
+      }),
+    ),
     queryFn: ({ pageParam }) =>
       api.customerProducts({
         customerId: customerId!,

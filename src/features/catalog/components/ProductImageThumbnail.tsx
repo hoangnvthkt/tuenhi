@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
@@ -27,9 +28,10 @@ export function ProductImageThumbnail({
   className?: string;
   api?: ProductImageApi;
 }) {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(() => apiProp ?? createProductImageApi());
   const query = useQuery({
-    queryKey: ['catalog', 'product-image-url', objectPath],
+    queryKey: privateKey(...['catalog', 'product-image-url', objectPath]),
     queryFn: () => api.createSignedUrl(objectPath!),
     enabled: Boolean(objectPath),
     staleTime: 8 * 60 * 1000,

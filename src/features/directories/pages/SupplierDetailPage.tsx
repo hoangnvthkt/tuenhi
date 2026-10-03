@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import {
   keepPreviousData,
   useInfiniteQuery,
@@ -67,6 +68,7 @@ export function SupplierDetailPage({
   api?: ConnectedExplorerApi;
   directoryApi?: DirectoryApi;
 }) {
+  const privateKey = usePrivateQueryKey();
   const { supplierId } = useParams();
   const [api] = useState(() => apiProp ?? createConnectedExplorerApi());
   const [directoryApi] = useState(
@@ -90,7 +92,9 @@ export function SupplierDetailPage({
   }, [contextUrl.changed, contextUrlKey, setSearchParams]);
 
   const detailQuery = useQuery({
-    queryKey: connectedExplorerKeys.supplierDetail(supplierId ?? 'missing'),
+    queryKey: privateKey(
+      ...connectedExplorerKeys.supplierDetail(supplierId ?? 'missing'),
+    ),
     queryFn: () => api.supplierDetail(supplierId!),
     enabled: Boolean(supplierId),
   });
@@ -108,10 +112,12 @@ export function SupplierDetailPage({
   }, [contextUrlKey, contextUrl.value.tab, detailQuery.data, setSearchParams]);
 
   const productsQuery = useInfiniteQuery({
-    queryKey: connectedExplorerKeys.supplierProducts({
-      supplierId,
-      search: contextUrl.value.q,
-    }),
+    queryKey: privateKey(
+      ...connectedExplorerKeys.supplierProducts({
+        supplierId,
+        search: contextUrl.value.q,
+      }),
+    ),
     queryFn: ({ pageParam }) =>
       api.supplierProducts({
         supplierId: supplierId!,
@@ -136,13 +142,15 @@ export function SupplierDetailPage({
   });
   const historyLimit = contextUrl.value.tab === 'overview' ? 5 : 25;
   const historyQuery = useInfiniteQuery({
-    queryKey: connectedExplorerKeys.purchaseHistory({
-      supplierId,
-      productId: contextUrl.value.productId,
-      from: contextUrl.value.from,
-      to: contextUrl.value.to,
-      limit: historyLimit,
-    }),
+    queryKey: privateKey(
+      ...connectedExplorerKeys.purchaseHistory({
+        supplierId,
+        productId: contextUrl.value.productId,
+        from: contextUrl.value.from,
+        to: contextUrl.value.to,
+        limit: historyLimit,
+      }),
+    ),
     queryFn: ({ pageParam }) =>
       api.postedPurchaseHistory({
         supplierId: supplierId!,

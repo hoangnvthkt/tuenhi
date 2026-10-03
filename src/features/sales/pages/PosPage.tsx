@@ -1,4 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
+import { usePrivateQueryKey } from '@/features/auth';
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
@@ -56,6 +58,7 @@ function getPosTabId() {
 }
 
 export function PosPage() {
+  const privateKey = usePrivateQueryKey();
   const { saleId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const online = useOnlineStatus();
@@ -210,19 +213,19 @@ export function PosPage() {
     return () => window.clearTimeout(timer);
   }, [search]);
   const catalog = useQuery({
-    queryKey: ['pos-products', debouncedSearch],
+    queryKey: privateKey(...['pos-products', debouncedSearch]),
     queryFn: () => catalogApi.list({ search: debouncedSearch, limit: 30 }),
   });
   const channels = useQuery({
-    queryKey: ['pos-channels'],
+    queryKey: privateKey(...['pos-channels']),
     queryFn: () => settingsApi.listSalesChannels(false),
   });
   const customers = useQuery({
-    queryKey: ['pos-customers'],
+    queryKey: privateKey(...['pos-customers']),
     queryFn: () => directoryApi.listCustomers({ limit: 100 }),
   });
   const detail = useQuery({
-    queryKey: ['sale', saleId],
+    queryKey: privateKey(...['sale', saleId]),
     queryFn: () => salesApi.detail(saleId!),
     enabled: Boolean(saleId),
   });

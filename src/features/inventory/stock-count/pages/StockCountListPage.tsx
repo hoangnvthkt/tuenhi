@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { useState } from 'react';
@@ -5,10 +6,11 @@ import { createStockCountApi } from '../api/stock-count-api';
 import { statusLabel } from '../../model/inventory-ui';
 
 export function StockCountListPage() {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(createStockCountApi);
   const [status, setStatus] = useState('');
   const query = useQuery({
-    queryKey: ['stock-counts', status],
+    queryKey: privateKey(...['stock-counts', status]),
     queryFn: () => api.list(status || undefined),
   });
   return (

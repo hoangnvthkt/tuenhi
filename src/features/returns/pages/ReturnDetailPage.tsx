@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
 import { useState } from 'react';
@@ -29,6 +30,7 @@ const money = (value: string) =>
   }).format(Number(value));
 
 export function ReturnDetailPage() {
+  const privateKey = usePrivateQueryKey();
   const { returnId } = useParams();
   const online = useOnlineStatus();
   const toast = useToast();
@@ -39,7 +41,7 @@ export function ReturnDetailPage() {
   const [salesApi] = useState(createSalesApi);
   const [paymentProofApi] = useState(createPaymentProofApi);
   const query = useQuery({
-    queryKey: ['sale-return', returnId],
+    queryKey: privateKey(...['sale-return', returnId]),
     queryFn: () => api.detail(returnId!),
     enabled: Boolean(returnId),
   });
@@ -63,7 +65,9 @@ export function ReturnDetailPage() {
     ) ?? false;
   const canViewProduct = session?.permissions.includes('catalog.read') ?? false;
   const relationshipQuery = useQuery({
-    queryKey: ['return-sale-relationship-detail', document?.saleId],
+    queryKey: privateKey(
+      ...['return-sale-relationship-detail', document?.saleId],
+    ),
     queryFn: () => salesApi.detail(document!.saleId),
     enabled: Boolean(document?.saleId) && canViewCustomer,
     retry: false,

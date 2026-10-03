@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import {
   keepPreviousData,
   useInfiniteQuery,
@@ -55,6 +56,7 @@ export function ProductDetailPage({
   explorerApi?: ConnectedExplorerApi;
   mode?: ProductDetailMode;
 }) {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(() => apiProp ?? createCatalogApi());
   const [explorerApi] = useState(
     () => explorerApiProp ?? createConnectedExplorerApi(),
@@ -114,7 +116,7 @@ export function ProductDetailPage({
   ]);
 
   const detailQuery = useQuery({
-    queryKey: catalogKeys.detail(productId ?? 'missing'),
+    queryKey: privateKey(...catalogKeys.detail(productId ?? 'missing')),
     queryFn: () => {
       if (!productId) throw new Error('Thiếu mã sản phẩm.');
       return api.detail(productId);
@@ -122,12 +124,12 @@ export function ProductDetailPage({
     enabled: needsDetail && Boolean(productId),
   });
   const categoriesQuery = useQuery({
-    queryKey: catalogKeys.categories(mode === 'edit'),
+    queryKey: privateKey(...catalogKeys.categories(mode === 'edit')),
     queryFn: () => api.listCategories(mode === 'edit'),
     enabled: mode !== 'view',
   });
   const priceHistoryQuery = useQuery({
-    queryKey: catalogKeys.priceHistory(productId ?? 'missing'),
+    queryKey: privateKey(...catalogKeys.priceHistory(productId ?? 'missing')),
     queryFn: () => {
       if (!productId) throw new Error('Thiếu mã sản phẩm.');
       return api.priceHistory(productId);
@@ -135,12 +137,16 @@ export function ProductDetailPage({
     enabled: mode === 'view' && canManageSalePrice && Boolean(productId),
   });
   const relationshipQuery = useQuery({
-    queryKey: connectedExplorerKeys.productContext(productId ?? 'missing'),
+    queryKey: privateKey(
+      ...connectedExplorerKeys.productContext(productId ?? 'missing'),
+    ),
     queryFn: () => explorerApi.productContext(productId!),
     enabled: mode === 'view' && canReadPurchases && Boolean(productId),
   });
   const suppliersQuery = useInfiniteQuery({
-    queryKey: connectedExplorerKeys.productSuppliers({ productId }),
+    queryKey: privateKey(
+      ...connectedExplorerKeys.productSuppliers({ productId }),
+    ),
     queryFn: ({ pageParam }) =>
       explorerApi.productSuppliers({
         productId: productId!,
@@ -165,13 +171,15 @@ export function ProductDetailPage({
   });
   const historyLimit = contextUrl.value.tab === 'overview' ? 5 : 25;
   const historyQuery = useInfiniteQuery({
-    queryKey: connectedExplorerKeys.purchaseHistory({
-      productId,
-      supplierId: contextUrl.value.supplierId,
-      from: contextUrl.value.from,
-      to: contextUrl.value.to,
-      limit: historyLimit,
-    }),
+    queryKey: privateKey(
+      ...connectedExplorerKeys.purchaseHistory({
+        productId,
+        supplierId: contextUrl.value.supplierId,
+        from: contextUrl.value.from,
+        to: contextUrl.value.to,
+        limit: historyLimit,
+      }),
+    ),
     queryFn: ({ pageParam }) =>
       explorerApi.postedPurchaseHistory({
         productId: productId!,

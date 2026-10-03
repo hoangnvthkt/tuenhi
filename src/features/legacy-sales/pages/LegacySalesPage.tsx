@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -12,6 +13,7 @@ function money(value: string | null) {
 }
 
 export function LegacySalesPage({ api: apiProp }: { api?: LegacySalesApi }) {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(() => apiProp ?? createLegacySalesApi());
   const [searchParams] = useSearchParams();
   const importRunId = searchParams.get('importRunId') ?? undefined;
@@ -24,7 +26,7 @@ export function LegacySalesPage({ api: apiProp }: { api?: LegacySalesApi }) {
   const [filters, setFilters] = useState(draft);
   const [cursor, setCursor] = useState<{ soldOn: string; id: string }>();
   const query = useQuery({
-    queryKey: ['legacy-sales', filters, importRunId, cursor],
+    queryKey: privateKey(...['legacy-sales', filters, importRunId, cursor]),
     queryFn: () =>
       api.list({
         ...filters,

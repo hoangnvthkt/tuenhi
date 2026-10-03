@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
 import { useEffect, useState } from 'react';
@@ -49,6 +50,7 @@ function findSalePendingCommand(userId?: string, saleId?: string) {
 }
 
 export function SaleDetailPage() {
+  const privateKey = usePrivateQueryKey();
   const { saleId } = useParams();
   const online = useOnlineStatus();
   const toast = useToast();
@@ -63,7 +65,7 @@ export function SaleDetailPage() {
     PendingFinancialCommand | undefined
   >(() => findSalePendingCommand(session?.userId, saleId));
   const query = useQuery({
-    queryKey: ['invoice', saleId],
+    queryKey: privateKey(...['invoice', saleId]),
     queryFn: () => api.invoice(saleId!),
     enabled: Boolean(saleId),
   });
@@ -75,7 +77,7 @@ export function SaleDetailPage() {
     ) ?? false;
   const canViewProduct = session?.permissions.includes('catalog.read') ?? false;
   const relationshipQuery = useQuery({
-    queryKey: ['sale-relationship-detail', saleId],
+    queryKey: privateKey(...['sale-relationship-detail', saleId]),
     queryFn: () => api.detail(saleId!),
     enabled: Boolean(saleId) && (canViewCustomer || canViewProduct),
     retry: false,

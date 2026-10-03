@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { createStaffApi, type StaffApi } from '../api/staff-api';
@@ -14,16 +15,17 @@ const roleLabels = {
 } as const;
 
 export function StaffPage({ api: apiProp }: { api?: StaffApi }) {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(() => apiProp ?? createStaffApi());
   const [showCreate, setShowCreate] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const query = useQuery({
-    queryKey: staffQueryKey,
+    queryKey: privateKey(...staffQueryKey),
     queryFn: () => api.list(),
   });
   const capabilityQuery = useQuery({
-    queryKey: staffAccessCapabilityQueryKey,
+    queryKey: privateKey(...staffAccessCapabilityQueryKey),
     queryFn: () => api.getAccessCapability(),
   });
   const createStaff = useMutation({

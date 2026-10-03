@@ -36,11 +36,12 @@ function createApi(
   };
 }
 
-function wrapper(api: SessionApi) {
-  const queryClient = new QueryClient({
+function wrapper(
+  api: SessionApi,
+  queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
-  });
-
+  }),
+) {
   return function TestWrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -121,4 +122,113 @@ describe('AuthProvider', () => {
     expect(result.current.session).toEqual(ownerSession);
     expect(api.signOut).not.toHaveBeenCalled();
   });
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+it('clears private queries and ignores their late responses after external logout', async () => {
+  const client = new QueryClient();
+  const api = createApi();
+  const { result } = renderHook(useSession, { wrapper: wrapper(api, client) });
+  await waitFor(() => expect(result.current.status).toBe('authenticated'));
+  client.setQueryData(['notifications', 'mine'], 'owner private data');
+  const late = deferred<string>();
+  const request = client
+    .fetchQuery({ queryKey: ['reports'], queryFn: () => late.promise })
+    .catch(() => undefined);
+  vi.mocked(api.getAuthSession).mockResolvedValue(null);
+  act(() => api.emitAuthChange());
+  await waitFor(() => expect(result.current.status).toBe('anonymous'));
+  expect(client.getQueryData(['notifications', 'mine'])).toBeUndefined();
+  await act(async () => {
+    late.resolve('owner revenue');
+    await request;
+  });
+  expect(client.getQueryData(['reports'])).toBeUndefined();
+});
+
+it('never falls back to the previous profile when another Auth identity fails to load', async () => {
+  const api = createApi();
+  const { result } = renderHook(useSession, { wrapper: wrapper(api) });
+  await waitFor(() => expect(result.current.status).toBe('authenticated'));
+  vi.mocked(api.getAuthSession).mockResolvedValue({ userId: 'new-user' });
+  vi.mocked(api.getSessionContext).mockRejectedValue(new Error('Offline'));
+  await act(() => result.current.refresh());
+  expect(result.current.status).toBe('error');
+  expect(result.current.session).toBeNull();
+});
+
+it('hides the old profile and cache while the new profile is loading', async () => {
+  const client = new QueryClient();
+  const api = createApi();
+  const { result } = renderHook(useSession, { wrapper: wrapper(api, client) });
+  await waitFor(() => expect(result.current.status).toBe('authenticated'));
+  client.setQueryData(['owner-dashboard'], 'revenue');
+  const next = deferred<SessionContext>();
+  vi.mocked(api.getAuthSession).mockResolvedValue({ userId: 'viewer' });
+  vi.mocked(api.getSessionContext).mockReturnValue(next.promise);
+  act(() => api.emitAuthChange());
+  await waitFor(() => expect(api.getSessionContext).toHaveBeenCalledTimes(2));
+  expect(result.current.session).toBeNull();
+  expect(client.getQueryData(['owner-dashboard'])).toBeUndefined();
+  await act(async () =>
+    next.resolve({
+      ...ownerSession,
+      userId: 'viewer',
+      roleTemplate: 'WAREHOUSE_VIEWER',
+      permissions: ['catalog.read'],
+    }),
+  );
+  expect(result.current.session?.roleTemplate).toBe('WAREHOUSE_VIEWER');
+});
+
+it('discards an old profile response after a newer identity refresh', async () => {
+  const old = deferred<SessionContext>();
+  const api = createApi({
+    getSessionContext: vi
+      .fn()
+      .mockReturnValueOnce(old.promise)
+      .mockResolvedValue({
+        ...ownerSession,
+        userId: 'new-user',
+        roleTemplate: 'BUSINESS',
+      }),
+  });
+  const { result } = renderHook(useSession, { wrapper: wrapper(api) });
+  await waitFor(() => expect(api.getSessionContext).toHaveBeenCalledOnce());
+  vi.mocked(api.getAuthSession).mockResolvedValue({ userId: 'new-user' });
+  await act(() => result.current.refresh());
+  await act(async () => old.resolve(ownerSession));
+  expect(result.current.session?.userId).toBe('new-user');
+});
+
+it('rejects a profile that does not match the Auth identity', async () => {
+  const api = createApi({
+    getSessionContext: vi
+      .fn()
+      .mockResolvedValue({ ...ownerSession, userId: 'wrong-user' }),
+  });
+  const { result } = renderHook(useSession, { wrapper: wrapper(api) });
+  await waitFor(() => expect(result.current.status).not.toBe('loading'));
+  expect(result.current.session).toBeNull();
+  expect(result.current.status).toBe('error');
+});
+
+it('keeps same-user caches on token refresh and clears them on explicit signout', async () => {
+  const client = new QueryClient();
+  const api = createApi();
+  const { result } = renderHook(useSession, { wrapper: wrapper(api, client) });
+  await waitFor(() => expect(result.current.status).toBe('authenticated'));
+  client.setQueryData(['sale', 'draft'], 'unsaved view');
+  await act(() => result.current.refresh());
+  expect(client.getQueryData(['sale', 'draft'])).toBe('unsaved view');
+  await act(() => result.current.signOut());
+  expect(result.current.status).toBe('anonymous');
+  expect(client.getQueryData(['sale', 'draft'])).toBeUndefined();
 });

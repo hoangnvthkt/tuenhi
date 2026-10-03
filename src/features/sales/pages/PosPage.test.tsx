@@ -37,7 +37,8 @@ vi.mock('@/shared/hooks/use-online-status', () => ({
   useOnlineStatus: () => true,
 }));
 
-vi.mock('@/features/auth', () => ({
+vi.mock('@/features/auth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/auth')>()),
   useSession: () => ({
     session: {
       userId: '10000000-0000-4000-8000-000000000099',

@@ -35,38 +35,58 @@ export function AuthProvider({
   const mounted = useRef(true);
   const refreshSequence = useRef(0);
   const ignoredAuthChanges = useRef(0);
+  const authIdentity = useRef<string | null>(null);
   const authenticatedSession = useRef<SessionContext | null>(null);
   const [status, setStatus] = useState<SessionStatus>('loading');
   const [session, setSession] = useState<SessionContext | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const clearIdentity = useCallback(() => {
+    authenticatedSession.current = null;
+    authIdentity.current = null;
+    // clear() destroys queries and cancels their retries/responses synchronously.
+    queryClient.clear();
+    setSession(null);
+  }, [queryClient]);
+
   const refresh = useCallback(async () => {
     const sequence = ++refreshSequence.current;
+    let verifiedIdentity: string | null = null;
 
     try {
       const authSession = await api.getAuthSession();
       if (!mounted.current || sequence !== refreshSequence.current) return;
 
       if (!authSession) {
-        authenticatedSession.current = null;
-        setSession(null);
+        clearIdentity();
         setErrorMessage(null);
         setStatus('anonymous');
         return;
       }
 
+      verifiedIdentity = authSession.userId;
+      if (authIdentity.current !== verifiedIdentity) {
+        clearIdentity();
+        authIdentity.current = verifiedIdentity;
+        setStatus('loading');
+        setErrorMessage(null);
+      }
       const nextSession = await api.getSessionContext();
       if (!mounted.current || sequence !== refreshSequence.current) return;
 
+      if (nextSession.userId !== verifiedIdentity) {
+        clearIdentity();
+        throw new Error('Phiên đăng nhập đã thay đổi. Vui lòng đăng nhập lại.');
+      }
       if (!nextSession.isActive) {
         ignoredAuthChanges.current += 1;
-        authenticatedSession.current = null;
+        clearIdentity();
+        setStatus('loading');
         try {
           await api.signOut();
         } catch {
           // The authoritative profile still makes the local session unusable.
         }
-        queryClient.clear();
         if (!mounted.current || sequence !== refreshSequence.current) return;
         setSession(null);
         setErrorMessage('Tài khoản đã bị khóa.');
@@ -83,28 +103,32 @@ export function AuthProvider({
       const message = safeErrorMessage(error);
       if (message === 'Tài khoản đã bị khóa.') {
         ignoredAuthChanges.current += 1;
+        clearIdentity();
+        setStatus('loading');
         try {
           await api.signOut();
         } catch {
           // The local session is still treated as unusable.
         }
-        queryClient.clear();
-        authenticatedSession.current = null;
       }
       if (!mounted.current || sequence !== refreshSequence.current) return;
 
-      if (authenticatedSession.current) {
+      if (
+        verifiedIdentity &&
+        authenticatedSession.current?.userId === verifiedIdentity &&
+        authIdentity.current === verifiedIdentity
+      ) {
         setSession(authenticatedSession.current);
         setErrorMessage(null);
         setStatus('authenticated');
         return;
       }
 
-      setSession(null);
+      clearIdentity();
       setErrorMessage(message);
       setStatus('error');
     }
-  }, [api, queryClient]);
+  }, [api, clearIdentity]);
 
   useEffect(() => {
     mounted.current = true;
@@ -143,15 +167,15 @@ export function AuthProvider({
         await refresh();
       },
       signOut: async () => {
+        ++refreshSequence.current;
+        clearIdentity();
+        setStatus('anonymous');
         await api.signOut();
-        queryClient.clear();
-        authenticatedSession.current = null;
-        setSession(null);
         setErrorMessage(null);
         setStatus('anonymous');
       },
     }),
-    [api, errorMessage, queryClient, refresh, session, status],
+    [api, clearIdentity, errorMessage, refresh, session, status],
   );
 
   return (

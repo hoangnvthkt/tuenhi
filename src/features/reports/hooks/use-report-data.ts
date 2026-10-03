@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
@@ -18,6 +19,7 @@ export function useReportData({
   canProfit: boolean;
   online: boolean;
 }) {
+  const privateKey = usePrivateQueryKey();
   const [revenueApi] = useState(createRevenueReportsApi);
   const [ownerApi] = useState(createOwnerReportsApi);
   const queryOptions = {
@@ -26,19 +28,19 @@ export function useReportData({
     refetchOnWindowFocus: true,
   };
   const report = useQuery({
-    queryKey: ['reports', from, to, scope],
+    queryKey: privateKey(...['reports', from, to, scope]),
     queryFn: () => revenueApi.revenue(from, to, scope),
     ...queryOptions,
   });
   const owner = useQuery({
-    queryKey: ['owner-dashboard', from, to],
+    queryKey: privateKey(...['owner-dashboard', from, to]),
     queryFn: () => ownerApi.owner(from, to),
     enabled: canProfit,
     gcTime: 0,
     ...queryOptions,
   });
   const profit = useQuery({
-    queryKey: ['profit-report', from, to],
+    queryKey: privateKey(...['profit-report', from, to]),
     queryFn: () => ownerApi.profit(from, to),
     enabled: canProfit,
     gcTime: 0,
