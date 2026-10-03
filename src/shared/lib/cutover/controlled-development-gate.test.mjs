@@ -283,6 +283,17 @@ test('keeps the gate command allowlist read-only and in release order', () => {
       ],
     },
     {
+      id: 'auditPaginationAssertions',
+      command: 'supabase',
+      args: [
+        'db',
+        'query',
+        '--linked',
+        '--file',
+        'supabase/tests/operational_pagination_assertions.sql',
+      ],
+    },
+    {
       id: 'customerFeedbackAssertions',
       command: 'pnpm',
       args: ['cloud:verify:feedback'],

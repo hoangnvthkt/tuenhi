@@ -73,7 +73,9 @@ export const returnPageSchema = z.object({
       updatedAt: z.string(),
     }),
   ),
-  nextCursor: z.null(),
+  nextCursor: z
+    .object({ updatedAt: z.iso.datetime({ offset: true }), id: z.uuid() })
+    .nullable(),
 });
 
 export type ReturnLookup = z.infer<typeof returnLookupSchema>;

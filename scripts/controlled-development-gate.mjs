@@ -78,6 +78,17 @@ export const GATE_COMMANDS = Object.freeze([
     ]),
   }),
   Object.freeze({
+    id: 'auditPaginationAssertions',
+    command: 'supabase',
+    args: Object.freeze([
+      'db',
+      'query',
+      '--linked',
+      '--file',
+      'supabase/tests/operational_pagination_assertions.sql',
+    ]),
+  }),
+  Object.freeze({
     id: 'customerFeedbackAssertions',
     command: 'pnpm',
     args: Object.freeze(['cloud:verify:feedback']),

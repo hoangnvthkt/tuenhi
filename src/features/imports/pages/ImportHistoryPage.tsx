@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { usePrivateQueryKey } from '@/features/auth';
+import { useCursorList } from '@/shared/hooks/use-cursor-list';
+import { ListPagination } from '@/shared/ui/feedback/ListPagination';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router';
-import {
-  createImportApi,
-  type ImportApi,
-  type ImportHistoryPage as ImportHistoryData,
-  type ImportRunResult,
-} from '../api/import-api';
+import { createImportApi, type ImportApi } from '../api/import-api';
 
 const targetLabels = {
   CATEGORIES: 'Nhóm hàng',
@@ -37,49 +36,26 @@ function dateTime(value: string | null) {
 export function ImportHistoryPage({ api: apiProp }: { api?: ImportApi }) {
   const [api] = useState(() => apiProp ?? createImportApi());
   const { importRunId } = useParams();
-  const requestKey = importRunId ?? 'history';
-  const [page, setPage] = useState<ImportHistoryData | null>(null);
-  const [detail, setDetail] = useState<ImportRunResult | null>(null);
-  const [loadedKey, setLoadedKey] = useState<string | null>(null);
-  const [requestError, setRequestError] = useState<{
-    key: string;
-    message: string;
-  } | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const request = importRunId
-      ? api.getResult(importRunId).then((result) => {
-          if (active) {
-            setDetail(result);
-            setRequestError(null);
-          }
-        })
-      : api.listHistory({ limit: 30 }).then((result) => {
-          if (active) {
-            setPage(result);
-            setRequestError(null);
-          }
-        });
-    void request
-      .catch(() => {
-        if (active)
-          setRequestError({
-            key: requestKey,
-            message: 'Không thể tải lịch sử nhập dữ liệu. Vui lòng thử lại.',
-          });
-      })
-      .finally(() => {
-        if (active) setLoadedKey(requestKey);
-      });
-    return () => {
-      active = false;
-    };
-  }, [api, importRunId, requestKey]);
-
-  const isLoading = loadedKey !== requestKey;
+  const privateKey = usePrivateQueryKey();
+  const list = useCursorList({
+    queryKey: privateKey('import-history'),
+    load: (cursor: { createdAt: string; id: string } | undefined) =>
+      api.listHistory({ limit: 30, cursor }),
+    id: (item) => item.importRunId,
+    enabled: !importRunId,
+  });
+  const detailQuery = useQuery({
+    queryKey: privateKey('import-result', importRunId),
+    queryFn: () => api.getResult(importRunId!),
+    enabled: !!importRunId,
+  });
+  const detail = detailQuery.data;
+  const page = list.data ? { items: list.items } : null;
+  const isLoading = importRunId ? detailQuery.isPending : list.isPending;
   const errorMessage =
-    requestError?.key === requestKey ? requestError.message : null;
+    importRunId && detailQuery.isError
+      ? 'Không thể tải lịch sử nhập dữ liệu. Vui lòng thử lại.'
+      : null;
 
   return (
     <section className="space-y-5">
@@ -116,7 +92,7 @@ export function ImportHistoryPage({ api: apiProp }: { api?: ImportApi }) {
         </p>
       ) : null}
 
-      {loadedKey === requestKey && detail && importRunId ? (
+      {detail && importRunId ? (
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -163,7 +139,7 @@ export function ImportHistoryPage({ api: apiProp }: { api?: ImportApi }) {
         </div>
       ) : null}
 
-      {!importRunId && loadedKey === requestKey && page ? (
+      {!importRunId && page ? (
         page.items.length === 0 ? (
           <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
             Chưa có phiên nhập dữ liệu.
@@ -205,6 +181,17 @@ export function ImportHistoryPage({ api: apiProp }: { api?: ImportApi }) {
             </ul>
           </div>
         )
+      ) : null}
+      {!importRunId ? (
+        <ListPagination query={list} />
+      ) : detailQuery.isError ? (
+        <button
+          type="button"
+          onClick={() => void detailQuery.refetch()}
+          className="min-h-11 rounded-lg border px-4"
+        >
+          Thử lại
+        </button>
       ) : null}
     </section>
   );

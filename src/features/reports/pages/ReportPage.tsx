@@ -6,7 +6,6 @@ import {
   buildReportWorkbook,
   downloadReportWorkbook,
 } from '../export/report-workbook';
-import type { ProfitPage } from '../api/reports-api';
 import {
   ProfitEventTable,
   ReportBreakdown,
@@ -55,11 +54,6 @@ export function ReportPage() {
     online,
   });
   const [exporting, setExporting] = useState(false);
-  const [profitPageState, setProfitPageState] = useState<{
-    key: string;
-    pages: ProfitPage[];
-  }>({ key: '', pages: [] });
-  const [loadingMoreProfit, setLoadingMoreProfit] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const setPeriod = (next: ReportPeriod) => {
     const range = presetReportRange(next === 'custom' ? 'month' : next);
@@ -98,6 +92,12 @@ export function ReportPage() {
       }
       const blob = await buildReportWorkbook(report.data, exportProfit);
       downloadReportWorkbook(blob, `bao-cao-${from}-${to}.xlsx`);
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : 'Không thể xuất báo cáo. Vui lòng thử lại.',
+      );
     } finally {
       setExporting(false);
     }
@@ -106,28 +106,6 @@ export function ReportPage() {
     if (!canAll && params.get('scope') === 'ALL')
       setParams({ period, from, to, scope: 'OWN' }, { replace: true });
   }, [canAll, from, params, period, setParams, to]);
-  const profitPageKey = `${from}:${to}`;
-  const profitPages =
-    profitPageState.key === profitPageKey ? profitPageState.pages : [];
-  const visibleProfitItems = [
-    ...(profit.data?.items ?? []),
-    ...profitPages.flatMap((page) => page.items),
-  ];
-  const profitCursor =
-    profitPages.at(-1)?.nextCursor ?? profit.data?.nextCursor ?? null;
-  async function loadMoreProfit() {
-    if (!profitCursor) return;
-    setLoadingMoreProfit(true);
-    try {
-      const next = await ownerApi.profit(from, to, profitCursor);
-      setProfitPageState((state) => ({
-        key: profitPageKey,
-        pages: state.key === profitPageKey ? [...state.pages, next] : [next],
-      }));
-    } finally {
-      setLoadingMoreProfit(false);
-    }
-  }
   const isLoading =
     report.isLoading || (canProfit && (owner.isLoading || profit.isLoading));
   return (
@@ -268,15 +246,15 @@ export function ReportPage() {
           </div>
           {profit.data ? (
             <>
-              <ProfitEventTable items={visibleProfitItems} />
-              {profitCursor ? (
+              <ProfitEventTable items={profit.items} />
+              {profit.hasNextPage ? (
                 <button
                   type="button"
-                  onClick={() => void loadMoreProfit()}
-                  disabled={loadingMoreProfit}
+                  onClick={() => void profit.fetchNextPage()}
+                  disabled={profit.isFetching}
                   className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-50"
                 >
-                  {loadingMoreProfit ? 'Đang tải…' : 'Tải thêm sự kiện'}
+                  {profit.isFetching ? 'Đang tải…' : 'Tải thêm sự kiện'}
                 </button>
               ) : null}
             </>

@@ -1,32 +1,24 @@
-import { useEffect, useState } from 'react';
+import { usePrivateQueryKey } from '@/features/auth';
+import { useCursorList } from '@/shared/hooks/use-cursor-list';
+import { ListPagination } from '@/shared/ui/feedback/ListPagination';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { useSession } from '@/features/auth';
 import { createPurchaseApi } from '../api/purchase-api';
-import {
-  formatNumber,
-  safeInventoryMessage,
-  statusLabel,
-} from '../../model/inventory-ui';
+import { formatNumber, statusLabel } from '../../model/inventory-ui';
 
 export function PurchaseListPage() {
   const [api] = useState(createPurchaseApi);
   const { session } = useSession();
-  const [items, setItems] = useState<
-    Awaited<ReturnType<typeof api.list>>['items']
-  >([]);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let active = true;
-    api
-      .list()
-      .then((page) => active && setItems(page.items))
-      .catch(
-        (reason: unknown) => active && setError(safeInventoryMessage(reason)),
-      );
-    return () => {
-      active = false;
-    };
-  }, [api]);
+  const privateKey = usePrivateQueryKey();
+  const query = useCursorList({
+    queryKey: privateKey('purchase-receipts'),
+    load: (cursor: { updatedAt: string; id: string } | undefined) =>
+      api.list(undefined, cursor),
+    id: (item) => item.id,
+  });
+  const items = query.items;
+
   const canCreate = session?.permissions.includes('purchase.draft.manage');
   return (
     <section className="space-y-5">
@@ -46,16 +38,8 @@ export function PurchaseListPage() {
           </Link>
         ) : null}
       </div>
-      {error ? (
-        <p
-          role="alert"
-          className="rounded-lg bg-red-50 p-3 text-sm text-red-800"
-        >
-          {error}
-        </p>
-      ) : null}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        {items.length === 0 && !error ? (
+        {query.isSuccess && items.length === 0 ? (
           <p className="p-5 text-sm text-slate-600">Chưa có phiếu nhập nào.</p>
         ) : null}
         <ul className="divide-y divide-slate-200">
@@ -85,6 +69,7 @@ export function PurchaseListPage() {
           ))}
         </ul>
       </div>
+      <ListPagination query={query} />
     </section>
   );
 }

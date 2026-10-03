@@ -83,13 +83,16 @@ export function createReturnsApi() {
         }),
       );
     },
-    async list(filters: { status?: string; search?: string } = {}) {
+    async list(
+      filters: { status?: string; search?: string } = {},
+      cursor?: { updatedAt: string; id: string },
+    ) {
       return parseReturnsRpc(
         returnPageSchema,
-        await rpc('list_sale_returns', {
+        await rpc('list_sale_returns_v2', {
           p_filters: filters,
-          p_cursor_updated_at: null,
-          p_cursor_id: null,
+          p_cursor_updated_at: cursor?.updatedAt ?? null,
+          p_cursor_id: cursor?.id ?? null,
           p_limit: 50,
         }),
       );

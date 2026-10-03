@@ -1,5 +1,6 @@
+import { useCursorList } from '@/shared/hooks/use-cursor-list';
+import { ListPagination } from '@/shared/ui/feedback/ListPagination';
 import { usePrivateQueryKey } from '@/features/auth';
-import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { createReturnsApi } from '../api/returns-api';
@@ -23,9 +24,11 @@ export function ReturnListPage() {
   const [api] = useState(createReturnsApi);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
-  const query = useQuery({
+  const query = useCursorList({
     queryKey: privateKey(...['sale-returns', search, status]),
-    queryFn: () => api.list({ search, status }),
+    load: (cursor: { updatedAt: string; id: string } | undefined) =>
+      api.list({ search, status }, cursor),
+    id: (item) => item.id,
   });
 
   return (
@@ -63,7 +66,7 @@ export function ReturnListPage() {
         </select>
       </div>
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        {query.data?.items.map((item) => (
+        {query.items.map((item) => (
           <Link
             key={item.id}
             to={`/returns/${item.id}`}
@@ -87,12 +90,13 @@ export function ReturnListPage() {
             Đang tải yêu cầu trả hàng…
           </p>
         ) : null}
-        {query.data && query.data.items.length === 0 ? (
+        {query.isSuccess && query.items.length === 0 ? (
           <p className="p-8 text-center text-sm text-slate-500">
             Chưa có yêu cầu trả hàng phù hợp.
           </p>
         ) : null}
       </section>
+      <ListPagination query={query} />
     </main>
   );
 }

@@ -1,6 +1,8 @@
+import { useCursorList } from '@/shared/hooks/use-cursor-list';
+import { ListPagination } from '@/shared/ui/feedback/ListPagination';
 import { SessionContextValue } from '@/features/auth';
 import { privateQueryKey } from '@/shared/api/private-query-key';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell } from '@phosphor-icons/react';
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { NotificationApiContext } from '../model/notification-context';
@@ -96,18 +98,29 @@ export function NotificationCenter({
 
   const auth = useContext(SessionContextValue);
   const userId = auth?.session?.userId;
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const notificationQueryKey = useMemo(
-    () => privateQueryKey(userId ?? 'no-session', 'notifications', 'mine'),
-    [userId],
+    () =>
+      privateQueryKey(
+        userId ?? 'no-session',
+        'notifications',
+        'mine',
+        unreadOnly,
+      ),
+    [userId, unreadOnly],
   );
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const query = useQuery({
+  const query = useCursorList({
     queryKey: notificationQueryKey,
-    queryFn: () => api.list(),
+    load: (cursor: { createdAt: string; id: string } | undefined) =>
+      api.list({ unreadOnly, cursor }),
+    id: (item) => item.id,
     enabled: !!userId,
   });
+
+  const unreadCount = query.data?.pages[0]?.unreadCount ?? 0;
 
   useEffect(() => {
     if (!userId) return;
@@ -146,12 +159,12 @@ export function NotificationCenter({
         className="relative min-h-11 rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
       >
         <Bell size={22} aria-hidden="true" />
-        {query.data && query.data.unreadCount > 0 ? (
+        {query.data && unreadCount > 0 ? (
           <span
-            aria-label={`${query.data.unreadCount} thông báo chưa đọc`}
+            aria-label={`${unreadCount} thông báo chưa đọc`}
             className="absolute right-1 top-1 min-w-5 rounded-full bg-teal-700 px-1 text-center text-xs font-semibold leading-5 text-white"
           >
-            {query.data.unreadCount > 99 ? '99+' : query.data.unreadCount}
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         ) : null}
       </button>
@@ -174,7 +187,7 @@ export function NotificationCenter({
                 </h2>
                 {query.data ? (
                   <p className="text-sm text-slate-600">
-                    {query.data.unreadCount} thông báo chưa đọc
+                    {unreadCount} thông báo chưa đọc
                   </p>
                 ) : null}
               </div>
@@ -188,7 +201,7 @@ export function NotificationCenter({
               </button>
             </header>
 
-            {query.data && query.data.unreadCount > 0 ? (
+            {query.data && unreadCount > 0 ? (
               <div className="border-b border-slate-200 px-5 py-2 text-right">
                 <button
                   type="button"
@@ -201,6 +214,14 @@ export function NotificationCenter({
               </div>
             ) : null}
 
+            <label className="flex min-h-11 items-center gap-2 px-5">
+              <input
+                type="checkbox"
+                checked={unreadOnly}
+                onChange={(event) => setUnreadOnly(event.target.checked)}
+              />
+              Chỉ chưa đọc
+            </label>
             {actionError ? (
               <p
                 role="alert"
@@ -220,7 +241,7 @@ export function NotificationCenter({
                   <div className="h-3 w-full rounded bg-slate-100" />
                   <div className="h-3 w-4/5 rounded bg-slate-100" />
                 </div>
-              ) : query.isError ? (
+              ) : query.isError && !query.data ? (
                 <div className="p-5">
                   <p role="alert" className="text-sm text-red-800">
                     Không thể tải thông báo. Vui lòng thử lại.
@@ -233,13 +254,13 @@ export function NotificationCenter({
                     Thử lại
                   </button>
                 </div>
-              ) : !query.data || query.data.items.length === 0 ? (
+              ) : !query.data || query.items.length === 0 ? (
                 <p className="p-5 text-sm text-slate-600">
                   Bạn chưa có thông báo.
                 </p>
               ) : (
                 <ul>
-                  {query.data.items.map((notification) => (
+                  {query.items.map((notification) => (
                     <NotificationRow
                       key={notification.id}
                       notification={notification}
@@ -249,6 +270,7 @@ export function NotificationCenter({
                   ))}
                 </ul>
               )}
+              {query.data ? <ListPagination query={query} /> : null}
             </div>
           </section>
         </div>

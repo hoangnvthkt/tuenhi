@@ -2198,7 +2198,25 @@ export type Database = {
         };
         Returns: Json;
       };
+      list_sale_returns_v2: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_updated_at?: string;
+          p_filters?: Json;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
       list_sales: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_sort_at?: string;
+          p_filters?: Json;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
+      list_sales_v2: {
         Args: {
           p_cursor_id?: string;
           p_cursor_sort_at?: string;
@@ -2220,6 +2238,15 @@ export type Database = {
         Returns: Json;
       };
       list_stock_counts: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_updated_at?: string;
+          p_filters?: Json;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
+      list_stock_counts_v2: {
         Args: {
           p_cursor_id?: string;
           p_cursor_updated_at?: string;

@@ -212,3 +212,40 @@ it('does not reuse fresh owner notifications for another account', async () => {
     screen.queryByText('Mật khẩu đã được cập nhật'),
   ).not.toBeInTheDocument();
 });
+
+it('loads the next notifications and switches to unread without marking all read', async () => {
+  const user = userEvent.setup();
+  const cursor = {
+    createdAt: unreadFeed.items[0]!.createdAt,
+    id: unreadFeed.items[0]!.id,
+  };
+  const list = vi.fn().mockImplementation(({ cursor: next, unreadOnly }) =>
+    Promise.resolve(
+      unreadOnly
+        ? { ...unreadFeed, items: [], nextCursor: null }
+        : next
+          ? {
+              ...unreadFeed,
+              items: [
+                { ...unreadFeed.items[0], id: '51', title: 'Thông báo 51' },
+              ],
+            }
+          : { ...unreadFeed, nextCursor: cursor },
+    ),
+  );
+  const api = createApi({ list });
+  renderCenter(api);
+  await user.click(screen.getByRole('button', { name: 'Thông báo' }));
+  await user.click(await screen.findByRole('button', { name: 'Tải thêm' }));
+  await screen.findByText('Thông báo 51');
+  expect(
+    screen.queryByRole('button', { name: 'Tải thêm' }),
+  ).not.toBeInTheDocument();
+  await user.click(screen.getByLabelText('Chỉ chưa đọc'));
+  await screen.findByText('Bạn chưa có thông báo.');
+  expect(list).toHaveBeenLastCalledWith({
+    unreadOnly: true,
+    cursor: undefined,
+  });
+  expect(api.markAllRead).not.toHaveBeenCalled();
+});
