@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import type { CreateStaffInput } from '../api/staff-api';
+import type { StaffFormValues } from '../api/staff-api';
 
 const staffFormSchema = z.object({
   email: z.email('Email chưa đúng định dạng.'),
@@ -20,7 +20,7 @@ export function StaffForm({
   onSubmit,
   onCancel,
 }: {
-  onSubmit: (values: CreateStaffInput) => Promise<void>;
+  onSubmit: (values: StaffFormValues) => Promise<void>;
   onCancel?: () => void;
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
@@ -29,7 +29,7 @@ export function StaffForm({
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<CreateStaffInput>({
+  } = useForm<StaffFormValues>({
     resolver: zodResolver(staffFormSchema),
     defaultValues: {
       email: '',

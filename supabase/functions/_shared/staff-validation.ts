@@ -3,14 +3,19 @@ export type EmployeeRole = 'SALES_WAREHOUSE' | 'BUSINESS' | 'WAREHOUSE_VIEWER';
 export type ValidationResult<T> =
   { ok: true; value: T } | { ok: false; message: string };
 
-export type CreateEmployeeInput = {
-  email: string;
-  displayName: string;
-  roleTemplate: EmployeeRole;
-  temporaryPassword: string;
-  idempotencyKey: string;
-  pendingUserId?: string;
-};
+export type CreateEmployeeInput =
+  | {
+      email: string;
+      displayName: string;
+      roleTemplate: EmployeeRole;
+      temporaryPassword: string;
+      idempotencyKey: string;
+      pendingUserId?: never;
+    }
+  | {
+      pendingUserId: string;
+      idempotencyKey: string;
+    };
 
 export type StaffActionInput = {
   userId: string;
@@ -51,6 +56,21 @@ export function parseCreateEmployeeInput(
   const temporaryPassword = value.temporaryPassword;
   const idempotencyKey = value.idempotencyKey;
   const pendingUserId = value.pendingUserId;
+  if (typeof idempotencyKey !== 'string' || !uuidPattern.test(idempotencyKey)) {
+    return invalid('Mã yêu cầu chưa hợp lệ.');
+  }
+  if (pendingUserId !== undefined) {
+    if (
+      typeof pendingUserId !== 'string' ||
+      !uuidPattern.test(pendingUserId) ||
+      Object.keys(value).some(
+        (key) => !['pendingUserId', 'idempotencyKey'].includes(key),
+      )
+    ) {
+      return invalid('Thông tin tiếp tục tạo tài khoản chưa hợp lệ.');
+    }
+    return { ok: true, value: { pendingUserId, idempotencyKey } };
+  }
 
   if (!emailPattern.test(email) || email.length > 320) {
     return invalid('Email chưa đúng định dạng.');
@@ -91,7 +111,6 @@ export function parseCreateEmployeeInput(
       roleTemplate,
       temporaryPassword,
       idempotencyKey,
-      ...(typeof pendingUserId === 'string' ? { pendingUserId } : {}),
     },
   };
 }

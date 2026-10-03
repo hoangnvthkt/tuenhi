@@ -87,12 +87,37 @@ export type StaffAccessCapability = z.infer<typeof staffAccessCapabilitySchema>;
 export type EmployeeRole = 'SALES_WAREHOUSE' | 'BUSINESS' | 'WAREHOUSE_VIEWER';
 export type PermissionEffect = 'DEFAULT' | 'GRANT' | 'REVOKE';
 
-export type CreateStaffInput = {
+export type StaffFormValues = {
   email: string;
   displayName: string;
   roleTemplate: EmployeeRole;
   temporaryPassword: string;
 };
+
+export type CreateStaffInput = (
+  | (StaffFormValues & { pendingUserId?: never })
+  | {
+      pendingUserId: string;
+    }
+) & { idempotencyKey: string };
+
+export class StaffRecoveryError extends Error {
+  constructor(
+    public readonly code: string,
+    public readonly correlationId: string | null = null,
+    public readonly pendingUserId: string | null = null,
+    public readonly outcomeUnknown = false,
+  ) {
+    super(
+      outcomeUnknown
+        ? pendingUserId
+          ? 'Tài khoản đã tạo, cần hoàn tất hồ sơ.'
+          : 'Chưa xác định được kết quả. Vui lòng kiểm tra trước khi tạo tiếp.'
+        : getBusinessErrorMessage(code),
+    );
+    this.name = 'StaffRecoveryError';
+  }
+}
 
 export interface StaffApi {
   list(): Promise<StaffFeed>;
@@ -131,8 +156,29 @@ function safeCommandFailure(code?: string) {
 
 function assertMutation(data: unknown) {
   const parsed = mutationEnvelopeSchema.safeParse(data);
-  if (!parsed.success) throw safeCommandFailure();
-  if (!parsed.data.ok) throw safeCommandFailure(parsed.data.error.code);
+  if (!parsed.success)
+    throw new StaffRecoveryError(
+      'STAFF_CREATE_OUTCOME_UNKNOWN',
+      null,
+      null,
+      true,
+    );
+  if (!parsed.data.ok) throw recoveryFailure(parsed.data);
+  return parsed.data.data;
+}
+
+function recoveryFailure(envelope: {
+  error: z.infer<typeof commandErrorSchema>;
+  correlationId: string;
+}) {
+  const { code, details } = envelope.error;
+  const pending = z.uuid().safeParse(details.pendingUserId);
+  return new StaffRecoveryError(
+    code,
+    envelope.correlationId,
+    pending.success ? pending.data : null,
+    details.outcomeUnknown === true,
+  );
 }
 
 async function safeFunctionFailure(error: unknown) {
@@ -144,13 +190,18 @@ async function safeFunctionFailure(error: unknown) {
       const data = await error.context.clone().json();
       const parsed = mutationEnvelopeSchema.safeParse(data);
       if (parsed.success && !parsed.data.ok) {
-        return safeCommandFailure(parsed.data.error.code);
+        return recoveryFailure(parsed.data);
       }
     } catch {
       // Fall through to the generic safe message.
     }
   }
-  return safeCommandFailure();
+  return new StaffRecoveryError(
+    'STAFF_CREATE_OUTCOME_UNKNOWN',
+    null,
+    null,
+    true,
+  );
 }
 
 export function createStaffApi(): StaffApi {
@@ -176,11 +227,17 @@ export function createStaffApi(): StaffApi {
     },
 
     async create(input) {
-      const { data, error } = await client.functions.invoke('create-employee', {
-        body: { ...input, idempotencyKey: crypto.randomUUID() },
-      });
-      if (error) throw await safeFunctionFailure(error);
-      assertMutation(data);
+      try {
+        const { data, error } = await client.functions.invoke(
+          'create-employee',
+          { body: input },
+        );
+        if (error) throw await safeFunctionFailure(error);
+        assertMutation(data);
+      } catch (error) {
+        if (error instanceof StaffRecoveryError) throw error;
+        throw await safeFunctionFailure(error);
+      }
     },
 
     async setActive({ userId, active, reason }) {

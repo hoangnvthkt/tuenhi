@@ -41,6 +41,7 @@ describe('createStaffApi', () => {
         displayName: 'Nhân viên A',
         roleTemplate: 'SALES_WAREHOUSE',
         temporaryPassword: 'Matkhau123',
+        idempotencyKey: '00000000-0000-4000-8000-000000000111',
       }),
     ).rejects.toThrow(
       'Chưa thể tạo nhân viên. Hãy hoàn tất bảo vệ mật khẩu trước khi mở tài khoản nhân viên.',
@@ -115,4 +116,71 @@ it('reads warehouse viewer accounts and their defaults from the staff feed', asy
     permissionDefinitions: [permission],
     nextCursor: null,
   });
+});
+
+it('keeps recovery details and caller operation key through HTTP failure and resume', async () => {
+  const idempotencyKey = '00000000-0000-4000-8000-000000000111';
+  const pendingUserId = '00000000-0000-4000-8000-000000000112';
+  const correlationId = '00000000-0000-4000-8000-000000000113';
+  const envelope = {
+    ok: false,
+    data: null,
+    error: {
+      code: 'STAFF_FINALIZATION_PENDING',
+      message: 'private server detail',
+      details: { pendingUserId, outcomeUnknown: true },
+    },
+    correlationId,
+  };
+  const invoke = vi
+    .fn()
+    .mockResolvedValueOnce({
+      data: null,
+      error: new FunctionsHttpError(
+        new Response(JSON.stringify(envelope), { status: 500 }),
+      ),
+    })
+    .mockResolvedValueOnce({
+      data: {
+        ok: true,
+        data: { userId: pendingUserId },
+        error: null,
+        correlationId,
+      },
+      error: null,
+    });
+  vi.mocked(getSupabaseClient).mockReturnValue({
+    functions: { invoke },
+  } as never);
+  const api = createStaffApi();
+  const initial = {
+    email: 'nv@example.com',
+    displayName: 'An',
+    roleTemplate: 'BUSINESS' as const,
+    temporaryPassword: 'Matkhau123',
+    idempotencyKey,
+  };
+  await expect(api.create(initial)).rejects.toMatchObject({
+    code: 'STAFF_FINALIZATION_PENDING',
+    pendingUserId,
+    correlationId,
+    outcomeUnknown: true,
+  });
+  expect(invoke).toHaveBeenLastCalledWith('create-employee', { body: initial });
+  await api.create({ pendingUserId, idempotencyKey });
+  expect(invoke).toHaveBeenLastCalledWith('create-employee', {
+    body: { pendingUserId, idempotencyKey },
+  });
+});
+
+it('treats a lost create response as unknown without losing operation identity', async () => {
+  vi.mocked(getSupabaseClient).mockReturnValue({
+    functions: { invoke: vi.fn().mockRejectedValue(new TypeError('network')) },
+  } as never);
+  await expect(
+    createStaffApi().create({
+      pendingUserId: '00000000-0000-4000-8000-000000000112',
+      idempotencyKey: '00000000-0000-4000-8000-000000000111',
+    }),
+  ).rejects.toMatchObject({ outcomeUnknown: true });
 });

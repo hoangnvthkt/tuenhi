@@ -1,9 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StaffPage } from './StaffPage';
-import type { StaffApi, StaffFeed } from '../api/staff-api';
+import {
+  StaffRecoveryError,
+  type StaffApi,
+  type StaffFeed,
+} from '../api/staff-api';
 
 const emptyFeed: StaffFeed = {
   items: [],
@@ -66,7 +70,7 @@ function createApi(overrides: Partial<StaffApi> = {}): StaffApi {
 }
 
 function renderPage(api: StaffApi) {
-  render(
+  return render(
     <QueryClientProvider
       client={
         new QueryClient({
@@ -219,4 +223,99 @@ it('shows the inventory-only role with fixed access instead of editable grants',
     screen.queryByRole('combobox', { name: 'Quản lý nhân viên' }),
   ).not.toBeInTheDocument();
   expect(screen.getByText('Không được cấp')).toBeVisible();
+});
+
+beforeEach(() => localStorage.clear());
+
+async function enterStaff(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    await screen.findByRole('button', { name: 'Thêm nhân viên' }),
+  );
+  await user.type(screen.getByLabelText('Email nhân viên'), 'nv@example.com');
+  await user.type(screen.getByLabelText('Tên hiển thị'), 'Nhân viên A');
+  await user.type(screen.getByLabelText('Mật khẩu tạm'), 'Matkhau123');
+  await user.click(screen.getByRole('button', { name: 'Tạo tài khoản' }));
+}
+
+it('resumes partial creation after reload with the same key and no persisted form or password', async () => {
+  const user = userEvent.setup();
+  const pendingUserId = '00000000-0000-4000-8000-000000000201';
+  const create = vi
+    .fn()
+    .mockRejectedValueOnce(
+      new StaffRecoveryError(
+        'STAFF_FINALIZATION_PENDING',
+        null,
+        pendingUserId,
+        true,
+      ),
+    )
+    .mockRejectedValueOnce(
+      new StaffRecoveryError(
+        'STAFF_FINALIZATION_PENDING',
+        null,
+        pendingUserId,
+        true,
+      ),
+    )
+    .mockResolvedValueOnce(undefined);
+  const list = vi.fn().mockResolvedValue(emptyFeed);
+  const api = createApi({
+    create,
+    list,
+    getAccessCapability: vi.fn().mockResolvedValue(ownerWaiverCapability),
+  });
+  const view = renderPage(api);
+  await enterStaff(user);
+  expect(
+    await screen.findByText('Tài khoản đã tạo, cần hoàn tất hồ sơ.'),
+  ).toBeVisible();
+  const first = create.mock.calls[0]![0];
+  expect(first.idempotencyKey).toEqual(expect.any(String));
+  const stored = JSON.stringify(localStorage);
+  expect(stored).toContain(first.idempotencyKey);
+  expect(stored).not.toMatch(/Matkhau123|nv@example.com|Nhân viên A/);
+  expect(screen.getByRole('button', { name: 'Thêm nhân viên' })).toBeDisabled();
+  view.unmount();
+  renderPage(api);
+  await user.click(
+    await screen.findByRole('button', { name: 'Tiếp tục hoàn tất hồ sơ' }),
+  );
+  expect(create).toHaveBeenLastCalledWith({
+    idempotencyKey: first.idempotencyKey,
+    pendingUserId,
+  });
+  await user.click(
+    await screen.findByRole('button', { name: 'Tiếp tục hoàn tất hồ sơ' }),
+  );
+  expect(await screen.findByText('Đã tạo tài khoản nhân viên.')).toBeVisible();
+  expect(create).toHaveBeenCalledTimes(3);
+  expect(list.mock.invocationCallOrder[2]).toBeLessThan(
+    create.mock.invocationCallOrder[1]!,
+  );
+  expect(JSON.stringify(localStorage)).not.toContain(first.idempotencyKey);
+});
+
+it('does not issue another create when the first response was lost before receiving a user ID', async () => {
+  const user = userEvent.setup();
+  const create = vi
+    .fn()
+    .mockRejectedValue(
+      new StaffRecoveryError('STAFF_CREATE_OUTCOME_UNKNOWN', null, null, true),
+    );
+  renderPage(
+    createApi({
+      create,
+      getAccessCapability: vi.fn().mockResolvedValue(ownerWaiverCapability),
+    }),
+  );
+  await enterStaff(user);
+  await user.click(
+    await screen.findByRole('button', { name: 'Kiểm tra danh sách' }),
+  );
+  expect(create).toHaveBeenCalledTimes(1);
+  expect(
+    screen.queryByRole('button', { name: 'Tạo tài khoản' }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText(/Mã yêu cầu:/)).toBeVisible();
 });
