@@ -80,6 +80,7 @@ export function StaffActions({
   }
   async function changeActive() {
     if (busy.current || initialRecovery.error || stale) return;
+    const recovering = !!attempt.current;
     busy.current = true;
     setPending(true);
     setError(null);
@@ -120,7 +121,8 @@ export function StaffActions({
     } catch (error) {
       if (error instanceof StaffRecoveryError && !error.outcomeUnknown) {
         if (error.code === 'STAFF_RECOVERY_STALE') setStale(true);
-        else if (error.code !== 'STAFF_OPERATION_UNKNOWN') clearAttempt();
+        else if (!recovering && error.code !== 'STAFF_OPERATION_UNKNOWN')
+          clearAttempt();
       }
       setError(
         error instanceof Error

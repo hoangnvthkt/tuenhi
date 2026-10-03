@@ -325,3 +325,50 @@ it('does not issue another create when the first response was lost before receiv
   ).not.toBeInTheDocument();
   expect(screen.getByText(/Mã yêu cầu:/)).toBeVisible();
 });
+
+it('keeps editable creation fields after a definitive rejection so only the wrong field needs correction', async () => {
+  const user = userEvent.setup();
+  const create = vi
+    .fn()
+    .mockRejectedValueOnce(new StaffRecoveryError('DUPLICATE_STAFF_EMAIL'))
+    .mockResolvedValueOnce(undefined);
+  renderPage(
+    createApi({
+      create,
+      getAccessCapability: vi.fn().mockResolvedValue(ownerWaiverCapability),
+    }),
+  );
+  await user.click(
+    await screen.findByRole('button', { name: 'Thêm nhân viên' }),
+  );
+  await user.type(
+    screen.getByLabelText('Email nhân viên'),
+    'exists@example.com',
+  );
+  await user.type(screen.getByLabelText('Tên hiển thị'), 'Nhân viên cần tạo');
+  await user.selectOptions(
+    screen.getByLabelText('Vai trò'),
+    'WAREHOUSE_VIEWER',
+  );
+  await user.type(screen.getByLabelText('Mật khẩu tạm'), 'Matkhau123');
+  await user.click(screen.getByRole('button', { name: 'Tạo tài khoản' }));
+  await screen.findByText('Email này đã được dùng cho tài khoản khác.');
+  expect(screen.getByLabelText('Email nhân viên')).toHaveValue(
+    'exists@example.com',
+  );
+  expect(screen.getByLabelText('Tên hiển thị')).toHaveValue(
+    'Nhân viên cần tạo',
+  );
+  expect(screen.getByLabelText('Vai trò')).toHaveValue('WAREHOUSE_VIEWER');
+  await user.clear(screen.getByLabelText('Email nhân viên'));
+  await user.type(screen.getByLabelText('Email nhân viên'), 'new@example.com');
+  await user.click(screen.getByRole('button', { name: 'Tạo tài khoản' }));
+  await screen.findByText('Đã tạo tài khoản nhân viên.');
+  expect(create).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      email: 'new@example.com',
+      displayName: 'Nhân viên cần tạo',
+      roleTemplate: 'WAREHOUSE_VIEWER',
+    }),
+  );
+});

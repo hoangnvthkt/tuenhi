@@ -134,3 +134,52 @@ it('keeps a stale marker blocked until explicitly dismissed without another Auth
   expect(setActive).toHaveBeenCalledTimes(1);
   expect(refresh).toHaveBeenCalledWith(null);
 });
+
+it.each(['AUTH_REQUIRED', 'PERMISSION_DENIED', 'INTERNAL_ERROR'])(
+  'preserves the unfinished reactivation across %s on retry',
+  async (code) => {
+    const user = userEvent.setup();
+    const setActive = vi
+      .fn()
+      .mockResolvedValueOnce({ ...done, authReactivationPending: true })
+      .mockRejectedValueOnce(new StaffRecoveryError(code))
+      .mockResolvedValueOnce(done);
+    const refresh = vi.fn();
+    const props = {
+      actorId: 'owner',
+      api: { setActive } as unknown as StaffApi,
+      member,
+      permissions: [],
+      refresh,
+    };
+    const view = render(<StaffActions {...props} />);
+    await user.type(
+      screen.getByLabelText('Lý do thay đổi trạng thái'),
+      'Trở lại',
+    );
+    await user.click(screen.getByRole('button', { name: 'Mở lại tài khoản' }));
+    const first = setActive.mock.calls[0]![0];
+    view.rerender(
+      <StaffActions {...props} member={{ ...member, isActive: true }} />,
+    );
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Tiếp tục mở quyền đăng nhập',
+      }),
+    );
+    await waitFor(() => expect(setActive).toHaveBeenCalledTimes(2));
+    expect(JSON.stringify(localStorage)).toContain(first.idempotencyKey);
+    expect(
+      screen.getByRole('button', { name: 'Tiếp tục mở quyền đăng nhập' }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Khóa tài khoản' }),
+    ).toBeDisabled();
+    expect(refresh).not.toHaveBeenCalledWith();
+    await user.click(
+      screen.getByRole('button', { name: 'Tiếp tục mở quyền đăng nhập' }),
+    );
+    expect(setActive).toHaveBeenLastCalledWith(first);
+    expect(refresh).toHaveBeenCalledWith();
+  },
+);

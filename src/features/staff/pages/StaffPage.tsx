@@ -137,6 +137,10 @@ function StaffPageContent({
       ) {
         store(null); // A definitive rejection before Auth creation may be corrected.
       }
+      if (values && !operation.current) {
+        setRecoveryError(null);
+        throw error; // Let the mounted form retain its inputs on a correctable rejection.
+      }
       setRecoveryError(
         error instanceof Error
           ? error.message
@@ -204,12 +208,16 @@ function StaffPageContent({
         </p>
       ) : null}
 
-      {showCreate && !recovery ? (
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      {showCreate ? (
+        <div
+          hidden={!!recovery}
+          className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+        >
           <h2 className="mb-5 text-lg font-bold text-slate-950">
             Tạo tài khoản mới
           </h2>
           <StaffForm
+            disabled={working || !!recovery}
             onCancel={() => setShowCreate(false)}
             onSubmit={(values) => create(values)}
           />
