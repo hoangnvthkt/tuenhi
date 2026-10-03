@@ -1,12 +1,11 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { Link } from 'react-router';
-import type { ProductCatalogItem } from '@/features/catalog';
+import { ProductSelect, type ProductCatalogItem } from '@/features/catalog';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import type { PurchaseReceipt } from '../api/purchase-schemas';
 import type { ResolvedPurchaseProduct } from '../api/purchase-schemas';
 import type { PurchaseDraftLine } from '../model/purchase-draft';
 import { PurchaseExcelImportDialog } from './PurchaseExcelImportDialog';
-import { PurchaseProductCombobox } from './PurchaseProductCombobox';
 
 export function PurchaseLineEditor({
   lines,
@@ -21,7 +20,6 @@ export function PurchaseLineEditor({
   setCosts,
   canViewProduct,
   resolveProducts,
-  searchProducts,
 }: {
   lines: PurchaseDraftLine[];
   products: ProductCatalogItem[];
@@ -35,34 +33,45 @@ export function PurchaseLineEditor({
   setCosts: Dispatch<SetStateAction<Record<string, string>>>;
   canViewProduct: boolean;
   resolveProducts: (skus: string[]) => Promise<ResolvedPurchaseProduct[]>;
-  searchProducts: (query: string) => Promise<ProductCatalogItem[]>;
 }) {
   const [importOpen, setImportOpen] = useState(false);
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="font-bold">Sản phẩm nhận</h2>
       {lines.map((line, index) => {
-        const persistedLine = receipt?.lines[index];
+        const persistedLine = receipt?.lines.find(
+          (item) => item.productId === line.productId,
+        );
         return (
           <div
             key={`${index}-${persistedLine?.id ?? 'new'}`}
             className="grid gap-3 rounded-lg bg-slate-50 p-3 md:grid-cols-[1fr_11rem_11rem_auto]"
           >
             <div>
-              <PurchaseProductCombobox
+              <ProductSelect
                 label={`Sản phẩm dòng ${index + 1}`}
-                disabled={!editable}
-                products={products}
-                selectedProductId={line.productId}
-                selectedProductIds={lineProductIds}
-                onSelect={(productId) =>
+                readOnly={!editable}
+                value={line.productId}
+                excludedIds={lineProductIds}
+                selectedSnapshot={
+                  line.selectedSnapshot ??
+                  (persistedLine
+                    ? {
+                        id: line.productId,
+                        name: persistedLine.productName,
+                        sku: persistedLine.sku,
+                      }
+                    : products.find((item) => item.id === line.productId))
+                }
+                onChange={(productId) =>
                   setLines((current) =>
                     current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, productId } : item,
+                      itemIndex === index
+                        ? { ...item, productId, selectedSnapshot: undefined }
+                        : item,
                     ),
                   )
                 }
-                onSearch={searchProducts}
               />
               {canViewProduct && line.productId ? (
                 <Link

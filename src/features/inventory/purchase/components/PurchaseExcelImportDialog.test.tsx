@@ -52,7 +52,12 @@ describe('PurchaseExcelImportDialog', () => {
     expect(apply).toBeEnabled();
     await user.click(apply);
     expect(onApply).toHaveBeenCalledWith([
-      { productId, receivedQty: '2', unitCost: '12500' },
+      {
+        productId,
+        receivedQty: '2',
+        unitCost: '12500',
+        selectedSnapshot: { id: productId, name: 'Sản phẩm A', sku: 'SP-001' },
+      },
     ]);
   });
 });

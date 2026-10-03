@@ -278,6 +278,7 @@ function OpeningDetailPageEditor({ mode }: { mode?: 'create' }) {
       ) : null}
       <fieldset disabled={busy || !online}>
         <OpeningEditor
+          document={document}
           editable={editable}
           groupedSuggestions={groupedSuggestions}
           note={note}

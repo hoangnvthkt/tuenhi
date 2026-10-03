@@ -348,19 +348,6 @@ export function PurchaseDetailPage({
     linesTouchedRef.current = true;
     setLines(action);
   };
-  const searchProducts = useCallback(
-    async (query: string) => {
-      const page = await catalogApi.list({ search: query, limit: 20 });
-      setProducts((current) => [
-        ...current,
-        ...page.items.filter(
-          (item) => !current.some((existing) => existing.id === item.id),
-        ),
-      ]);
-      return page.items;
-    },
-    [catalogApi],
-  );
   async function perform(
     action: () => Promise<unknown>,
     success: string,
@@ -540,7 +527,6 @@ export function PurchaseDetailPage({
           setCosts={setCosts}
           canViewProduct={canViewProduct}
           resolveProducts={api.resolveProductsBySku}
-          searchProducts={searchProducts}
         />
       </fieldset>
       {dirty ? (

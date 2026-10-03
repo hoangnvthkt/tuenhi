@@ -60,3 +60,27 @@ describe('PurchaseApi', () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 });
+
+it('strips picker snapshots from the strict draft command payload', () => {
+  const lines = [
+    {
+      productId,
+      receivedQty: '2',
+      unitCost: '100',
+      selectedSnapshot: { id: productId, name: 'Tên trên phiếu', sku: 'A' },
+    },
+  ];
+  createPurchaseApi().save({
+    receivedAt: '2026-10-03T00:00:00Z',
+    note: '',
+    idempotencyKey: key,
+    lines,
+  });
+  expect(rpc).toHaveBeenLastCalledWith(
+    'save_purchase_receipt_draft',
+    expect.objectContaining({
+      p_lines: [{ productId, receivedQty: '2', unitCost: '100' }],
+    }),
+    expect.anything(),
+  );
+});

@@ -395,11 +395,12 @@ describe('PosPage', () => {
 
     renderPage(`/pos?customerId=${customer.id}`);
 
-    const select = await screen.findByLabelText('Khách hàng');
-    await waitFor(() => expect(select).toHaveValue(customer.id));
-    expect(
-      screen.getByRole('option', { name: /Khách ngoài trang đầu/ }),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByLabelText('Khách hàng đã chọn')).toHaveTextContent(
+        customer.name,
+      ),
+    );
+    expect(screen.getByLabelText('Khách hàng đã chọn')).toBeInTheDocument();
   });
 
   it('requires confirmation before replacing a selected customer', async () => {
@@ -442,13 +443,16 @@ describe('PosPage', () => {
 
     renderPage(`/pos?customerId=${target.id}`);
 
-    const select = await screen.findByLabelText('Khách hàng');
     expect(
       await screen.findByText('Khách hàng được mở từ liên kết'),
     ).toBeInTheDocument();
-    expect(select).toHaveValue(current.id);
+    expect(screen.getByLabelText('Khách hàng đã chọn')).toHaveTextContent(
+      current.name,
+    );
     await user.click(screen.getByRole('button', { name: 'Đổi khách hàng' }));
-    expect(select).toHaveValue(target.id);
+    expect(screen.getByLabelText('Khách hàng đã chọn')).toHaveTextContent(
+      target.name,
+    );
   });
 
   it('does not overwrite a customer selected while lookup is pending', async () => {
@@ -469,8 +473,10 @@ describe('PosPage', () => {
     const targetId = '30000000-0000-4000-8000-000000000005';
     renderPage(`/pos?customerId=${targetId}`);
     const select = await screen.findByLabelText('Khách hàng');
-    await screen.findByRole('option', { name: 'Khách vừa chọn' });
-    await user.selectOptions(select, selected.id);
+    await user.click(select);
+    await user.click(
+      await screen.findByRole('option', { name: 'Khách vừa chọn' }),
+    );
     resolveTarget({
       id: targetId,
       code: null,
@@ -492,7 +498,9 @@ describe('PosPage', () => {
     expect(
       await screen.findByText('Khách hàng được mở từ liên kết'),
     ).toBeInTheDocument();
-    expect(select).toHaveValue(selected.id);
+    expect(screen.getByLabelText('Khách hàng đã chọn')).toHaveTextContent(
+      selected.name,
+    );
   });
 
   it('keeps customer prefill read-only until taking over the lease', async () => {
@@ -533,7 +541,11 @@ describe('PosPage', () => {
     await user.click(
       screen.getByRole('button', { name: 'Tiếp tục ở tab này' }),
     );
-    await waitFor(() => expect(select).toHaveValue(targetId));
+    await waitFor(() =>
+      expect(screen.getByLabelText('Khách hàng đã chọn')).toHaveTextContent(
+        'Khách từ tab khác',
+      ),
+    );
   });
 
   it('rejects malformed and inactive customer intents safely', async () => {

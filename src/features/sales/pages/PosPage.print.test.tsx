@@ -164,7 +164,9 @@ describe('POS provisional printing', () => {
     });
     await userEvent.click(screen.getByRole('button', { name: 'In tạm tính' }));
     await userEvent.click(replace);
-    expect(screen.getByLabelText('Khách hàng')).toHaveValue(currentCustomer.id);
+    expect(screen.getByLabelText('Khách hàng đã chọn')).toHaveTextContent(
+      currentCustomer.name,
+    );
     expect(replace).toBeDisabled();
     expect(mocks.saveDraft).toHaveBeenCalledWith(
       expect.objectContaining({ customerId: currentCustomer.id }),

@@ -15,3 +15,5 @@ export type {
   ProductFormValues,
   ProductCatalogItem,
 } from './model/catalog-types';
+
+export { ProductSelect } from './components/ProductSelect';

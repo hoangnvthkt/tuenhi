@@ -28,10 +28,11 @@ vi.mock('@/features/inventory/stock-count/api/stock-count-api', () => ({
 vi.mock('@/features/inventory/opening/api/opening-api', () => ({
   createOpeningApi: () => mocks.opening,
 }));
-vi.mock('@/features/catalog', () => ({
+vi.mock('@/features/catalog/api/catalog-api', () => ({
   createCatalogApi: () => mocks.catalog,
 }));
-vi.mock('@/features/auth', () => ({
+vi.mock('@/features/auth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/auth')>()),
   useSession: () => ({ session: { userId: 'owner' } }),
 }));
 vi.mock('@/shared/hooks/use-financial-command', () => ({
@@ -109,6 +110,8 @@ describe('opening saved form', () => {
       lines: [
         {
           productId: 'product-a',
+          productName: 'Product A',
+          sku: 'A',
           countedQty: qty,
           openingUnitCost: '100',
           sourceSuggestionId: null,
@@ -199,10 +202,8 @@ it('unlocks the saved document when creation navigates before refresh finishes',
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  await screen.findByText('A — Product A');
-  fireEvent.change(screen.getByLabelText('Sản phẩm mở sổ dòng 1'), {
-    target: { value: 'product-a' },
-  });
+  fireEvent.focus(screen.getByRole('combobox'));
+  fireEvent.click(await screen.findByRole('option', { name: 'A — Product A' }));
   fireEvent.change(screen.getByLabelText('Tồn đầu kỳ'), {
     target: { value: '5' },
   });

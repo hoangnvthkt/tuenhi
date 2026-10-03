@@ -61,7 +61,11 @@ export function createPurchaseApi() {
           p_supplier_id: nullable(input.supplierId),
           p_received_at: input.receivedAt,
           p_note: input.note || null,
-          p_lines: input.lines,
+          p_lines: input.lines.map(({ productId, receivedQty, unitCost }) => ({
+            productId,
+            receivedQty,
+            unitCost,
+          })),
           p_idempotency_key: input.idempotencyKey,
         },
         inventoryMutationSchema,

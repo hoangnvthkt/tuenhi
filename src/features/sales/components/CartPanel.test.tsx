@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { renderWithQueryClient as render } from '@/shared/testing/render-with-query-client';
+import { screen } from '@testing-library/react';
 import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
