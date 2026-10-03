@@ -77,3 +77,31 @@ it('passes barcode search to the server and keeps inactive products out of new p
     expect.objectContaining({ search: '89300001', includeInactive: false }),
   );
 });
+
+it('visibly highlights and scrolls the keyboard candidate before Enter selects it', async () => {
+  const scroll = vi.fn();
+  Element.prototype.scrollIntoView = scroll;
+  mocks.list.mockResolvedValue({
+    items: Array.from({ length: 20 }, (_, index) => ({
+      id: String(index),
+      name: `Hàng ${index}`,
+      sku: `P${index}`,
+      isActive: true,
+    })),
+    nextCursor: null,
+  });
+  const onChange = vi.fn();
+  renderWithQueryClient(
+    <ProductSelect label="Sản phẩm" value="" onChange={onChange} />,
+  );
+  const input = screen.getByRole('combobox');
+  fireEvent.focus(input);
+  await screen.findByRole('option', { name: 'P0 — Hàng 0' });
+  for (let i = 0; i < 15; i++) fireEvent.keyDown(input, { key: 'ArrowDown' });
+  const candidate = screen.getByRole('option', { name: 'P15 — Hàng 15' });
+  expect(candidate).toHaveClass('bg-teal-100');
+  expect(scroll).toHaveBeenLastCalledWith({ block: 'nearest' });
+  expect(scroll.mock.instances.at(-1)).toBe(candidate);
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(onChange).toHaveBeenCalledWith('15');
+});

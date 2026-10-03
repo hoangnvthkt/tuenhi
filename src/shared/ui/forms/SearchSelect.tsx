@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   type InfiniteData,
@@ -37,6 +37,7 @@ export function SearchSelect<T extends Option, C>({
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const listId = useId();
+  const activeOption = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const timer = window.setTimeout(
       () => setResolvedSearch(search.trim()),
@@ -71,6 +72,10 @@ export function SearchSelect<T extends Option, C>({
     [query.data, value, excludedIds],
   );
   const ready = search.trim() === resolvedSearch && !query.isFetching;
+  useEffect(() => {
+    if (open && ready)
+      activeOption.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [open, ready, active, options]);
   const chosen =
     selected?.id === value
       ? selected
@@ -180,8 +185,9 @@ export function SearchSelect<T extends Option, C>({
                       role="option"
                       id={`${listId}-${index}`}
                       aria-selected={index === active}
+                      ref={index === active ? activeOption : undefined}
                       onClick={() => choose(item)}
-                      className="min-h-11 w-full rounded px-3 text-left text-sm hover:bg-teal-50"
+                      className={`min-h-11 w-full rounded px-3 text-left text-sm ${index === active ? 'bg-teal-100 font-semibold text-teal-950' : 'hover:bg-teal-50'}`}
                     >
                       {labelFor(item)}
                     </button>

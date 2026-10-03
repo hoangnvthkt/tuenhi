@@ -99,15 +99,13 @@ export function NotificationCenter({
   const auth = useContext(SessionContextValue);
   const userId = auth?.session?.userId;
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const notificationFamilyKey = useMemo(
+    () => privateQueryKey(userId ?? 'no-session', 'notifications', 'mine'),
+    [userId],
+  );
   const notificationQueryKey = useMemo(
-    () =>
-      privateQueryKey(
-        userId ?? 'no-session',
-        'notifications',
-        'mine',
-        unreadOnly,
-      ),
-    [userId, unreadOnly],
+    () => [...notificationFamilyKey, unreadOnly],
+    [notificationFamilyKey, unreadOnly],
   );
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -140,15 +138,15 @@ export function NotificationCenter({
   useEffect(() => {
     if (!userId) return;
     return api.subscribe(() => {
-      void queryClient.invalidateQueries({ queryKey: notificationQueryKey });
+      void queryClient.invalidateQueries({ queryKey: notificationFamilyKey });
     });
-  }, [api, queryClient, notificationQueryKey, userId]);
+  }, [api, queryClient, notificationFamilyKey, userId]);
 
   const markRead = useMutation({
     mutationFn: (id: string) => api.markRead(id),
     onSuccess: () => {
       setActionError(null);
-      void queryClient.invalidateQueries({ queryKey: notificationQueryKey });
+      void queryClient.invalidateQueries({ queryKey: notificationFamilyKey });
     },
     onError: () =>
       setActionError('Không thể cập nhật thông báo. Vui lòng thử lại.'),
@@ -157,7 +155,7 @@ export function NotificationCenter({
     mutationFn: () => api.markAllRead(),
     onSuccess: () => {
       setActionError(null);
-      void queryClient.invalidateQueries({ queryKey: notificationQueryKey });
+      void queryClient.invalidateQueries({ queryKey: notificationFamilyKey });
     },
     onError: () =>
       setActionError('Không thể cập nhật thông báo. Vui lòng thử lại.'),
