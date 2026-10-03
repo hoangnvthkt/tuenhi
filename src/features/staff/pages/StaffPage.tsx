@@ -148,8 +148,10 @@ function StaffPageContent({
     }
   }
 
-  const refresh = () => {
-    setStatusMessage('Đã cập nhật tài khoản nhân viên.');
+  const refresh = (message?: null) => {
+    setStatusMessage(
+      message === null ? null : 'Đã cập nhật tài khoản nhân viên.',
+    );
     void queryClient.invalidateQueries({ queryKey: staffQueryKey });
   };
 
@@ -308,6 +310,7 @@ function StaffPageContent({
                 </div>
                 <StaffActions
                   api={api}
+                  actorId={actorId}
                   member={member}
                   permissions={query.data.permissionDefinitions}
                   refresh={refresh}

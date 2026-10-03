@@ -184,3 +184,82 @@ it('treats a lost create response as unknown without losing operation identity',
     }),
   ).rejects.toMatchObject({ outcomeUnknown: true });
 });
+
+it('exposes partial Auth reactivation and preserves the caller key on retry', async () => {
+  const input = {
+    userId: '00000000-0000-4000-8000-000000000201',
+    active: true,
+    reason: 'Trở lại làm việc',
+    idempotencyKey: '00000000-0000-4000-8000-000000000202',
+  };
+  const invoke = vi
+    .fn()
+    .mockResolvedValueOnce({
+      data: {
+        ok: true,
+        data: {
+          userId: input.userId,
+          isActive: true,
+          authReactivationPending: true,
+        },
+        error: null,
+        correlationId: input.idempotencyKey,
+      },
+      error: null,
+    })
+    .mockResolvedValueOnce({
+      data: {
+        ok: true,
+        data: { userId: input.userId, isActive: true },
+        error: null,
+        correlationId: input.idempotencyKey,
+      },
+      error: null,
+    });
+  vi.mocked(getSupabaseClient).mockReturnValue({
+    functions: { invoke },
+  } as never);
+  const api = createStaffApi();
+  await expect(api.setActive(input)).resolves.toEqual({
+    authReactivationPending: true,
+    authSessionRevocationPending: false,
+  });
+  await expect(api.setActive(input)).resolves.toEqual({
+    authReactivationPending: false,
+    authSessionRevocationPending: false,
+  });
+  expect(
+    invoke.mock.calls.every(
+      ([, options]) => options.body.idempotencyKey === input.idempotencyKey,
+    ),
+  ).toBe(true);
+});
+
+it('does not call an unrecognized Auth status a completed activation', async () => {
+  const input = {
+    userId: '00000000-0000-4000-8000-000000000201',
+    active: true,
+    reason: 'Trở lại',
+    idempotencyKey: '00000000-0000-4000-8000-000000000202',
+  };
+  vi.mocked(getSupabaseClient).mockReturnValue({
+    functions: {
+      invoke: vi.fn().mockResolvedValue({
+        data: {
+          ok: true,
+          data: {
+            userId: input.userId,
+            isActive: true,
+            authReactivationPending: 'unknown',
+          },
+          error: null,
+          correlationId: input.idempotencyKey,
+        },
+        error: null,
+      }),
+    },
+  } as never);
+  await expect(createStaffApi().setActive(input)).rejects.toMatchObject({
+    outcomeUnknown: true,
+  });
+});

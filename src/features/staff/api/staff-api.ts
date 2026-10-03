@@ -112,7 +112,7 @@ export class StaffRecoveryError extends Error {
       outcomeUnknown
         ? pendingUserId
           ? 'Tài khoản đã tạo, cần hoàn tất hồ sơ.'
-          : 'Chưa xác định được kết quả. Vui lòng kiểm tra trước khi tạo tiếp.'
+          : 'Chưa xác định được kết quả. Vui lòng kiểm tra yêu cầu đang chờ.'
         : getBusinessErrorMessage(code),
     );
     this.name = 'StaffRecoveryError';
@@ -123,11 +123,15 @@ export interface StaffApi {
   list(): Promise<StaffFeed>;
   getAccessCapability(): Promise<StaffAccessCapability>;
   create(input: CreateStaffInput): Promise<void>;
-  setActive(input: {
-    userId: string;
-    active: boolean;
-    reason: string;
-  }): Promise<void>;
+  setActive(
+    input: { userId: string; idempotencyKey: string } & (
+      | { active: boolean; reason: string; resume?: never }
+      | { active: true; resume: true }
+    ),
+  ): Promise<{
+    authReactivationPending: boolean;
+    authSessionRevocationPending: boolean;
+  }>;
   setRole(input: {
     userId: string;
     role: EmployeeRole;
@@ -240,15 +244,50 @@ export function createStaffApi(): StaffApi {
       }
     },
 
-    async setActive({ userId, active, reason }) {
-      const { data, error } = await client.functions.invoke(
-        active ? 'reactivate-employee' : 'deactivate-employee',
-        {
-          body: { userId, reason, idempotencyKey: crypto.randomUUID() },
-        },
-      );
-      if (error) throw safeCommandFailure();
-      assertMutation(data);
+    async setActive({ active, ...body }) {
+      try {
+        const { data, error } = await client.functions.invoke(
+          active ? 'reactivate-employee' : 'deactivate-employee',
+          { body },
+        );
+        if (error) throw await safeFunctionFailure(error);
+        const parsed = z
+          .object({
+            userId: z.uuid(),
+            isActive: z.boolean(),
+            authReactivationPending: z.boolean().optional(),
+            authSessionRevocationPending: z.boolean().optional(),
+          })
+          .safeParse(assertMutation(data));
+        if (!parsed.success)
+          throw new StaffRecoveryError(
+            'STAFF_UPDATE_OUTCOME_UNKNOWN',
+            null,
+            null,
+            true,
+          );
+        const result = parsed.data;
+        if (result.userId !== body.userId || result.isActive !== active)
+          throw new StaffRecoveryError(
+            'STAFF_UPDATE_OUTCOME_UNKNOWN',
+            null,
+            null,
+            true,
+          );
+        return {
+          authReactivationPending: result.authReactivationPending === true,
+          authSessionRevocationPending:
+            result.authSessionRevocationPending === true,
+        };
+      } catch (error) {
+        if (error instanceof StaffRecoveryError) throw error;
+        throw new StaffRecoveryError(
+          'STAFF_UPDATE_OUTCOME_UNKNOWN',
+          null,
+          null,
+          true,
+        );
+      }
     },
 
     async setRole({ userId, role, reason }) {

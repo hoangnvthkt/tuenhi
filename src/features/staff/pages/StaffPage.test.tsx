@@ -61,7 +61,10 @@ function createApi(overrides: Partial<StaffApi> = {}): StaffApi {
     list: vi.fn().mockResolvedValue(emptyFeed),
     getAccessCapability: vi.fn().mockResolvedValue(blockedCapability),
     create: vi.fn().mockResolvedValue(undefined),
-    setActive: vi.fn().mockResolvedValue(undefined),
+    setActive: vi.fn().mockResolvedValue({
+      authReactivationPending: false,
+      authSessionRevocationPending: false,
+    }),
     setRole: vi.fn().mockResolvedValue(undefined),
     setPermissionOverride: vi.fn().mockResolvedValue(undefined),
     resetPassword: vi.fn().mockResolvedValue(undefined),
@@ -178,7 +181,10 @@ describe('StaffPage', () => {
 
   it('locks owner-only permissions and can deactivate an employee with a reason', async () => {
     const user = userEvent.setup();
-    const setActive = vi.fn().mockResolvedValue(undefined);
+    const setActive = vi.fn().mockResolvedValue({
+      authReactivationPending: false,
+      authSessionRevocationPending: false,
+    });
     renderPage(
       createApi({ list: vi.fn().mockResolvedValue(staffFeed), setActive }),
     );

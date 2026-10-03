@@ -32,3 +32,42 @@ export function writeStaffCreation(
     );
   else localStorage.removeItem(key(actorId));
 }
+
+const reactivationSchema = z.object({
+  action: z.literal('reactivate'),
+  idempotencyKey: z.uuid(),
+  targetId: z.uuid(),
+});
+export type StaffReactivationMarker = z.infer<typeof reactivationSchema>;
+const reactivationKey = (actorId: string, targetId: string) =>
+  `tuenhi.staff-recovery:${actorId}:reactivate:${targetId}`;
+export function readStaffReactivation(
+  actorId: string,
+  targetId: string,
+): StaffReactivationMarker | null {
+  const value = localStorage.getItem(reactivationKey(actorId, targetId));
+  if (!value) return null;
+  try {
+    const parsed = reactivationSchema.safeParse(JSON.parse(value));
+    if (parsed.success && parsed.data.targetId === targetId) return parsed.data;
+  } catch {
+    /* Fail closed rather than issuing a different request. */
+  }
+  throw new Error(
+    'Không đọc được yêu cầu mở lại tài khoản. Cần hỗ trợ đối soát.',
+  );
+}
+export function writeStaffReactivation(
+  actorId: string,
+  targetId: string,
+  marker: StaffReactivationMarker | null,
+) {
+  if (marker) {
+    if (marker.targetId !== targetId)
+      throw new Error('Yêu cầu không khớp tài khoản.');
+    localStorage.setItem(
+      reactivationKey(actorId, targetId),
+      JSON.stringify(reactivationSchema.parse(marker)),
+    );
+  } else localStorage.removeItem(reactivationKey(actorId, targetId));
+}

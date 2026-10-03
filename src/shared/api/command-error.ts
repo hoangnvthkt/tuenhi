@@ -30,6 +30,10 @@ export const businessErrorMessages = {
   AUTH_UPDATE_FAILED: 'Không thể cập nhật tài khoản. Vui lòng thử lại.',
   PASSWORD_CHANGE_INCOMPLETE:
     'Mật khẩu đã được cập nhật nhưng chưa thể hoàn tất hồ sơ. Vui lòng thử lại.',
+  STAFF_OPERATION_UNKNOWN:
+    'Chưa tìm thấy kết quả yêu cầu. Cần đối soát trước khi tiếp tục.',
+  STAFF_RECOVERY_STALE:
+    'Tài khoản đã thay đổi sau yêu cầu này. Vui lòng kiểm tra lại trạng thái.',
   STAFF_NOT_FOUND: 'Không tìm thấy tài khoản nhân viên.',
   DUPLICATE_STAFF_EMAIL: 'Email này đã được dùng cho tài khoản khác.',
   LAST_ACTIVE_OWNER:
