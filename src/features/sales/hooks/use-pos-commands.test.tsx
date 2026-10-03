@@ -1,7 +1,7 @@
 import { act, renderHook, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   executeFinancialCommand,
@@ -12,6 +12,7 @@ import {
 import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import type { SalesApi } from '../api/sales-api';
 import type { Sale } from '../api/sales-schemas';
+import type { PosCartItem } from '../model/pos-types';
 import {
   readPosCartSnapshot,
   writePosCartSnapshot,
@@ -54,7 +55,22 @@ const draft: Sale = {
   version: 2,
   createdAt: '2026-08-28T00:00:00.000Z',
   updatedAt: '2026-08-28T00:00:00.000Z',
-  lines: [],
+  lines: [
+    {
+      id: '70000000-0000-4000-8000-000000000001',
+      productId: '50000000-0000-4000-8000-000000000001',
+      productName: 'Sản phẩm thử',
+      sku: 'SP001',
+      unitName: 'cái',
+      quantity: '1',
+      unitSalePrice: '100000',
+      grossAmount: '100000',
+      lineDiscountAmount: '0',
+      allocatedOrderDiscount: '0',
+      netAmount: '100000',
+      lineOrder: 0,
+    },
+  ],
 };
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -222,7 +238,7 @@ describe('usePosCommands', () => {
   });
 
   it('uploads a bank-transfer proof once across same-key invocations', async () => {
-    const savedDraft = { ...draft, lines: [] };
+    const savedDraft = { ...draft };
     const saveDraft = vi.fn().mockResolvedValue({
       sale: savedDraft,
       priceRefreshed: false,
@@ -403,4 +419,110 @@ describe('usePosCommands', () => {
       storageRead.mockRestore();
     }
   });
+});
+
+function renderCheckout(api: SalesApi) {
+  return renderHook(
+    () => {
+      const [currentDraft, setDraft] = useState<Sale | null>(draft);
+      const [items, setItems] = useState<PosCartItem[]>(
+        draft.lines.map((line) => ({ ...line, onHandQty: '10' })),
+      );
+      const [payment, setPayment] = useState<'CASH' | 'BANK_TRANSFER' | null>(
+        'BANK_TRANSFER',
+      );
+      const commands = usePosCommands({
+        api,
+        online: true,
+        userId,
+        saleId,
+        draft: currentDraft,
+        items,
+        customerId: '',
+        channelId: draft.salesChannelId,
+        orderDiscount: '0',
+        note: '',
+        canDiscount: true,
+        payment,
+        setDraft,
+        setItems,
+        setPayment,
+      });
+      return { ...commands, items, payment, setPayment };
+    },
+    { wrapper },
+  );
+}
+
+it('stops changed prices before proof upload, then completes only after another confirmation', async () => {
+  const repriced = {
+    ...draft,
+    version: 3,
+    subtotal: '120000',
+    netTotal: '120000',
+    lines: draft.lines.map((line) => ({
+      ...line,
+      unitSalePrice: '120000',
+      grossAmount: '120000',
+      netAmount: '120000',
+    })),
+  };
+  const saveDraft = vi
+    .fn()
+    .mockResolvedValue({ sale: repriced, priceRefreshed: true });
+  const complete = vi.fn().mockResolvedValue({
+    saleId,
+    saleNumber: 'HD1',
+    status: 'COMPLETED',
+    version: 4,
+  });
+  mocks.upload.mockResolvedValue({ objectPath: 'proof.jpg' });
+  mocks.runFinancialCommand.mockImplementation(async ({ invoke }) =>
+    invoke('same-operation-key'),
+  );
+  const { result } = renderCheckout({
+    saveDraft,
+    complete,
+  } as unknown as SalesApi);
+  const proof = new File(['proof'], 'proof.jpg', { type: 'image/jpeg' });
+  await act(() => result.current.pay(proof));
+  expect(complete).not.toHaveBeenCalled();
+  expect(mocks.upload).not.toHaveBeenCalled();
+  expect(result.current.items[0]?.unitSalePrice).toBe('120000');
+  expect(result.current.payment).toBeNull();
+  expect(screen.getByText(/Giá đã thay đổi/)).toBeVisible();
+  act(() => result.current.setPayment('BANK_TRANSFER'));
+  await act(() => result.current.pay(proof));
+  expect(complete).toHaveBeenCalledWith(
+    saleId,
+    3,
+    'BANK_TRANSFER',
+    'same-operation-key',
+    'proof.jpg',
+  );
+});
+
+it('does not block an unchanged price even if save reports priceRefreshed', async () => {
+  const saveDraft = vi.fn().mockResolvedValue({
+    sale: {
+      ...draft,
+      netTotal: '100000.00',
+      lines: draft.lines.map((line) => ({
+        ...line,
+        unitSalePrice: '100000.00',
+      })),
+    },
+    priceRefreshed: true,
+  });
+  const complete = vi.fn().mockResolvedValue({ saleId, saleNumber: 'HD2' });
+  mocks.runFinancialCommand.mockImplementation(async ({ invoke }) =>
+    invoke('key'),
+  );
+  const { result } = renderCheckout({
+    saveDraft,
+    complete,
+  } as unknown as SalesApi);
+  act(() => result.current.setPayment('CASH'));
+  await act(() => result.current.pay());
+  expect(complete).toHaveBeenCalledOnce();
 });

@@ -1,4 +1,6 @@
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { hasCheckoutChanged } from '../model/checkout-confirmation';
+import { calculatePosTotals } from '../model/pos-totals';
+import { useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
@@ -58,6 +60,8 @@ export function usePosCommands({
   const queryClient = useQueryClient();
   const toast = useToast();
   const runFinancialCommand = useFinancialCommand(userId);
+  const payingRef = useRef(false);
+  const [paying, setPaying] = useState(false);
   const [saving, setSaving] = useState(false);
   const [preparingPrint, setPreparingPrint] = useState(false);
   const [provisionalDocument, setProvisionalDocument] =
@@ -164,7 +168,7 @@ export function usePosCommands({
   };
 
   const pay = async (proofFile?: File) => {
-    if (!payment) return;
+    if (!payment || payingRef.current || saving || preparingPrint) return;
     let pendingCompletion;
     try {
       pendingCompletion =
@@ -202,11 +206,27 @@ export function usePosCommands({
       });
       return;
     }
-    const saved = pendingCompletion ? draft : await save();
-    if (!saved) return;
-    setSaving(true);
+    const confirmed = {
+      customerId: customerId || null,
+      channelId,
+      orderDiscount,
+      netTotal: calculatePosTotals(items, orderDiscount).total,
+      lines: items.map((line) => ({ ...line })),
+    };
+    payingRef.current = true;
+    setPaying(true);
     let transferProofPath: string | undefined;
     try {
+      const saved = pendingCompletion ? draft : await save();
+      if (!saved) return;
+      if (!pendingCompletion && hasCheckoutChanged(confirmed, saved)) {
+        toast.show({
+          kind: 'info',
+          title: 'Cần xác nhận lại',
+          message: 'Giá đã thay đổi. Vui lòng kiểm tra và xác nhận lại.',
+        });
+        return;
+      }
       const completed = await runFinancialCommand({
         commandName: 'sale.complete',
         entityId: saved.id,
@@ -265,7 +285,8 @@ export function usePosCommands({
         correlationId: getFinancialCorrelationId(error),
       });
     } finally {
-      setSaving(false);
+      payingRef.current = false;
+      setPaying(false);
       setPayment(null);
     }
   };
@@ -294,6 +315,6 @@ export function usePosCommands({
     preparePrint,
     provisionalDocument,
     closePrint: () => setProvisionalDocument(null),
-    saving: saving || preparingPrint,
+    saving: saving || preparingPrint || paying,
   };
 }

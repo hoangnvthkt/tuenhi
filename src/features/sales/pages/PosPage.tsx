@@ -609,7 +609,11 @@ export function PosPage() {
         warning={customerIntentWarning}
         currentCustomerId={customerId}
         disabled={
-          !workspaceReady || !canEdit || saving || Boolean(provisionalDocument)
+          !workspaceReady ||
+          !canEdit ||
+          saving ||
+          !!payment ||
+          Boolean(provisionalDocument)
         }
         onReplace={() => {
           if (
@@ -627,7 +631,7 @@ export function PosPage() {
         onDismiss={clearCustomerIntent}
       />
       <fieldset
-        disabled={!workspaceReady || !canEdit || saving}
+        disabled={!workspaceReady || !canEdit || saving || !!payment}
         className="grid min-w-0 gap-5 disabled:opacity-75 lg:grid-cols-[1fr_420px]"
       >
         <div className="space-y-3">

@@ -58,6 +58,7 @@ export function CheckoutDialog({
           {(['CASH', 'BANK_TRANSFER'] as const).map((method) => (
             <button
               key={method}
+              disabled={saving}
               type="button"
               onClick={() => {
                 setProofFile(null);
@@ -119,6 +120,7 @@ export function CheckoutDialog({
           <button
             type="button"
             onClick={onCancel}
+            disabled={saving}
             className="min-h-11 flex-1 rounded-lg border border-slate-300"
           >
             Quay lại
