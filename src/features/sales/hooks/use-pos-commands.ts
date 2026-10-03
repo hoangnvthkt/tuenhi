@@ -13,7 +13,7 @@ import { useFinancialCommand } from '@/shared/hooks/use-financial-command';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createPaymentProofApi } from '@/features/payments';
 import type { SalesApi } from '../api/sales-api';
-import type { Sale } from '../api/sales-schemas';
+import type { DraftPrint, Sale } from '../api/sales-schemas';
 import type { PosCartItem, PosPaymentMethod } from '../model/pos-types';
 import {
   posCartStorageKey,
@@ -59,6 +59,9 @@ export function usePosCommands({
   const toast = useToast();
   const runFinancialCommand = useFinancialCommand(userId);
   const [saving, setSaving] = useState(false);
+  const [preparingPrint, setPreparingPrint] = useState(false);
+  const [provisionalDocument, setProvisionalDocument] =
+    useState<DraftPrint | null>(null);
   const [paymentProofApi] = useState(createPaymentProofApi);
   const cartIdentity: PosCartIdentity = saleId
     ? { kind: 'DRAFT', saleId }
@@ -138,6 +141,25 @@ export function usePosCommands({
       return null;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const preparePrint = async () => {
+    if (saving || preparingPrint) return;
+    setPreparingPrint(true);
+    setProvisionalDocument(null);
+    try {
+      const saved = await save();
+      if (!saved) return;
+      setProvisionalDocument(await api.draftPrint(saved.id));
+    } catch (error) {
+      toast.show({
+        kind: 'error',
+        title: 'Không thể mở phiếu tạm tính',
+        message: error instanceof Error ? error.message : 'Vui lòng thử lại.',
+      });
+    } finally {
+      setPreparingPrint(false);
     }
   };
 
@@ -265,5 +287,13 @@ export function usePosCommands({
     }
   };
 
-  return { discard, pay, save, saving };
+  return {
+    discard,
+    pay,
+    save,
+    preparePrint,
+    provisionalDocument,
+    closePrint: () => setProvisionalDocument(null),
+    saving: saving || preparingPrint,
+  };
 }

@@ -2081,6 +2081,7 @@ export type Database = {
         Returns: Json;
       };
       get_sale_detail: { Args: { p_sale_id: string }; Returns: Json };
+      get_sale_draft_print: { Args: { p_sale_id: string }; Returns: Json };
       get_sale_invoice: { Args: { p_sale_id: string }; Returns: Json };
       get_sale_return: { Args: { p_return_id: string }; Returns: Json };
       get_staff_access_capability: { Args: never; Returns: Json };

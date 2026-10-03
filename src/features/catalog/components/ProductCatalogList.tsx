@@ -15,23 +15,29 @@ function scaledQuantity(value: string) {
 
 function stockStatus(item: ProductCatalogItem) {
   const onHand = scaledQuantity(item.onHandQty);
-  const minimum = scaledQuantity(item.minStockQty);
+  const minimum = scaledQuantity(item.effectiveMinStockQty ?? item.minStockQty);
   if (onHand === 0n) {
     return { label: 'Hết hàng', className: 'bg-red-50 text-red-800' };
   }
-  if (onHand <= minimum) {
+  if (onHand < minimum) {
     return { label: 'Sắp hết', className: 'bg-amber-50 text-amber-900' };
   }
   return { label: 'Còn hàng', className: 'bg-emerald-50 text-emerald-800' };
 }
 
-function ProductRow({ item }: { item: ProductCatalogItem }) {
+function ProductRow({
+  item,
+  canReadSalePrice,
+}: {
+  item: ProductCatalogItem;
+  canReadSalePrice: boolean;
+}) {
   const status = stockStatus(item);
   return (
     <Link
       to={`/products/${item.id}`}
       data-testid={`product-row-${item.id}`}
-      className="grid min-h-20 gap-3 border-b border-slate-200 px-3 py-3 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-teal-700 md:grid-cols-[3rem_minmax(13rem,1.7fr)_minmax(8rem,1fr)_9rem_8rem] md:items-center"
+      className={`grid min-h-20 gap-3 border-b border-slate-200 px-3 py-3 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-teal-700 ${canReadSalePrice ? 'md:grid-cols-[3rem_minmax(13rem,1.7fr)_minmax(8rem,1fr)_9rem_8rem]' : 'md:grid-cols-[3rem_minmax(13rem,1.7fr)_9rem_8rem]'} md:items-center`}
     >
       <ProductImageThumbnail
         objectPath={item.primaryImagePath}
@@ -54,9 +60,11 @@ function ProductRow({ item }: { item: ProductCatalogItem }) {
           {item.categoryName ? ` · ${item.categoryName}` : ''}
         </p>
       </div>
-      <p className="text-sm font-semibold tabular-nums text-slate-900 md:text-right">
-        {formatMoney(item.currentSalePrice)}
-      </p>
+      {canReadSalePrice ? (
+        <p className="text-sm font-semibold tabular-nums text-slate-900 md:text-right">
+          {formatMoney(item.currentSalePrice)}
+        </p>
+      ) : null}
       <p className="text-sm tabular-nums text-slate-700 md:text-right">
         {formatViNumber(item.onHandQty)} {item.unitName}
       </p>
@@ -93,6 +101,7 @@ function LoadingRows() {
 
 export function ProductCatalogList({
   canManage,
+  canReadSalePrice,
   error,
   isError,
   isPending,
@@ -100,6 +109,7 @@ export function ProductCatalogList({
   onRetry,
 }: {
   canManage: boolean;
+  canReadSalePrice: boolean;
   error: unknown;
   isError: boolean;
   isPending: boolean;
@@ -108,10 +118,12 @@ export function ProductCatalogList({
 }) {
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="hidden grid-cols-[3rem_minmax(13rem,1.7fr)_minmax(8rem,1fr)_9rem_8rem] gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid">
+      <div
+        className={`hidden ${canReadSalePrice ? 'grid-cols-[3rem_minmax(13rem,1.7fr)_minmax(8rem,1fr)_9rem_8rem]' : 'grid-cols-[3rem_minmax(13rem,1.7fr)_9rem_8rem]'} gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid`}
+      >
         <span />
         <span>Sản phẩm</span>
-        <span className="text-right">Giá bán</span>
+        {canReadSalePrice ? <span className="text-right">Giá bán</span> : null}
         <span className="text-right">Tồn</span>
         <span className="text-right">Trạng thái</span>
       </div>
@@ -155,7 +167,11 @@ export function ProductCatalogList({
         </div>
       ) : null}
       {items?.map((item) => (
-        <ProductRow key={item.id} item={item} />
+        <ProductRow
+          key={item.id}
+          item={item}
+          canReadSalePrice={canReadSalePrice}
+        />
       ))}
     </div>
   );

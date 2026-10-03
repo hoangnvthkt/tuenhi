@@ -26,6 +26,7 @@ export function CartPanel({
   onNoteChange,
   onSave,
   onCheckout,
+  onPrint,
 }: {
   items: PosCartItem[];
   channels: SalesChannelItem[];
@@ -52,6 +53,7 @@ export function CartPanel({
   onNoteChange: (value: string) => void;
   onSave: () => void;
   onCheckout: () => void;
+  onPrint: () => void;
 }) {
   return (
     <aside className="rounded-xl border border-slate-200 bg-white p-4 lg:sticky lg:top-4 lg:h-fit">
@@ -170,6 +172,14 @@ export function CartPanel({
           className="min-h-11 w-full rounded-lg border border-teal-700 px-4 font-semibold text-teal-800 disabled:opacity-50"
         >
           Lưu tạm
+        </button>
+        <button
+          type="button"
+          onClick={onPrint}
+          disabled={saving || !online || !items.length}
+          className="min-h-11 w-full rounded-lg border border-teal-700 px-4 font-semibold text-teal-800 disabled:opacity-50"
+        >
+          In tạm tính
         </button>
         <button
           type="button"

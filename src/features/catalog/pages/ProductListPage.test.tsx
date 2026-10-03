@@ -146,7 +146,11 @@ describe('ProductListPage', () => {
         },
       })
       .mockResolvedValue(emptyPage);
-    renderPage(createApi({ list }), ['catalog.read', 'catalog.basic.manage']);
+    renderPage(createApi({ list }), [
+      'catalog.read',
+      'catalog.basic.manage',
+      'pricing.sale.read',
+    ]);
 
     expect(await screen.findByText('Sản phẩm A')).toBeInTheDocument();
     const row = screen.getByTestId(
@@ -201,4 +205,54 @@ describe('ProductListPage', () => {
       screen.queryByRole('link', { name: /Thêm sản phẩm/ }),
     ).not.toBeInTheDocument();
   });
+});
+
+it('shows inventory without sale prices and uses a strict low-stock threshold', async () => {
+  const product = {
+    id: '10000000-0000-4000-8000-000000000020',
+    sku: 'KHO-50',
+    barcode: null,
+    name: 'Còn 50 hộp',
+    categoryId: null,
+    categoryName: null,
+    unitName: 'Hộp',
+    minStockQty: '0',
+    effectiveMinStockQty: '50',
+    isActive: true,
+    version: 1,
+    primaryImagePath: null,
+    currentSalePrice: '25000.00',
+    onHandQty: '50',
+  };
+  renderPage(
+    createApi({
+      list: vi.fn().mockResolvedValue({
+        items: [
+          product,
+          {
+            ...product,
+            id: '10000000-0000-4000-8000-000000000021',
+            sku: 'KHO-49',
+            name: 'Còn 49 hộp',
+            onHandQty: '49',
+          },
+        ],
+        nextCursor: null,
+      }),
+    }),
+    ['catalog.read', 'inventory.read'],
+  );
+  expect(await screen.findByText('Còn 50 hộp')).toBeVisible();
+  expect(screen.queryByText('Giá bán')).not.toBeInTheDocument();
+  expect(screen.queryByText(/25\.000/)).not.toBeInTheDocument();
+  expect(
+    within(screen.getByTestId(`product-row-${product.id}`)).getByText(
+      'Còn hàng',
+    ),
+  ).toBeVisible();
+  expect(
+    within(
+      screen.getByTestId('product-row-10000000-0000-4000-8000-000000000021'),
+    ).getByText('Sắp hết'),
+  ).toBeVisible();
 });

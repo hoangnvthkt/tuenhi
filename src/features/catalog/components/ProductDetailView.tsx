@@ -11,6 +11,7 @@ function formatMoney(value: string | null) {
 export function ProductDetailView({
   canManage,
   canManageSalePrice,
+  canReadSalePrice,
   detail,
   isOnline,
   onImagesChanged,
@@ -21,6 +22,7 @@ export function ProductDetailView({
 }: {
   canManage: boolean;
   canManageSalePrice: boolean;
+  canReadSalePrice: boolean;
   detail: ProductDetail;
   isOnline: boolean;
   onImagesChanged: () => Promise<void>;
@@ -98,7 +100,9 @@ export function ProductDetailView({
                 Ngưỡng tồn
               </dt>
               <dd className="mt-1 text-sm tabular-nums text-slate-900">
-                {formatViNumber(detail.minStockQty)}
+                {formatViNumber(
+                  detail.effectiveMinStockQty ?? detail.minStockQty,
+                )}
               </dd>
             </div>
             <div className="sm:col-span-2">
@@ -112,14 +116,16 @@ export function ProductDetailView({
           </dl>
         </div>
         <aside className="space-y-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Giá bán hiện hành
-            </p>
-            <p className="mt-2 text-xl font-bold tabular-nums text-slate-950">
-              {formatMoney(detail.currentSalePrice)}
-            </p>
-          </div>
+          {canReadSalePrice ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Giá bán hiện hành
+              </p>
+              <p className="mt-2 text-xl font-bold tabular-nums text-slate-950">
+                {formatMoney(detail.currentSalePrice)}
+              </p>
+            </div>
+          ) : null}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Tồn hiện tại

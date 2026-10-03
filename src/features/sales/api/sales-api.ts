@@ -7,6 +7,7 @@ import {
 import { parseRpcEnvelope } from '@/shared/api/rpc-envelope';
 import { getSupabaseClient } from '@/shared/supabase/client';
 import {
+  draftPrintSchema,
   invoiceSchema,
   saleListSchema,
   saleSchema,
@@ -132,6 +133,12 @@ export function createSalesApi() {
           p_cursor_id: null,
           p_limit: 50,
         }),
+      );
+    },
+    async draftPrint(saleId: string) {
+      return parseSalesRpc(
+        draftPrintSchema,
+        await rpc('get_sale_draft_print', { p_sale_id: saleId }),
       );
     },
     async invoice(saleId: string) {

@@ -12,7 +12,12 @@ const staffMemberSchema = z.object({
   id: z.uuid(),
   email: z.email(),
   displayName: z.string().min(1).max(120),
-  roleTemplate: z.enum(['SALES_WAREHOUSE', 'BUSINESS', 'OWNER']),
+  roleTemplate: z.enum([
+    'SALES_WAREHOUSE',
+    'BUSINESS',
+    'WAREHOUSE_VIEWER',
+    'OWNER',
+  ]),
   isActive: z.boolean(),
   mustChangePassword: z.boolean(),
   createdAt: z.iso.datetime({ offset: true }),
@@ -27,6 +32,7 @@ const permissionDefinitionSchema = z.object({
   ownerOnly: z.boolean(),
   salesWarehouseDefault: z.boolean(),
   businessDefault: z.boolean(),
+  warehouseViewerDefault: z.boolean().optional(),
 });
 
 const staffFeedSchema = z.object({
@@ -78,7 +84,7 @@ export type StaffMember = z.infer<typeof staffMemberSchema>;
 export type PermissionDefinition = z.infer<typeof permissionDefinitionSchema>;
 export type StaffFeed = z.infer<typeof staffFeedSchema>;
 export type StaffAccessCapability = z.infer<typeof staffAccessCapabilitySchema>;
-export type EmployeeRole = 'SALES_WAREHOUSE' | 'BUSINESS';
+export type EmployeeRole = 'SALES_WAREHOUSE' | 'BUSINESS' | 'WAREHOUSE_VIEWER';
 export type PermissionEffect = 'DEFAULT' | 'GRANT' | 'REVOKE';
 
 export type CreateStaffInput = {

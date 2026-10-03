@@ -73,3 +73,46 @@ describe('createStaffApi', () => {
     expect(rpc).toHaveBeenCalledWith('get_staff_access_capability');
   });
 });
+
+it('reads warehouse viewer accounts and their defaults from the staff feed', async () => {
+  const viewer = {
+    id: '00000000-0000-4000-8000-000000000010',
+    email: 'kho@example.com',
+    displayName: 'Kho',
+    roleTemplate: 'WAREHOUSE_VIEWER',
+    isActive: true,
+    mustChangePassword: false,
+    createdAt: '2026-10-02T00:00:00Z',
+    overrides: [],
+  };
+  const permission = {
+    code: 'inventory.read',
+    category: 'Tồn kho',
+    label: 'Xem tồn kho',
+    description: 'Xem số lượng',
+    ownerOnly: false,
+    salesWarehouseDefault: true,
+    businessDefault: true,
+    warehouseViewerDefault: true,
+  };
+  vi.mocked(getSupabaseClient).mockReturnValue({
+    rpc: vi.fn().mockResolvedValue({
+      data: {
+        ok: true,
+        data: {
+          items: [viewer],
+          permissionDefinitions: [permission],
+          nextCursor: null,
+        },
+        error: null,
+        correlationId: '00000000-0000-4000-8000-000000000011',
+      },
+      error: null,
+    }),
+  } as never);
+  expect(await createStaffApi().list()).toEqual({
+    items: [viewer],
+    permissionDefinitions: [permission],
+    nextCursor: null,
+  });
+});

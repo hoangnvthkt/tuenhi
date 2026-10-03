@@ -10,6 +10,7 @@ const roleLabels = {
   OWNER: 'Chủ cửa hàng',
   SALES_WAREHOUSE: 'Bán hàng / Kho',
   BUSINESS: 'Kinh doanh',
+  WAREHOUSE_VIEWER: 'Kho — chỉ xem',
 } as const;
 
 export function StaffPage({ api: apiProp }: { api?: StaffApi }) {

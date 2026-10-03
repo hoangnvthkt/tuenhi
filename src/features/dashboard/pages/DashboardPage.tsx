@@ -46,6 +46,9 @@ export function DashboardPage() {
   const to = isIsoDate(requestedTo) ? requestedTo : fallback.to;
   const canAll =
     session?.permissions.includes('report.all_revenue.read') ?? false;
+  const canOwn =
+    session?.permissions.includes('report.own_revenue.read') ?? false;
+  const canRevenue = canAll || canOwn;
   const canProfit =
     session?.permissions.includes('report.cost_profit.read') ?? false;
   const { operational, revenue, owner, refresh } = useDashboardData({
@@ -53,6 +56,7 @@ export function DashboardPage() {
     from,
     to,
     canAll,
+    canOwn,
     canProfit,
     online,
   });
@@ -100,12 +104,14 @@ export function DashboardPage() {
           >
             Làm mới
           </button>
-          <Link
-            to="/reports"
-            className="min-h-11 rounded-lg bg-teal-700 px-4 py-3 text-sm font-semibold text-white"
-          >
-            Xem báo cáo
-          </Link>
+          {canRevenue ? (
+            <Link
+              to="/reports"
+              className="min-h-11 rounded-lg bg-teal-700 px-4 py-3 text-sm font-semibold text-white"
+            >
+              Xem báo cáo
+            </Link>
+          ) : null}
         </div>
       </div>
       <div className="flex flex-wrap gap-2" aria-label="Khoảng thời gian">
@@ -226,7 +232,7 @@ export function DashboardPage() {
       ) : (
         <div className="h-28 animate-pulse rounded-xl bg-slate-200" />
       )}
-      {revenue.data ? (
+      {canRevenue && revenue.data ? (
         <>
           <h2 className="pt-2 text-xl font-bold text-slate-950">
             Doanh thu trong kỳ

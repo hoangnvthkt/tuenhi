@@ -19,7 +19,8 @@ describe('catalog API boundary', () => {
             categoryId: null,
             categoryName: null,
             unitName: 'Hộp',
-            minStockQty: '10',
+            minStockQty: '0',
+            effectiveMinStockQty: '50',
             isActive: true,
             version: 1,
             primaryImagePath: null,
@@ -37,6 +38,10 @@ describe('catalog API boundary', () => {
     });
 
     expect(data.items[0]?.sku).toBe('SP-001');
+    expect(data.items[0]).toMatchObject({
+      minStockQty: '0',
+      effectiveMinStockQty: '50',
+    });
   });
 
   it('rejects a malformed server envelope without exposing raw data', () => {

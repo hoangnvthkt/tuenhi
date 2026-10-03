@@ -62,7 +62,13 @@ function LocationProbe() {
   return <output aria-label="Địa chỉ hiện tại">{location.search}</output>;
 }
 
-function renderPage() {
+function renderPage(
+  permissions: string[] = [
+    'dashboard.operational.read',
+    'report.all_revenue.read',
+    'report.cost_profit.read',
+  ],
+) {
   const api = {
     operational: vi.fn().mockResolvedValue(operational),
     mySummary: vi.fn().mockResolvedValue(revenue),
@@ -101,11 +107,7 @@ function renderPage() {
             roleTemplate: 'OWNER',
             isActive: true,
             mustChangePassword: false,
-            permissions: [
-              'dashboard.operational.read',
-              'report.all_revenue.read',
-              'report.cost_profit.read',
-            ],
+            permissions,
           },
           errorMessage: null,
           refresh: vi.fn(),
@@ -179,4 +181,24 @@ describe('DashboardPage', () => {
       ),
     );
   });
+});
+
+it('does not request or offer revenue reports without revenue permission, including refresh', async () => {
+  const api = renderPage([
+    'dashboard.operational.read',
+    'catalog.read',
+    'inventory.read',
+  ]);
+  expect(
+    await screen.findByRole('article', { name: 'Sản phẩm hoạt động' }),
+  ).toBeVisible();
+  expect(
+    screen.queryByRole('link', { name: 'Xem báo cáo' }),
+  ).not.toBeInTheDocument();
+  expect(api.mySummary).not.toHaveBeenCalled();
+  expect(api.revenue).not.toHaveBeenCalled();
+  expect(api.owner).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button', { name: 'Làm mới' }));
+  expect(api.mySummary).not.toHaveBeenCalled();
+  expect(api.revenue).not.toHaveBeenCalled();
 });

@@ -1,6 +1,13 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import {
   FinancialOutcomeUnknownError,
@@ -16,11 +23,16 @@ import {
 } from '@/features/connected-explorer';
 import { useSession } from '@/features/auth';
 import { createPurchaseApi } from '../api/purchase-api';
-import type { PurchaseReceipt } from '../api/purchase-schemas';
+import type {
+  PurchaseReceipt,
+  PurchaseReceiptCost,
+} from '../api/purchase-schemas';
 import { PurchaseActions } from '../components/PurchaseActions';
 import { PurchaseLineEditor } from '../components/PurchaseLineEditor';
 import { PurchasePrefillIntent } from '../components/PurchasePrefillIntent';
+import { PurchaseSupplierPicker } from '../components/PurchaseSupplierPicker';
 import type { PurchaseDraftLine } from '../model/purchase-draft';
+import { toLocalDateTime } from '../model/local-datetime';
 import { validatePurchaseDraftLines } from '../model/purchase-draft-validation';
 import {
   formatMoney,
@@ -44,6 +56,7 @@ export function PurchaseDetailPage({
   online?: boolean;
 }) {
   const { receiptId } = useParams();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -67,9 +80,7 @@ export function PurchaseDetailPage({
     Awaited<ReturnType<typeof directoryApi.listSuppliers>>['items']
   >([]);
   const [supplierId, setSupplierId] = useState('');
-  const [receivedAt, setReceivedAt] = useState(
-    new Date().toISOString().slice(0, 16),
-  );
+  const [receivedAt, setReceivedAt] = useState(toLocalDateTime(new Date()));
   const [note, setNote] = useState('');
   const [lines, setLines] = useState<PurchaseDraftLine[]>([
     { productId: '', receivedQty: '1', unitCost: '' },
@@ -77,6 +88,11 @@ export function PurchaseDetailPage({
   const [costs, setCosts] = useState<Record<string, string>>({});
   const [totalCost, setTotalCost] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(mode !== 'create');
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [supplierEditing, setSupplierEditing] = useState(false);
+  const [reload, setReload] = useState(0);
+  const [savedDraft, setSavedDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [prefillWarning, setPrefillWarning] = useState<string | null>(null);
   const prefillHandledRef = useRef<string | null>(null);
@@ -92,6 +108,57 @@ export function PurchaseDetailPage({
     session?.permissions.some((permission) =>
       ['supplier.read', 'supplier.manage'].includes(permission),
     ),
+  );
+  const canManageSupplier =
+    session?.permissions.includes('supplier.manage') ?? false;
+
+  const loadSnapshot = useCallback(
+    async (id: string) => {
+      const data = await api.detail(id);
+      const cost =
+        canReadCost ||
+        (data.status === 'DRAFT' &&
+          data.createdBy === session?.userId &&
+          canDraft &&
+          canEnterCost)
+          ? await api.cost(id)
+          : null;
+      return { data, cost };
+    },
+    [api, canReadCost, canDraft, canEnterCost, session?.userId],
+  );
+
+  const hydrate = useCallback(
+    ({
+      data,
+      cost,
+    }: {
+      data: PurchaseReceipt;
+      cost: PurchaseReceiptCost | null;
+    }) => {
+      const nextCosts = Object.fromEntries(
+        cost?.lines.map((line) => [line.lineId, line.unitCost ?? '']) ?? [],
+      );
+      const nextLines = data.lines.map((line) => ({
+        productId: line.productId,
+        receivedQty: line.receivedQty,
+        unitCost: nextCosts[line.id] ?? '',
+      }));
+      const nextSupplierId = data.supplierId ?? '';
+      const nextReceivedAt = toLocalDateTime(data.receivedAt);
+      const nextNote = data.note ?? '';
+      setReceipt(data);
+      setSupplierId(nextSupplierId);
+      setReceivedAt(nextReceivedAt);
+      setNote(nextNote);
+      setLines(nextLines);
+      setCosts(nextCosts);
+      setTotalCost(cost?.totalCost ?? null);
+      setSavedDraft(
+        JSON.stringify([nextSupplierId, nextReceivedAt, nextNote, nextLines]),
+      );
+    },
+    [],
   );
 
   useEffect(() => {
@@ -109,86 +176,57 @@ export function PurchaseDetailPage({
           ]),
       )
       .catch(() => undefined);
-    directoryApi
-      .listSuppliers({ limit: 100 })
-      .then(
-        (page) =>
-          active &&
-          setSuppliers((current) => [
-            ...current,
-            ...page.items.filter(
-              (item) => !current.some((existing) => existing.id === item.id),
-            ),
-          ]),
-      )
-      .catch(() => undefined);
-    if (!isCreate && receiptId) {
-      api
-        .detail(receiptId)
-        .then((data) => {
-          if (!active) return;
-          setReceipt(data);
-          setSupplierId(data.supplierId ?? '');
-          setReceivedAt(data.receivedAt.slice(0, 16));
-          setNote(data.note ?? '');
-          setLines(
-            data.lines.map((line) => ({
-              productId: line.productId,
-              receivedQty: line.receivedQty,
-              unitCost: '',
-            })),
-          );
-          if (
-            canReadCost ||
-            (data.createdBy === session?.userId && canDraft && canEnterCost)
-          ) {
-            api
-              .cost(receiptId)
-              .then((detail) => {
-                if (!active) return;
-                const draftCosts = new Map(
-                  detail.lines.map((line) => [
-                    line.lineId,
-                    line.unitCost ?? '',
-                  ]),
-                );
-                setLines((current) =>
-                  current.map((line, index) => ({
-                    ...line,
-                    unitCost: draftCosts.get(data.lines[index]?.id ?? '') ?? '',
-                  })),
-                );
-                setCosts(
-                  Object.fromEntries(
-                    detail.lines.map((line) => [
-                      line.lineId,
-                      line.unitCost ?? '',
-                    ]),
-                  ),
-                );
-                setTotalCost(detail.totalCost);
-              })
-              .catch(() => undefined);
-          }
-        })
-        .catch(
-          (reason: unknown) => active && setError(safeInventoryMessage(reason)),
-        );
-    }
     return () => {
       active = false;
     };
-  }, [
-    api,
-    canDraft,
-    canEnterCost,
-    canReadCost,
-    catalogApi,
-    directoryApi,
-    isCreate,
-    receiptId,
-    session?.userId,
-  ]);
+  }, [catalogApi]);
+
+  useEffect(() => {
+    let active = true;
+    if (isCreate) {
+      const replacement = location.state?.purchaseReplacement as
+        | {
+            supplierId: string;
+            receivedAt: string;
+            note: string;
+            lines: PurchaseDraftLine[];
+          }
+        | undefined;
+      setReceipt(null);
+      setSupplierId(replacement?.supplierId ?? '');
+      setReceivedAt(replacement?.receivedAt ?? toLocalDateTime(new Date()));
+      setNote(replacement?.note ?? '');
+      setLines(
+        replacement?.lines ?? [
+          { productId: '', receivedQty: '1', unitCost: '' },
+        ],
+      );
+      setCosts({});
+      setTotalCost(null);
+      setLoading(false);
+      setLoadFailed(false);
+      setSavedDraft(null);
+      return;
+    }
+    if (!receiptId) return;
+    setLoading(true);
+    setLoadFailed(false);
+    void loadSnapshot(receiptId)
+      .then((snapshot) => {
+        if (active) hydrate(snapshot);
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setLoadFailed(true);
+        setError(safeInventoryMessage(reason));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isCreate, receiptId, loadSnapshot, hydrate, reload, location.state]);
 
   useEffect(() => {
     if (!isCreate) return;
@@ -328,15 +366,22 @@ export function PurchaseDetailPage({
     success: string,
     redirect = false,
   ) {
-    if (!online || busy) return;
+    if (!online || busy || loading || loadFailed || supplierEditing) return;
     setBusy(true);
     setError(null);
     try {
       await action();
       await refreshOperationalData(queryClient);
-      toast.show({ kind: 'success', title: success, message: success });
       if (redirect) navigate('/more/purchases');
-      else if (receiptId) setReceipt(await api.detail(receiptId));
+      else if (receiptId) {
+        try {
+          hydrate(await loadSnapshot(receiptId));
+        } catch (reason) {
+          setLoadFailed(true);
+          throw reason;
+        }
+      }
+      toast.show({ kind: 'success', title: success, message: success });
     } catch (reason) {
       const message = safeInventoryMessage(reason);
       setError(message);
@@ -355,6 +400,7 @@ export function PurchaseDetailPage({
     }
   }
   async function save() {
+    if (!online || busy || loading || loadFailed || supplierEditing) return;
     const validated = validatePurchaseDraftLines(lines);
     if (!validated.ok) {
       setError(
@@ -376,7 +422,12 @@ export function PurchaseDetailPage({
       if (isCreate) navigate(`/more/purchases/${id}`);
     }, 'Đã lưu phiếu nhập');
   }
-  const editable = isCreate || receipt?.status === 'DRAFT';
+  const editable =
+    Boolean(canDraft) && (isCreate || !receipt || receipt.status === 'DRAFT');
+  const locked = busy || loading || loadFailed;
+  const dirty =
+    receipt?.status === 'DRAFT' &&
+    savedDraft !== JSON.stringify([supplierId, receivedAt, note, lines]);
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -419,72 +470,87 @@ export function PurchaseDetailPage({
         </p>
       ) : null}
       <PurchasePrefillIntent warning={prefillWarning} />
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="text-sm font-semibold">
-            Nhà cung cấp
-            <select
-              aria-label="Nhà cung cấp"
-              disabled={!editable}
-              value={supplierId}
-              onChange={(e) => {
+      {loading ? (
+        <p role="status" className="text-sm text-slate-600">
+          Đang tải phiếu nhập và giá nhập…
+        </p>
+      ) : null}
+      {loadFailed ? (
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setReload((value) => value + 1);
+          }}
+          className="min-h-11 font-semibold text-teal-800"
+        >
+          Tải lại phiếu nhập
+        </button>
+      ) : null}
+      <fieldset disabled={locked} className="min-w-0 space-y-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="grid gap-4 md:grid-cols-2">
+            <PurchaseSupplierPicker
+              api={directoryApi}
+              explorerApi={explorerApi}
+              supplierId={supplierId}
+              supplierName={receipt?.supplierName}
+              seeds={suppliers}
+              editable={editable && !locked}
+              canRead={canViewSupplier}
+              canManage={canManageSupplier}
+              online={online}
+              onEditingChange={setSupplierEditing}
+              onChange={(id) => {
                 supplierTouchedRef.current = true;
-                setSupplierId(e.target.value);
+                setSupplierId(id);
               }}
-              className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3"
-            >
-              <option value="">Không chọn</option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
-              ))}
-            </select>
-            {canViewSupplier && supplierId ? (
-              <Link
-                to={`/more/suppliers/${supplierId}`}
-                className="mt-2 inline-block text-xs font-semibold text-teal-800 hover:underline"
-              >
-                Mở chi tiết Nhà cung cấp
-              </Link>
-            ) : null}
-          </label>
-          <label className="text-sm font-semibold">
-            Ngày nhận
-            <input
+            />
+            <label className="text-sm font-semibold">
+              Ngày nhận
+              <input
+                disabled={!editable}
+                type="datetime-local"
+                value={receivedAt}
+                onChange={(e) => setReceivedAt(e.target.value)}
+                className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3"
+              />
+            </label>
+          </div>
+          <label className="mt-4 block text-sm font-semibold">
+            Ghi chú
+            <textarea
               disabled={!editable}
-              type="datetime-local"
-              value={receivedAt}
-              onChange={(e) => setReceivedAt(e.target.value)}
-              className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="mt-2 min-h-20 w-full rounded-lg border border-slate-300 p-3"
             />
           </label>
         </div>
-        <label className="mt-4 block text-sm font-semibold">
-          Ghi chú
-          <textarea
-            disabled={!editable}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="mt-2 min-h-20 w-full rounded-lg border border-slate-300 p-3"
-          />
-        </label>
-      </div>
-      <PurchaseLineEditor
-        lines={lines}
-        products={products}
-        receipt={receipt}
-        costs={costs}
-        editable={editable}
-        canPost={Boolean(canPost)}
-        canEnterCost={Boolean(canEnterCost)}
-        lineProductIds={lineProductIds}
-        setLines={setLinesFromUser}
-        setCosts={setCosts}
-        canViewProduct={canViewProduct}
-        resolveProducts={api.resolveProductsBySku}
-        searchProducts={searchProducts}
-      />
+        <PurchaseLineEditor
+          lines={lines}
+          products={products}
+          receipt={receipt}
+          costs={costs}
+          editable={editable}
+          canPost={Boolean(canPost)}
+          canEnterCost={Boolean(canEnterCost)}
+          lineProductIds={lineProductIds}
+          setLines={setLinesFromUser}
+          setCosts={setCosts}
+          canViewProduct={canViewProduct}
+          resolveProducts={api.resolveProductsBySku}
+          searchProducts={searchProducts}
+        />
+      </fieldset>
+      {dirty ? (
+        <p
+          role="status"
+          className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950"
+        >
+          Lưu nháp các thay đổi trước khi ghi sổ.
+        </p>
+      ) : null}
       <PurchaseActions
         api={api}
         receipt={receipt}
@@ -493,11 +559,33 @@ export function PurchaseDetailPage({
         canDraft={Boolean(canDraft)}
         canPost={Boolean(canPost)}
         online={online}
-        busy={busy}
+        busy={locked || supplierEditing}
+        dirty={dirty}
         onSave={save}
         onPerform={perform}
         userId={session?.userId}
       />
+      {receipt?.status === 'REVERSED' && canDraft ? (
+        <button
+          type="button"
+          disabled={locked || !online}
+          onClick={() =>
+            navigate('/more/purchases/new', {
+              state: {
+                purchaseReplacement: {
+                  supplierId,
+                  receivedAt: toLocalDateTime(new Date()),
+                  note: `Thay thế phiếu ${receipt.receiptNumber ?? receipt.id}${note ? ` — ${note}` : ''}`,
+                  lines: lines.map((line) => ({ ...line })),
+                },
+              },
+            })
+          }
+          className="min-h-11 rounded-lg bg-teal-700 px-5 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          Lập phiếu thay thế
+        </button>
+      ) : null}
     </section>
   );
 }

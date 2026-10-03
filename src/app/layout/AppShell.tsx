@@ -9,6 +9,7 @@ import { navigationItems } from './navigation-items';
 const roleLabels = {
   SALES_WAREHOUSE: 'Bán hàng & kho',
   BUSINESS: 'Kinh doanh',
+  WAREHOUSE_VIEWER: 'Kho — chỉ xem',
   OWNER: 'Chủ cửa hàng',
 } as const;
 
@@ -21,16 +22,19 @@ const CatalogRealtimeBridge = lazy(() =>
 function NavigationLinks({
   mobile,
   permissions,
+  inventoryOnly,
 }: {
   mobile: boolean;
   permissions: readonly string[];
+  inventoryOnly: boolean;
 }) {
   return (
     <>
       {navigationItems
         .filter(
           (item) =>
-            !('permission' in item) || permissions.includes(item.permission),
+            (!inventoryOnly || item.to === '/products') &&
+            (!('permission' in item) || permissions.includes(item.permission)),
         )
         .map((item) => (
           <NavLink
@@ -102,6 +106,7 @@ export function AppShell() {
               <NavigationLinks
                 mobile={false}
                 permissions={session?.permissions ?? []}
+                inventoryOnly={session?.roleTemplate === 'WAREHOUSE_VIEWER'}
               />
             </nav>
             <NotificationCenter />
@@ -162,7 +167,11 @@ export function AppShell() {
         aria-label="Điều hướng di động"
         className="fixed bottom-0 left-0 right-0 z-10 flex border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] xl:hidden"
       >
-        <NavigationLinks mobile permissions={session?.permissions ?? []} />
+        <NavigationLinks
+          mobile
+          permissions={session?.permissions ?? []}
+          inventoryOnly={session?.roleTemplate === 'WAREHOUSE_VIEWER'}
+        />
       </nav>
     </div>
   );

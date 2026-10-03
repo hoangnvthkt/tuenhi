@@ -47,6 +47,26 @@ describe('StaffForm', () => {
     expect(screen.queryByText('Matkhau123')).not.toBeInTheDocument();
   });
 
+  it('creates an inventory-only account from the role selector', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<StaffForm onSubmit={onSubmit} />);
+    await user.type(
+      screen.getByLabelText('Email nhân viên'),
+      'kho@example.com',
+    );
+    await user.type(screen.getByLabelText('Tên hiển thị'), 'Nhân viên kho');
+    await user.selectOptions(
+      screen.getByLabelText('Vai trò'),
+      'WAREHOUSE_VIEWER',
+    );
+    await user.type(screen.getByLabelText('Mật khẩu tạm'), 'Matkhau123');
+    await user.click(screen.getByRole('button', { name: 'Tạo tài khoản' }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ roleTemplate: 'WAREHOUSE_VIEWER' }),
+    );
+  });
+
   it('shows the safe actionable message returned by the staff API', async () => {
     const user = userEvent.setup();
     render(

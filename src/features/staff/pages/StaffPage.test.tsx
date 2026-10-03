@@ -198,3 +198,25 @@ describe('StaffPage', () => {
     );
   });
 });
+
+it('shows the inventory-only role with fixed access instead of editable grants', async () => {
+  renderPage(
+    createApi({
+      list: vi.fn().mockResolvedValue({
+        ...staffFeed,
+        items: [{ ...staffFeed.items[0], roleTemplate: 'WAREHOUSE_VIEWER' }],
+      }),
+    }),
+  );
+  expect(
+    await screen.findByRole('heading', { name: 'Nhân viên A' }),
+  ).toBeVisible();
+  expect(screen.getByRole('combobox', { name: 'Vai trò mới' })).toHaveValue(
+    'WAREHOUSE_VIEWER',
+  );
+  await userEvent.click(screen.getByText('Phân quyền'));
+  expect(
+    screen.queryByRole('combobox', { name: 'Quản lý nhân viên' }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText('Không được cấp')).toBeVisible();
+});

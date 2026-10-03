@@ -58,9 +58,12 @@
     "cloud:verify:p2.3": "supabase db query --linked --file supabase/tests/phase_2_p2_3_customer_purchase_history_assertions.sql",
     "p2:verify:cloud": "node --env-file=.env scripts/controlled-development-gate.mjs",
     "p2:release:verify": "pnpm check && pnpm p2:verify:cloud",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm templates:verify && pnpm build",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm templates:verify && pnpm fonts:verify && pnpm build",
     "check:full": "pnpm check && pnpm test:e2e",
-    "supabase": "supabase"
+    "supabase": "supabase",
+    "test:feedback:isolated": "node scripts/test-feedback-isolated.mjs",
+    "fonts:verify": "node scripts/sales-pdf-fonts.mjs --check",
+    "cloud:verify:feedback": "supabase db query --linked --file supabase/tests/sales_provisional_print_assertions.sql && supabase db query --linked --file supabase/tests/warehouse_viewer_access_assertions.sql && supabase db query --linked --file supabase/tests/purchase_low_stock_assertions.sql"
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.1",

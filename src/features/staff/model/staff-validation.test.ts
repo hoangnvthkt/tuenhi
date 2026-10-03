@@ -23,6 +23,18 @@ describe('staff Edge Function validation', () => {
     ).toEqual({ ok: true, value: validCreate });
   });
 
+  it('accepts an inventory-only employee role', () => {
+    expect(
+      parseCreateEmployeeInput({
+        ...validCreate,
+        roleTemplate: 'WAREHOUSE_VIEWER',
+      }),
+    ).toEqual({
+      ok: true,
+      value: { ...validCreate, roleTemplate: 'WAREHOUSE_VIEWER' },
+    });
+  });
+
   it.each(['OWNER', 'MANAGER', ''])(
     'rejects employee role %j',
     (roleTemplate) => {

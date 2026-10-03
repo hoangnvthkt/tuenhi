@@ -7,7 +7,12 @@ const sessionContextSchema = z.object({
   userId: z.uuid(),
   email: z.email(),
   displayName: z.string().trim().min(1).max(120),
-  roleTemplate: z.enum(['SALES_WAREHOUSE', 'BUSINESS', 'OWNER']),
+  roleTemplate: z.enum([
+    'SALES_WAREHOUSE',
+    'BUSINESS',
+    'WAREHOUSE_VIEWER',
+    'OWNER',
+  ]),
   isActive: z.boolean(),
   mustChangePassword: z.boolean(),
   permissions: z.array(z.string().trim().min(1).max(100)),

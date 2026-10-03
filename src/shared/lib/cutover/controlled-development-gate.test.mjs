@@ -271,6 +271,11 @@ test('keeps the gate command allowlist read-only and in release order', () => {
       command: 'pnpm',
       args: ['cloud:verify:p2.3'],
     },
+    {
+      id: 'customerFeedbackAssertions',
+      command: 'pnpm',
+      args: ['cloud:verify:feedback'],
+    },
   ]);
   assert.doesNotMatch(
     JSON.stringify(GATE_COMMANDS),

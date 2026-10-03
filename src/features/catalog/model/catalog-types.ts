@@ -20,6 +20,8 @@ export type CategoryOption = {
 };
 
 export type ProductCatalogItem = {
+  /** Server-derived alert threshold; minStockQty remains the editable configuration. */
+  effectiveMinStockQty?: string;
   id: string;
   sku: string;
   barcode: string | null;
