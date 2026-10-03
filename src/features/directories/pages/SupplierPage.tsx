@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { parsePhoneNumber } from 'libphonenumber-js';
 import { useState } from 'react';
@@ -31,6 +32,7 @@ export function SupplierPage({
   api?: DirectoryApi;
   isOnline?: boolean;
 }) {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(() => apiProp ?? createDirectoryApi());
   const detectedOnline = useOnlineStatus();
   const isOnline = onlineProp ?? detectedOnline;
@@ -43,7 +45,7 @@ export function SupplierPage({
   const [cursor, setCursor] = useState<DirectoryCursor | undefined>();
   const [editor, setEditor] = useState<SupplierItem | 'new' | null>(null);
   const query = useQuery({
-    queryKey: directoryKeys.suppliers({ search, cursor }),
+    queryKey: privateKey(...directoryKeys.suppliers({ search, cursor })),
     queryFn: () => api.listSuppliers({ search, cursor, limit: 30 }),
   });
 

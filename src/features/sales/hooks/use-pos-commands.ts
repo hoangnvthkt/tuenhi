@@ -1,8 +1,17 @@
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { hasCheckoutChanged } from '../model/checkout-confirmation';
+import { calculatePosTotals } from '../model/pos-totals';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import {
+  FINANCIAL_COMMAND_MARKERS_CHANGED_EVENT,
   FinancialBusinessError,
   FinancialOutcomeUnknownError,
   FinancialStorageUnavailableError,
@@ -58,6 +67,8 @@ export function usePosCommands({
   const queryClient = useQueryClient();
   const toast = useToast();
   const runFinancialCommand = useFinancialCommand(userId);
+  const payingRef = useRef(false);
+  const [paying, setPaying] = useState(false);
   const [saving, setSaving] = useState(false);
   const [preparingPrint, setPreparingPrint] = useState(false);
   const [provisionalDocument, setProvisionalDocument] =
@@ -66,6 +77,61 @@ export function usePosCommands({
   const cartIdentity: PosCartIdentity = saleId
     ? { kind: 'DRAFT', saleId }
     : { kind: 'NEW' };
+
+  const originalAttempt = useRef<{
+    sale: Sale;
+    method: PosPaymentMethod;
+    invoke: (key: string) => ReturnType<SalesApi['complete']>;
+    proofPath?: string;
+    key?: string;
+    userId?: string;
+  } | null>(null);
+  const [awaitingOutcome, setAwaitingOutcome] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<{
+    total: string;
+    method: PosPaymentMethod;
+  } | null>(null);
+  const pendingIdentity = {
+    userId: userId ?? '',
+    commandName: 'sale.complete' as const,
+    entityId: draft?.id ?? saleId ?? '',
+  };
+  const readPending = () =>
+    pendingIdentity.userId && pendingIdentity.entityId
+      ? findPendingFinancialCommand(pendingIdentity)
+      : undefined;
+  let checkoutPending = awaitingOutcome;
+  try {
+    checkoutPending ||= Boolean(readPending());
+  } catch {
+    /* Commands surface storage errors. */
+  }
+  useEffect(() => {
+    const update = () => {
+      if (!userId || !(draft?.id ?? saleId)) return;
+      try {
+        if (
+          findPendingFinancialCommand({
+            userId,
+            commandName: 'sale.complete',
+            entityId: draft?.id ?? saleId!,
+          })
+        )
+          setAwaitingOutcome(true);
+      } catch {
+        /* A command will report the storage error. */
+      }
+    };
+    window.addEventListener(FINANCIAL_COMMAND_MARKERS_CHANGED_EVENT, update);
+    window.addEventListener('storage', update);
+    return () => {
+      window.removeEventListener(
+        FINANCIAL_COMMAND_MARKERS_CHANGED_EVENT,
+        update,
+      );
+      window.removeEventListener('storage', update);
+    };
+  }, [userId, draft?.id, saleId]);
 
   const clearLocalCart = () => {
     if (!userId) return;
@@ -78,6 +144,16 @@ export function usePosCommands({
   };
 
   const save = async () => {
+    try {
+      if (checkoutPending || readPending()) return null;
+    } catch {
+      toast.show({
+        kind: 'error',
+        title: 'Chưa thể lưu',
+        message: new FinancialStorageUnavailableError().message,
+      });
+      return null;
+    }
     if (!online) {
       toast.show({
         kind: 'info',
@@ -164,7 +240,7 @@ export function usePosCommands({
   };
 
   const pay = async (proofFile?: File) => {
-    if (!payment) return;
+    if (!payment || payingRef.current || saving || preparingPrint) return;
     let pendingCompletion;
     try {
       pendingCompletion =
@@ -186,6 +262,17 @@ export function usePosCommands({
       });
       return;
     }
+    if (pendingCompletion || checkoutPending) {
+      setAwaitingOutcome(true);
+      setPayment(null);
+      toast.show({
+        kind: 'info',
+        title: 'Cần đối soát giao dịch trước',
+        message:
+          'Giữ nguyên giao dịch đã gửi. Chọn Đối soát giao dịch để kiểm tra kết quả.',
+      });
+      return;
+    }
     if (!online) {
       toast.show({
         kind: 'info',
@@ -202,23 +289,44 @@ export function usePosCommands({
       });
       return;
     }
-    const saved = pendingCompletion ? draft : await save();
-    if (!saved) return;
-    setSaving(true);
+    const confirmed = {
+      customerId: customerId || null,
+      channelId,
+      orderDiscount,
+      netTotal: calculatePosTotals(items, orderDiscount).total,
+      lines: items.map((line) => ({ ...line })),
+    };
+    payingRef.current = true;
+    setPaying(true);
     let transferProofPath: string | undefined;
     try {
-      const completed = await runFinancialCommand({
-        commandName: 'sale.complete',
-        entityId: saved.id,
-        invoke: async (idempotencyKey) => {
-          if (payment === 'BANK_TRANSFER' && proofFile && !transferProofPath) {
+      const saved = await save();
+      if (!saved) return;
+      if (hasCheckoutChanged(confirmed, saved)) {
+        toast.show({
+          kind: 'info',
+          title: 'Cần xác nhận lại',
+          message: 'Giá đã thay đổi. Vui lòng kiểm tra và xác nhận lại.',
+        });
+        return;
+      }
+      const attempt = {
+        sale: saved,
+        method: payment,
+        proofPath: undefined as string | undefined,
+        key: undefined as string | undefined,
+        userId,
+        invoke: async (idempotencyKey: string) => {
+          attempt.key = idempotencyKey;
+          if (payment === 'BANK_TRANSFER' && proofFile && !attempt.proofPath) {
             try {
-              transferProofPath = (
+              attempt.proofPath = (
                 await paymentProofApi.upload({
                   transaction: { kind: 'sale', id: saved.id },
                   file: proofFile,
                 })
               ).objectPath;
+              transferProofPath = attempt.proofPath;
             } catch {
               throw new FinancialBusinessError(
                 'Không thể tải ảnh chứng từ. Giao dịch chưa được gửi.',
@@ -230,11 +338,20 @@ export function usePosCommands({
             saved.version,
             payment,
             idempotencyKey,
-            transferProofPath,
+            attempt.proofPath,
           );
         },
+      };
+      originalAttempt.current = attempt;
+      setPendingPayment({ total: saved.netTotal, method: payment });
+      const completed = await runFinancialCommand({
+        commandName: 'sale.complete',
+        entityId: saved.id,
+        invoke: attempt.invoke,
         parseCachedResponse: api.parseCompleteResponse,
       });
+      originalAttempt.current = null;
+      setAwaitingOutcome(false);
       clearLocalCart();
       await refreshOperationalData(queryClient);
       toast.show({
@@ -244,7 +361,10 @@ export function usePosCommands({
       });
       navigate(`/sales/${completed.saleId}`);
     } catch (error) {
-      if (transferProofPath) {
+      if (error instanceof FinancialOutcomeUnknownError)
+        setAwaitingOutcome(true);
+      else originalAttempt.current = null;
+      if (transferProofPath && error instanceof FinancialBusinessError) {
         try {
           await paymentProofApi.remove(transferProofPath);
         } catch {
@@ -265,13 +385,81 @@ export function usePosCommands({
         correlationId: getFinancialCorrelationId(error),
       });
     } finally {
-      setSaving(false);
+      payingRef.current = false;
+      setPaying(false);
       setPayment(null);
     }
   };
 
+  const reconcilePayment = async () => {
+    if (payingRef.current || !online) return;
+    payingRef.current = true;
+    setPaying(true);
+    setPayment(null);
+    try {
+      const pending = readPending();
+      if (!pending) {
+        navigate(`/sales/${draft?.id ?? saleId}`);
+        return;
+      }
+      const original = originalAttempt.current;
+      const attempt =
+        original?.userId === userId &&
+        original?.sale.id === pending.entityId &&
+        original?.key === pending.idempotencyKey
+          ? original
+          : null;
+      const completed = await runFinancialCommand({
+        commandName: 'sale.complete',
+        entityId: pending.entityId,
+        resumeOnly: true,
+        retryPending: Boolean(attempt && attempt.sale.id === pending.entityId),
+        invoke:
+          attempt?.invoke ??
+          (async () => {
+            throw new FinancialOutcomeUnknownError(pending.idempotencyKey);
+          }),
+        parseCachedResponse: api.parseCompleteResponse,
+      });
+      originalAttempt.current = null;
+      setAwaitingOutcome(false);
+      clearLocalCart();
+      await refreshOperationalData(queryClient);
+      toast.show({
+        kind: 'success',
+        title: 'Đã xác định kết quả thanh toán',
+        message: `Đã hoàn tất hóa đơn ${completed.saleNumber}.`,
+      });
+      navigate(`/sales/${completed.saleId}`);
+    } catch (error) {
+      if (error instanceof FinancialBusinessError) {
+        const path = originalAttempt.current?.proofPath;
+        if (path)
+          try {
+            await paymentProofApi.remove(path);
+          } catch {
+            /* Protected cleanup can retry. */
+          }
+        originalAttempt.current = null;
+        setAwaitingOutcome(false);
+      }
+      toast.show({
+        kind: 'error',
+        title: 'Chưa hoàn tất đối soát',
+        message: error instanceof Error ? error.message : 'Vui lòng thử lại.',
+        requestId:
+          error instanceof FinancialOutcomeUnknownError
+            ? error.requestId
+            : undefined,
+      });
+    } finally {
+      payingRef.current = false;
+      setPaying(false);
+    }
+  };
+
   const discard = async () => {
-    if (!draft || !online) return;
+    if (!draft || !online || checkoutPending || readPending()) return;
     try {
       await api.discardDraft(draft.id, draft.version, crypto.randomUUID());
       clearLocalCart();
@@ -289,11 +477,14 @@ export function usePosCommands({
 
   return {
     discard,
+    checkoutPending,
+    reconcilePayment,
+    pendingPayment,
     pay,
     save,
     preparePrint,
     provisionalDocument,
     closePrint: () => setProvisionalDocument(null),
-    saving: saving || preparingPrint,
+    saving: saving || preparingPrint || paying,
   };
 }

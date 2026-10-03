@@ -1,3 +1,4 @@
+import { SessionContextValue, type SessionValue } from '@/features/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -38,13 +39,36 @@ function createApi(overrides: Partial<NotificationApi> = {}): NotificationApi {
   };
 }
 
+function authValue(userId: string | null): SessionValue {
+  return {
+    status: userId ? 'authenticated' : 'anonymous',
+    session: userId
+      ? {
+          userId,
+          email: 'test@example.com',
+          displayName: userId,
+          roleTemplate: 'OWNER',
+          isActive: true,
+          mustChangePassword: false,
+          permissions: [],
+        }
+      : null,
+    errorMessage: null,
+    refresh: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+    changePassword: vi.fn(),
+  };
+}
 function renderCenter(api: NotificationApi) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <NotificationCenter api={api} />
+      <SessionContextValue.Provider value={authValue('owner')}>
+        <NotificationCenter api={api} />
+      </SessionContextValue.Provider>
     </QueryClientProvider>,
   );
 }
@@ -145,4 +169,46 @@ describe('NotificationCenter', () => {
     realtimeListener();
     await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
   });
+});
+
+it('does not fetch notifications without a known identity', async () => {
+  const api = createApi();
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <SessionContextValue.Provider value={authValue(null)}>
+        <NotificationCenter api={api} />
+      </SessionContextValue.Provider>
+    </QueryClientProvider>,
+  );
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  expect(api.list).not.toHaveBeenCalled();
+});
+
+it('does not reuse fresh owner notifications for another account', async () => {
+  const api = createApi();
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: 30000 } },
+  });
+  const view = (id: string) => (
+    <QueryClientProvider client={client}>
+      <SessionContextValue.Provider value={authValue(id)}>
+        <NotificationCenter api={api} />
+      </SessionContextValue.Provider>
+    </QueryClientProvider>
+  );
+  const { rerender } = render(view('owner'));
+  await screen.findByLabelText('1 thông báo chưa đọc');
+  vi.mocked(api.list).mockResolvedValue({
+    items: [],
+    unreadCount: 0,
+    nextCursor: null,
+  });
+  rerender(view('viewer'));
+  await userEvent
+    .setup()
+    .click(screen.getByRole('button', { name: 'Thông báo' }));
+  await screen.findByText('Bạn chưa có thông báo.');
+  expect(
+    screen.queryByText('Mật khẩu đã được cập nhật'),
+  ).not.toBeInTheDocument();
 });

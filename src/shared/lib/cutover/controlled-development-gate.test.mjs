@@ -272,6 +272,17 @@ test('keeps the gate command allowlist read-only and in release order', () => {
       args: ['cloud:verify:p2.3'],
     },
     {
+      id: 'auditSafetyAssertions',
+      command: 'supabase',
+      args: [
+        'db',
+        'query',
+        '--linked',
+        '--file',
+        'supabase/tests/return_lifecycle_assertions.sql',
+      ],
+    },
+    {
       id: 'customerFeedbackAssertions',
       command: 'pnpm',
       args: ['cloud:verify:feedback'],
@@ -279,7 +290,7 @@ test('keeps the gate command allowlist read-only and in release order', () => {
   ]);
   assert.doesNotMatch(
     JSON.stringify(GATE_COMMANDS),
-    /db push|test:cloud|test:e2e|cleanup|lifecycle|bootstrap/i,
+    /db push|test:cloud|test:e2e|cleanup|\blifecycle\b|bootstrap/i,
   );
 });
 

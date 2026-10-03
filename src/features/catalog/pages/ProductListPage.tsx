@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -13,6 +14,7 @@ import { ProductCatalogList } from '../components/ProductCatalogList';
 import { ProductListFilters } from '../components/ProductListFilters';
 
 export function ProductListPage({ api: apiProp }: { api?: CatalogApi }) {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(() => apiProp ?? createCatalogApi());
   const { session } = useSession();
   const canManage =
@@ -33,11 +35,11 @@ export function ProductListPage({ api: apiProp }: { api?: CatalogApi }) {
   const [cursor, setCursor] = useState<CatalogCursor | undefined>();
 
   const categories = useQuery({
-    queryKey: catalogKeys.categories(canManage),
+    queryKey: privateKey(...catalogKeys.categories(canManage)),
     queryFn: () => api.listCategories(canManage),
   });
   const query = useQuery({
-    queryKey: catalogKeys.list({ ...filters, cursor }),
+    queryKey: privateKey(...catalogKeys.list({ ...filters, cursor })),
     queryFn: () =>
       api.list({
         search: filters.search,

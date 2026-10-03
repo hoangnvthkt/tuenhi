@@ -8,6 +8,7 @@ export function OpeningActions({
   editable,
   online,
   busy,
+  hasUnsavedChanges,
   onSave,
   onPerform,
   userId,
@@ -17,6 +18,7 @@ export function OpeningActions({
   editable: boolean;
   online: boolean;
   busy: boolean;
+  hasUnsavedChanges: boolean;
   onSave: () => Promise<void>;
   onPerform: (
     action: () => Promise<unknown>,
@@ -28,6 +30,11 @@ export function OpeningActions({
   const runFinancialCommand = useFinancialCommand(userId);
   return (
     <div className="sticky bottom-20 z-20 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-lg lg:static lg:border-0 lg:bg-slate-50 lg:p-0 lg:py-2 lg:shadow-none">
+      {hasUnsavedChanges ? (
+        <p role="status" className="w-full text-sm text-amber-900">
+          Lưu thay đổi trước khi gửi.
+        </p>
+      ) : null}
       {editable ? (
         <button
           disabled={!online || busy}
@@ -39,7 +46,7 @@ export function OpeningActions({
       ) : null}
       {document?.status === 'DRAFT' ? (
         <button
-          disabled={!online || busy}
+          disabled={!online || busy || hasUnsavedChanges}
           onClick={() =>
             void onPerform(
               () => api.command('submit', document.id, document.version),

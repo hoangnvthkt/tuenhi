@@ -90,3 +90,26 @@ describe('CheckoutDialog', () => {
     expect(onCancel).toHaveBeenCalledOnce();
   });
 });
+
+it('locks payment method and cancellation while the confirmed command is running', async () => {
+  const onPaymentChange = vi.fn();
+  const onCancel = vi.fn();
+  render(
+    <CheckoutDialog
+      payment="CASH"
+      total="100000"
+      saving
+      onPaymentChange={onPaymentChange}
+      onCancel={onCancel}
+      onConfirm={vi.fn()}
+    />,
+  );
+  await userEvent
+    .setup()
+    .click(screen.getByRole('button', { name: 'Chuyển khoản' }));
+  await userEvent
+    .setup()
+    .click(screen.getByRole('button', { name: 'Quay lại' }));
+  expect(onPaymentChange).not.toHaveBeenCalled();
+  expect(onCancel).not.toHaveBeenCalled();
+});

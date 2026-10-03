@@ -8,6 +8,8 @@ import { acquirePosEditorLease } from '../model/pos-storage';
 
 const mocks = vi.hoisted(() => ({
   preparePrint: vi.fn(),
+  checkoutPending: false,
+  reconcilePayment: vi.fn(),
   catalogList: vi.fn().mockResolvedValue({ items: [] }),
   catalogDetail: vi.fn(),
   customerDetail: vi.fn(),
@@ -37,7 +39,8 @@ vi.mock('@/shared/hooks/use-online-status', () => ({
   useOnlineStatus: () => true,
 }));
 
-vi.mock('@/features/auth', () => ({
+vi.mock('@/features/auth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/auth')>()),
   useSession: () => ({
     session: {
       userId: '10000000-0000-4000-8000-000000000099',
@@ -78,6 +81,9 @@ vi.mock('../api/sales-api', () => ({
 vi.mock('../hooks/use-pos-commands', () => ({
   usePosCommands: () => ({
     preparePrint: mocks.preparePrint,
+    checkoutPending: mocks.checkoutPending,
+    reconcilePayment: mocks.reconcilePayment,
+    pendingPayment: { total: '100000', method: 'BANK_TRANSFER' },
     provisionalDocument: null,
     closePrint: vi.fn(),
     discard: vi.fn(),
@@ -103,6 +109,7 @@ function renderPage(entry = '/pos') {
 
 describe('PosPage', () => {
   beforeEach(() => {
+    mocks.checkoutPending = false;
     localStorage.clear();
     sessionStorage.clear();
     mocks.catalogList.mockResolvedValue({ items: [] });
@@ -550,4 +557,17 @@ describe('PosPage', () => {
       await screen.findByText('Khách hàng trong liên kết đã ngừng hoạt động.'),
     ).toBeInTheDocument();
   });
+});
+
+it('locks checkout controls and provides recovery without requiring a new proof', async () => {
+  mocks.checkoutPending = true;
+  renderPage();
+  expect(await screen.findByLabelText('Khách hàng')).toBeDisabled();
+  expect(screen.getByLabelText('Kênh bán')).toBeDisabled();
+  expect(screen.getByText(/Giao dịch ban đầu/)).toHaveTextContent('100.000');
+  fireEvent.click(screen.getByRole('button', { name: 'Đối soát giao dịch' }));
+  expect(mocks.reconcilePayment).toHaveBeenCalledOnce();
+  expect(
+    screen.queryByLabelText('Tải ảnh chứng từ chuyển khoản'),
+  ).not.toBeInTheDocument();
 });

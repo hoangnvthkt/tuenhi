@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
@@ -20,6 +21,7 @@ export function SalesChannelPage({
   api?: SettingsApi;
   isOnline?: boolean;
 }) {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(() => apiProp ?? createSettingsApi());
   const detectedOnline = useOnlineStatus();
   const isOnline = onlineProp ?? detectedOnline;
@@ -30,7 +32,7 @@ export function SalesChannelPage({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const operationKeys = useRef(new Map<string, string>());
   const query = useQuery({
-    queryKey: settingsKeys.channels(true),
+    queryKey: privateKey(...settingsKeys.channels(true)),
     queryFn: () => api.listSalesChannels(true),
   });
 

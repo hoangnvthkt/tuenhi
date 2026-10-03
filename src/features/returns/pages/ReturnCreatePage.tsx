@@ -78,6 +78,7 @@ export function ReturnCreatePage() {
   const selected = useMemo(
     () =>
       lines.filter((line) => {
+        if (line.requestedQty === '' || line.requestedQty === '0') return false;
         const value = validateCanonicalNumber(line.requestedQty, {
           kind: 'quantity',
           precision: 18,
@@ -132,6 +133,7 @@ export function ReturnCreatePage() {
       );
       return (
         line.requestedQty !== '' &&
+        line.requestedQty !== '0' &&
         (!validateCanonicalNumber(line.requestedQty, {
           kind: 'quantity',
           precision: 18,

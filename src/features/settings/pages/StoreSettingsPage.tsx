@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
@@ -10,11 +11,12 @@ const imageExtensions: Record<string, string> = {
   'image/webp': 'webp',
 };
 export function StoreSettingsPage() {
+  const privateKey = usePrivateQueryKey();
   const toast = useToast();
   const queryClient = useQueryClient();
   const [api] = useState(createSettingsApi);
   const query = useQuery({
-    queryKey: settingsKeys.store,
+    queryKey: privateKey(...settingsKeys.store),
     queryFn: () => api.getStoreSettings(),
   });
   const [saving, setSaving] = useState(false);

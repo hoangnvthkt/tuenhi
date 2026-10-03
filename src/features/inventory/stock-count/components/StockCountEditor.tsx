@@ -108,7 +108,7 @@ export function StockCountEditor({
                   setLines((current) =>
                     current.map((item, itemIndex) =>
                       itemIndex === index
-                        ? { ...item, countedQty: value }
+                        ? { ...item, countedQty: value === '' ? null : value }
                         : item,
                     ),
                   )

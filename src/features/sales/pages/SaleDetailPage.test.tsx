@@ -56,7 +56,8 @@ vi.mock('../api/sales-api', () => ({ createSalesApi: () => api }));
 vi.mock('@/shared/hooks/use-online-status', () => ({
   useOnlineStatus: () => true,
 }));
-vi.mock('@/features/auth', () => ({
+vi.mock('@/features/auth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/auth')>()),
   useSession: () => ({
     session: {
       userId,

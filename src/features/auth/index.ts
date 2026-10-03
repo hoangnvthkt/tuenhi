@@ -11,3 +11,4 @@ export { SessionContextValue, type SessionValue } from './model/session-store';
 export { ChangePasswordPage } from './pages/ChangePasswordPage';
 export { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 export { LoginPage } from './pages/LoginPage';
+export { usePrivateQueryKey } from './hooks/use-private-query-key';

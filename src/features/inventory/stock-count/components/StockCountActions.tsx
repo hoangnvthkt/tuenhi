@@ -7,6 +7,7 @@ export function StockCountActions({
   reason,
   online,
   busy,
+  hasUnsavedChanges,
   setEstimates,
   setReason,
   onAction,
@@ -17,6 +18,7 @@ export function StockCountActions({
   reason: string;
   online: boolean;
   busy: boolean;
+  hasUnsavedChanges: boolean;
   setEstimates: (value: Record<string, string>) => void;
   setReason: (value: string) => void;
   onAction: (command: 'submit' | 'refresh' | 'cancel') => Promise<void>;
@@ -24,10 +26,21 @@ export function StockCountActions({
 }) {
   return (
     <>
+      {hasUnsavedChanges ? (
+        <p role="status" className="w-full text-sm text-amber-900">
+          Lưu thay đổi trước khi gửi.
+        </p>
+      ) : null}
+
       {document?.status === 'DRAFT' ? (
         <button
           type="button"
-          disabled={!online || busy}
+          disabled={
+            !online ||
+            busy ||
+            hasUnsavedChanges ||
+            document.lines.some((line) => line.countedQty === null)
+          }
           onClick={() => void onAction('submit')}
           className="min-h-11 rounded-lg bg-teal-700 px-4 font-semibold text-white disabled:opacity-50"
         >
@@ -76,6 +89,7 @@ export function StockCountActions({
       {document && ['DRAFT', 'COUNTED'].includes(document.status) ? (
         <section className="space-y-2">
           <textarea
+            disabled={!online || busy}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             placeholder="Lý do hủy phiếu"

@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
@@ -22,10 +23,11 @@ export function LegacySaleDetailPage({
 }: {
   api?: LegacySalesApi;
 }) {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(() => apiProp ?? createLegacySalesApi());
   const { legacySaleId } = useParams();
   const query = useQuery({
-    queryKey: ['legacy-sale', legacySaleId],
+    queryKey: privateKey(...['legacy-sale', legacySaleId]),
     queryFn: () => api.detail(legacySaleId ?? ''),
     enabled: Boolean(legacySaleId),
   });

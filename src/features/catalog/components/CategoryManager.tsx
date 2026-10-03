@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
@@ -95,6 +96,7 @@ export function CategoryManager({
   api?: CatalogApi;
   isOnline: boolean;
 }) {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(() => apiProp ?? createCatalogApi());
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState('');
@@ -103,7 +105,7 @@ export function CategoryManager({
   const [correlationId, setCorrelationId] = useState<string | null>(null);
   const operationKeys = useRef(new Map<string, string>());
   const query = useQuery({
-    queryKey: catalogKeys.categories(true),
+    queryKey: privateKey(...catalogKeys.categories(true)),
     queryFn: () => api.listCategories(true),
   });
 

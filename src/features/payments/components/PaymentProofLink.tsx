@@ -1,3 +1,4 @@
+import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { createPaymentProofApi } from '../api/payment-proof-api';
@@ -7,9 +8,10 @@ export function PaymentProofLink({
 }: {
   objectPath: string | null;
 }) {
+  const privateKey = usePrivateQueryKey();
   const [api] = useState(createPaymentProofApi);
   const query = useQuery({
-    queryKey: ['payment-proof-url', objectPath],
+    queryKey: privateKey(...['payment-proof-url', objectPath]),
     queryFn: () => api.createSignedUrl(objectPath!),
     enabled: Boolean(objectPath),
     staleTime: 8 * 60 * 1000,
