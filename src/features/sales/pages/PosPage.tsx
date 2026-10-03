@@ -1,3 +1,4 @@
+import { formatPosMoney } from '../model/format-money';
 /* eslint-disable react-hooks/set-state-in-effect */
 import { usePrivateQueryKey } from '@/features/auth';
 
@@ -458,6 +459,9 @@ export function PosPage() {
     );
   const {
     discard,
+    checkoutPending,
+    pendingPayment,
+    reconcilePayment,
     pay,
     save,
     saving,
@@ -487,6 +491,7 @@ export function PosPage() {
       !linkedCustomer ||
       !workspaceReady ||
       saving ||
+      checkoutPending ||
       provisionalDocument
     )
       return;
@@ -507,6 +512,7 @@ export function PosPage() {
     clearCustomerIntent,
     customerId,
     customerIntentVisible,
+    checkoutPending,
     linkedCustomer,
     saving,
     provisionalDocument,
@@ -534,6 +540,7 @@ export function PosPage() {
         canEdit &&
         online &&
         !saving &&
+        !checkoutPending &&
         items.length > 0
       ) {
         event.preventDefault();
@@ -544,6 +551,7 @@ export function PosPage() {
     return () => window.removeEventListener('keydown', onShortcut);
   }, [
     canEdit,
+    checkoutPending,
     items.length,
     online,
     payment,
@@ -567,7 +575,7 @@ export function PosPage() {
           <button
             onClick={discard}
             className="min-h-11 rounded-lg border border-red-200 px-3 text-sm font-medium text-red-700"
-            disabled={!online || saving || !canEdit}
+            disabled={!online || saving || !canEdit || checkoutPending}
           >
             Bỏ nháp
           </button>
@@ -612,6 +620,7 @@ export function PosPage() {
           !workspaceReady ||
           !canEdit ||
           saving ||
+          checkoutPending ||
           !!payment ||
           Boolean(provisionalDocument)
         }
@@ -621,6 +630,7 @@ export function PosPage() {
             !workspaceReady ||
             !canEdit ||
             saving ||
+            checkoutPending ||
             provisionalDocument
           )
             return;
@@ -630,8 +640,40 @@ export function PosPage() {
         onKeep={clearCustomerIntent}
         onDismiss={clearCustomerIntent}
       />
+      {checkoutPending ? (
+        <section
+          aria-label="Đối soát thanh toán"
+          className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4"
+        >
+          <p className="font-semibold">Thanh toán đang chờ xác định kết quả</p>
+          <p className="text-sm">
+            Giỏ hàng tạm khóa để giữ nguyên giao dịch đã gửi.
+          </p>
+          {pendingPayment ? (
+            <p className="mt-1 text-sm">
+              Giao dịch ban đầu: {formatPosMoney(pendingPayment.total)} ·{' '}
+              {pendingPayment.method === 'CASH' ? 'Tiền mặt' : 'Chuyển khoản'}
+            </p>
+          ) : (
+            <p className="mt-1 text-sm">
+              Kiểm tra kết quả trên máy chủ; không gửi lại khi chưa có thông tin
+              giao dịch ban đầu.
+            </p>
+          )}
+          <button
+            type="button"
+            disabled={!online || saving}
+            onClick={() => void reconcilePayment()}
+            className="mt-2 min-h-11 rounded-lg border border-amber-700 px-3 font-semibold"
+          >
+            Đối soát giao dịch
+          </button>
+        </section>
+      ) : null}
       <fieldset
-        disabled={!workspaceReady || !canEdit || saving || !!payment}
+        disabled={
+          !workspaceReady || !canEdit || saving || !!payment || checkoutPending
+        }
         className="grid min-w-0 gap-5 disabled:opacity-75 lg:grid-cols-[1fr_420px]"
       >
         <div className="space-y-3">
@@ -700,7 +742,7 @@ export function PosPage() {
       {provisionalDocument ? (
         <DraftPrintDialog document={provisionalDocument} onClose={closePrint} />
       ) : null}
-      {payment ? (
+      {payment && !checkoutPending ? (
         <CheckoutDialog
           payment={payment}
           total={totals.total}

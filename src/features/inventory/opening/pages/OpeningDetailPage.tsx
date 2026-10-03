@@ -27,6 +27,16 @@ import {
 
 export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
   const { countId } = useParams();
+  return (
+    <OpeningDetailPageEditor
+      key={mode === 'create' ? 'new' : countId}
+      mode={mode}
+    />
+  );
+}
+
+function OpeningDetailPageEditor({ mode }: { mode?: 'create' }) {
+  const { countId } = useParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const online = useOnlineStatus();
@@ -100,7 +110,10 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
         })
         .catch(
           (reason: unknown) => active && setError(safeInventoryMessage(reason)),
-        );
+        )
+        .finally(() => {
+          if (active) setBusy(false);
+        });
     return () => {
       active = false;
       documentGeneration.current += 1;
@@ -155,6 +168,7 @@ export function OpeningDetailPage({ mode }: { mode?: 'create' }) {
       await action();
       if (generation !== documentGeneration.current) return;
       await refreshOperationalData(queryClient);
+      if (generation !== documentGeneration.current) return;
       toast.show({ kind: 'success', title, message: title });
       if (redirect) navigate('/more/inventory/opening');
       else if (countId) {

@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -19,6 +20,7 @@ const mocks = vi.hoisted(() => ({
     suggestions: vi.fn(),
   },
   catalog: { list: vi.fn() },
+  refresh: vi.fn(),
 }));
 vi.mock('@/features/inventory/stock-count/api/stock-count-api', () => ({
   createStockCountApi: () => mocks.stock,
@@ -39,7 +41,7 @@ vi.mock('@/shared/hooks/use-online-status', () => ({
   useOnlineStatus: () => true,
 }));
 vi.mock('@/shared/api/refresh-operational-data', () => ({
-  refreshOperationalData: vi.fn(),
+  refreshOperationalData: mocks.refresh,
 }));
 vi.mock('@/shared/ui/feedback/use-toast', () => ({
   useToast: () => ({ show: vi.fn() }),
@@ -176,4 +178,47 @@ it('locks all form inputs until the save and detail reload finish', async () => 
     expect(screen.getByLabelText('Số đếm thực tế')).toBeEnabled(),
   );
   expect(screen.getByLabelText('Số đếm thực tế')).toHaveValue('9');
+});
+
+it('unlocks the saved document when creation navigates before refresh finishes', async () => {
+  let finish!: () => void;
+  mocks.refresh.mockReturnValueOnce(
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    }),
+  );
+  mocks.stock.save.mockResolvedValueOnce({ countId: 'doc' });
+  mocks.stock.detail.mockResolvedValue(stock());
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={['/stock-counts/new']}>
+        <Routes>
+          <Route
+            path="/stock-counts/new"
+            element={<StockCountDetailPage mode="create" />}
+          />
+          <Route
+            path="/stock-counts/:countId"
+            element={<StockCountDetailPage />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await screen.findByText('A — Product A');
+  fireEvent.change(screen.getByRole('combobox'), {
+    target: { value: 'product-a' },
+  });
+  fireEvent.change(screen.getByLabelText('Số đếm thực tế'), {
+    target: { value: '5' },
+  });
+  fireEvent.click(screen.getByText('Lưu phiếu'));
+  await waitFor(() => expect(mocks.stock.detail).toHaveBeenCalledWith('doc'));
+  await act(async () => {
+    finish?.();
+  });
+  await waitFor(() =>
+    expect(screen.getByLabelText('Số đếm thực tế')).toBeEnabled(),
+  );
+  expect(screen.getByText('Lưu phiếu')).toBeEnabled();
 });

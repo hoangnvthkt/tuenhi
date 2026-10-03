@@ -12,11 +12,15 @@ export function useFinancialCommand(userId?: string) {
       entityId,
       invoke,
       parseCachedResponse,
+      resumeOnly,
+      retryPending,
     }: {
       commandName: FinancialCommandName;
       entityId: string;
       invoke: (idempotencyKey: string) => Promise<T>;
       parseCachedResponse: (response: unknown) => T;
+      resumeOnly?: boolean;
+      retryPending?: boolean;
     }) {
       if (!userId) {
         throw new Error('Phiên đăng nhập không còn hợp lệ.');
@@ -29,6 +33,8 @@ export function useFinancialCommand(userId?: string) {
         invoke,
         lookup: outcomeApi.lookup,
         parseCachedResponse,
+        resumeOnly,
+        retryPending,
       });
     },
     [userId],
