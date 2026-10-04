@@ -1,5 +1,5 @@
 import type { PosPaymentMethod } from '../model/pos-types';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { calculateCashChange, formatCashAmount } from '../model/cash-change';
 
 export function CheckoutDialog({
@@ -17,6 +17,16 @@ export function CheckoutDialog({
   onCancel: () => void;
   onConfirm: (proofFile?: File) => void;
 }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const element = dialog.current;
+    const previous = document.activeElement;
+    element?.showModal?.();
+    return () => {
+      element?.close?.();
+      if (previous instanceof HTMLElement) previous.focus();
+    };
+  }, []);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const requiresProof = payment === 'BANK_TRANSFER';
   const [tendered, setTendered] = useState('');
@@ -47,11 +57,37 @@ export function CheckoutDialog({
   }, [onCancel, onConfirm, proofFile, requiresProof, saving, cashBlocked]);
 
   return (
-    <div
+    <dialog
+      ref={dialog}
+      onKeyDown={(event) => {
+        if (event.key !== 'Tab') return;
+        const controls = Array.from(
+          event.currentTarget.querySelectorAll<HTMLElement>(
+            'button:not(:disabled), input:not(:disabled), [tabindex="0"]',
+          ),
+        ).filter((el) => el.getClientRects().length > 0);
+        const first = controls[0],
+          last = controls.at(-1);
+        if (!first) {
+          event.preventDefault();
+          return;
+        }
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }}
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!saving) onCancel();
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="checkout-dialog-title"
-      className="fixed inset-0 grid place-items-center bg-slate-950/40 p-4"
+      className="fixed inset-0 m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-sm overflow-y-auto rounded-xl bg-white p-0 shadow-xl backdrop:bg-slate-950/40"
     >
       <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
         <h2 id="checkout-dialog-title" className="text-lg font-semibold">
@@ -181,6 +217,6 @@ export function CheckoutDialog({
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

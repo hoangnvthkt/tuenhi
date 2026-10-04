@@ -172,14 +172,22 @@ export function CartPanel({
         >
           In tạm tính
         </button>
-        <button
-          type="button"
-          onClick={onCheckout}
-          disabled={saving || !online || !items.length}
-          className="min-h-11 w-full rounded-lg bg-teal-700 px-4 font-semibold text-white disabled:opacity-50"
-        >
-          Thanh toán
-        </button>
+        <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-20 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-lg xl:static xl:rounded-none xl:border-0 xl:p-0 xl:shadow-none">
+          <div className="min-w-0 flex-1 text-sm xl:hidden">
+            <p>Cần thanh toán</p>
+            <p className="font-semibold text-teal-900">
+              {formatPosMoney(total)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCheckout}
+            disabled={saving || !online || !items.length}
+            className="min-h-11 shrink-0 rounded-lg bg-teal-700 px-4 font-semibold text-white disabled:opacity-50 xl:w-full"
+          >
+            Thanh toán
+          </button>
+        </div>
         {!online ? (
           <p className="text-sm text-amber-700">
             Đang ngoại tuyến: thanh toán và lưu tạm đã bị khóa.

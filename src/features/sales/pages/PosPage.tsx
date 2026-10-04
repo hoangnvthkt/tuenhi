@@ -586,7 +586,7 @@ export function PosPage() {
   return (
     <main
       inert={Boolean(provisionalDocument)}
-      className="mx-auto max-w-7xl p-4 sm:p-6"
+      className="mx-auto max-w-7xl p-4 pb-28 sm:p-6 sm:pb-28 xl:pb-6"
     >
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>

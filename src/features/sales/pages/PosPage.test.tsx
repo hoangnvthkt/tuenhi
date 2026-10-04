@@ -583,3 +583,13 @@ it('locks checkout controls and provides recovery without requiring a new proof'
     screen.queryByLabelText('Tải ảnh chứng từ chuyển khoản'),
   ).not.toBeInTheDocument();
 });
+
+// jsdom has no modal implementation; focus trapping is exercised in Playwright.
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
