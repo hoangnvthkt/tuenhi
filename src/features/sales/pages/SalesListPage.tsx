@@ -127,11 +127,21 @@ export function SalesListPage() {
             className="flex items-center justify-between gap-3 border-b border-slate-100 p-4 hover:bg-slate-50"
           >
             <div>
-              <p className="font-medium">{item.saleNumber ?? 'Hóa đơn nháp'}</p>
+              <p className="font-medium">
+                {item.saleNumber ?? `Nháp ${item.id.slice(0, 8).toUpperCase()}`}
+              </p>
               <p className="text-sm text-slate-600">
                 {item.customerName ?? 'Khách lẻ'} · {item.channelName} ·{' '}
                 {item.createdByName}
               </p>
+              {Number.isFinite(Date.parse(item.sortAt)) ? (
+                <time className="text-xs text-slate-500" dateTime={item.sortAt}>
+                  {new Intl.DateTimeFormat('vi-VN', {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  }).format(new Date(item.sortAt))}
+                </time>
+              ) : null}
             </div>
             <div className="text-right">
               <p className="font-semibold">{money(item.netTotal)}</p>
