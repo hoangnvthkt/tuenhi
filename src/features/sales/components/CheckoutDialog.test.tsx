@@ -1,7 +1,16 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CheckoutDialog } from './CheckoutDialog';
+
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 
 describe('CheckoutDialog', () => {
   it('requires a transfer proof before confirming a bank-transfer payment', async () => {
@@ -166,6 +175,28 @@ it('clears cash help on payment switches and locks it while saving', () => {
   expect(screen.getByLabelText('Khách đưa (tùy chọn)')).toBeDisabled();
   fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
   expect(props.onConfirm).not.toHaveBeenCalled();
+});
+
+it('opens a native modal so background navigation is inert while paying', () => {
+  const show = vi.fn(function (this: HTMLDialogElement) {
+    this.setAttribute('open', '');
+  });
+  HTMLDialogElement.prototype.showModal = show;
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+  render(
+    <CheckoutDialog
+      payment="CASH"
+      total="100000"
+      saving={false}
+      onConfirm={vi.fn()}
+      onCancel={vi.fn()}
+      onPaymentChange={vi.fn()}
+    />,
+  );
+  expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
+  expect(show).toHaveBeenCalledOnce();
 });
 
 it('shows fractional shortfall and large change without rounding away money', () => {
