@@ -134,3 +134,14 @@ describe('MorePage', () => {
     );
   });
 });
+
+it('offers the low-stock view to an inventory reader', () => {
+  renderPage(['catalog.read', 'inventory.read']);
+  expect(screen.getByRole('link', { name: /Cần nhập/ })).toHaveAttribute(
+    'href',
+    '/more/replenishment',
+  );
+  expect(
+    screen.queryByRole('link', { name: /Nhập hàng/ }),
+  ).not.toBeInTheDocument();
+});

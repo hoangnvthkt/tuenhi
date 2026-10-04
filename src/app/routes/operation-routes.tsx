@@ -62,7 +62,24 @@ const OpeningDetailPage = lazy(() =>
   })),
 );
 
+const ReplenishmentPage = lazy(() =>
+  import('@/features/inventory/replenishment/pages/ReplenishmentPage').then(
+    (module) => ({ default: module.ReplenishmentPage }),
+  ),
+);
+
 export const operationRoutes: RouteObject[] = [
+  {
+    element: <RequireSession permission="inventory.read" />,
+    children: [
+      {
+        element: <RequireSession permission="catalog.read" />,
+        children: [
+          { path: 'more/replenishment', element: <ReplenishmentPage /> },
+        ],
+      },
+    ],
+  },
   {
     element: <RequireSession permission="sale.draft.manage" />,
     children: [
