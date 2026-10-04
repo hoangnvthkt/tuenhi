@@ -17,3 +17,5 @@ export type {
   CustomerFormValues,
   SupplierFormValues,
 } from './model/directory-validation';
+
+export { validateCustomer } from './model/directory-validation';

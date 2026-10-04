@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useContext, useRef, useState } from 'react';
+import { SessionContextValue } from '@/features/auth';
+import { QuickCustomerDialog } from './QuickCustomerDialog';
 import { useQuery } from '@tanstack/react-query';
 import { usePrivateQueryKey } from '@/features/auth';
 import {
@@ -21,6 +23,11 @@ export function CustomerPicker({
   selectedSnapshot?: CustomerItem;
 }) {
   const privateKey = usePrivateQueryKey();
+  const auth = useContext(SessionContextValue);
+  const canCreate =
+    auth?.session?.permissions.includes('customer.manage') ?? false;
+  const [creating, setCreating] = useState(false);
+  const addButton = useRef<HTMLButtonElement>(null);
   const [api] = useState(createDirectoryApi);
   const [explorer] = useState(createCustomerExplorerApi);
   const [chosen, setChosen] = useState<CustomerItem | null>(null);
@@ -55,6 +62,35 @@ export function CustomerPicker({
           onChange(item?.id ?? null);
         }}
       />
+      {canCreate ? (
+        <button
+          ref={addButton}
+          type="button"
+          disabled={disabled}
+          className="min-h-11 text-sm font-medium text-teal-800"
+          onClick={() => setCreating(true)}
+        >
+          Thêm khách
+        </button>
+      ) : null}
+      {creating && canCreate && !disabled ? (
+        <QuickCustomerDialog
+          key={auth?.session?.userId}
+          open
+          onClose={() => {
+            setCreating(false);
+            addButton.current?.focus();
+          }}
+          onCreated={(item) => {
+            setChosen(item);
+            onChange(item.id);
+            setCreating(false);
+            requestAnimationFrame(() =>
+              document.getElementById('pos-product-search')?.focus(),
+            );
+          }}
+        />
+      ) : null}
       {detail.isError ? (
         <p role="alert" className="text-sm text-red-800">
           Không thể tải khách đã chọn.{' '}

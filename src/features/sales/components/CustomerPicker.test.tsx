@@ -1,3 +1,4 @@
+import { SessionContextValue, type SessionValue } from '@/features/auth';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { renderWithQueryClient } from '@/shared/testing/render-with-query-client';
@@ -5,8 +6,12 @@ import { CustomerPicker } from './CustomerPicker';
 const mocks = vi.hoisted(() => ({
   listCustomers: vi.fn(),
   customerDetail: vi.fn(),
+  saveCustomer: vi.fn(),
 }));
-vi.mock('@/features/directories', () => ({ createDirectoryApi: () => mocks }));
+vi.mock('@/features/directories', async (original) => ({
+  ...(await original<typeof import('@/features/directories')>()),
+  createDirectoryApi: () => mocks,
+}));
 vi.mock('@/features/connected-explorer', () => ({
   createCustomerExplorerApi: () => mocks,
 }));
@@ -108,4 +113,55 @@ it('ignores the old request when it resolves after a newer search', async () => 
   expect(screen.queryByRole('option', { name: 'An' })).not.toBeInTheDocument();
   fireEvent.keyDown(input, { key: 'Enter' });
   expect(onChange).toHaveBeenCalledWith('2');
+});
+
+it('only managers can add a customer, and selecting the new customer keeps the picker mounted', async () => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  const auth: SessionValue = {
+    status: 'authenticated',
+    errorMessage: null,
+    refresh: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+    changePassword: vi.fn(),
+    session: {
+      userId: 'owner',
+      permissions: ['customer.manage'],
+      email: 'owner@example.test',
+      displayName: 'Owner',
+      roleTemplate: 'OWNER',
+      isActive: true,
+      mustChangePassword: false,
+    },
+  };
+  mocks.listCustomers.mockResolvedValue({ items: [], nextCursor: null });
+  mocks.saveCustomer.mockResolvedValue({ customerId: 'new-id', version: 1 });
+  const onChange = vi.fn();
+  const view = renderWithQueryClient(
+    <SessionContextValue.Provider value={auth}>
+      <CustomerPicker value={null} disabled={false} onChange={onChange} />
+    </SessionContextValue.Provider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Thêm khách' }));
+  fireEvent.change(screen.getByLabelText('Tên khách hàng'), {
+    target: { value: 'Mai' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu và chọn' }));
+  await waitFor(() => expect(onChange).toHaveBeenCalledWith('new-id'));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  view.rerender(
+    <SessionContextValue.Provider
+      value={{
+        ...auth,
+        session: { ...auth.session!, userId: 'viewer', permissions: [] },
+      }}
+    >
+      <CustomerPicker value={null} disabled={false} onChange={onChange} />
+    </SessionContextValue.Provider>,
+  );
+  expect(
+    screen.queryByRole('button', { name: 'Thêm khách' }),
+  ).not.toBeInTheDocument();
 });
