@@ -28,6 +28,7 @@ const destinationVisuals = [
   { icon: Users, tone: 'rose' },
   { icon: Storefront, tone: 'violet' },
   { icon: Gear, tone: 'slate' },
+  { icon: Truck, tone: 'orange' },
 ];
 
 const destinations = [
@@ -112,6 +113,12 @@ const destinations = [
     title: 'Cấu hình cửa hàng',
     description: 'Thông tin hiển thị trên hóa đơn và bản in.',
     permissions: ['settings.manage'],
+  },
+  {
+    to: '/more/replenishment',
+    title: 'Cần nhập',
+    description: 'Hàng thấp tồn và số thiếu tới ngưỡng cảnh báo.',
+    permissions: ['inventory.read'],
   },
 ] as const;
 

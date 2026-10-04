@@ -10,6 +10,7 @@ export {
 } from './api/catalog-api';
 export type {
   CatalogPage,
+  CatalogCursor,
   CategoryOption,
   ProductDetail,
   ProductFormValues,
