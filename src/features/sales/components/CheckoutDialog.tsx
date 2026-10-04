@@ -1,6 +1,6 @@
 import type { PosPaymentMethod } from '../model/pos-types';
-import { formatPosMoney } from '../model/format-money';
 import { useEffect, useState } from 'react';
+import { calculateCashChange, formatCashAmount } from '../model/cash-change';
 
 export function CheckoutDialog({
   payment,
@@ -19,6 +19,11 @@ export function CheckoutDialog({
 }) {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const requiresProof = payment === 'BANK_TRANSFER';
+  const [tendered, setTendered] = useState('');
+  const cash = calculateCashChange(total, tendered);
+  const cashBlocked =
+    !requiresProof &&
+    (cash.status === 'INVALID' || cash.status === 'INSUFFICIENT');
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -30,6 +35,7 @@ export function CheckoutDialog({
         event.key === 'Enter' &&
         (event.ctrlKey || event.metaKey) &&
         !saving &&
+        !cashBlocked &&
         (!requiresProof || proofFile)
       ) {
         event.preventDefault();
@@ -38,7 +44,7 @@ export function CheckoutDialog({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onCancel, onConfirm, proofFile, requiresProof, saving]);
+  }, [onCancel, onConfirm, proofFile, requiresProof, saving, cashBlocked]);
 
   return (
     <div
@@ -52,7 +58,7 @@ export function CheckoutDialog({
           Xác nhận thanh toán
         </h2>
         <p className="mt-2 text-sm">
-          Tổng tiền: <strong>{formatPosMoney(total)}</strong>
+          Tổng tiền: <strong>{formatCashAmount(total)}</strong>
         </p>
         <div className="mt-4 grid grid-cols-2 gap-2">
           {(['CASH', 'BANK_TRANSFER'] as const).map((method) => (
@@ -62,6 +68,7 @@ export function CheckoutDialog({
               type="button"
               onClick={() => {
                 setProofFile(null);
+                setTendered('');
                 onPaymentChange(method);
               }}
               className={`min-h-11 rounded-lg border ${payment === method ? 'border-teal-700 bg-teal-50' : 'border-slate-300'}`}
@@ -70,6 +77,42 @@ export function CheckoutDialog({
             </button>
           ))}
         </div>
+        {!requiresProof ? (
+          <div className="mt-4 space-y-2">
+            <label className="block text-sm font-medium">
+              Khách đưa (tùy chọn)
+              <input
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={tendered}
+                onChange={(event) => setTendered(event.target.value)}
+                disabled={saving}
+                aria-invalid={cashBlocked}
+                aria-describedby="cash-change-result"
+                maxLength={40}
+                className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3"
+              />
+            </label>
+            <div id="cash-change-result" aria-live="polite">
+              {cash.change !== null ? (
+                <p className="font-semibold text-teal-800">
+                  Tiền thừa: {formatCashAmount(cash.change)}
+                </p>
+              ) : null}
+              {cash.shortfall !== null ? (
+                <p className="text-red-800">
+                  Còn thiếu: {formatCashAmount(cash.shortfall)}
+                </p>
+              ) : null}
+              {cash.status === 'INVALID' ? (
+                <p className="text-red-800">
+                  Nhập số tiền hợp lệ, dùng dấu chấm cho phần thập phân.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         {requiresProof ? (
           <div className="mt-4 rounded-lg border border-teal-100 bg-teal-50 p-3">
             <p className="text-sm font-semibold text-teal-950">
@@ -127,8 +170,11 @@ export function CheckoutDialog({
           </button>
           <button
             type="button"
-            onClick={() => onConfirm(proofFile ?? undefined)}
-            disabled={saving || (requiresProof && !proofFile)}
+            onClick={() => {
+              if (!saving && !cashBlocked && (!requiresProof || proofFile))
+                onConfirm(proofFile ?? undefined);
+            }}
+            disabled={saving || cashBlocked || (requiresProof && !proofFile)}
             className="min-h-11 flex-1 rounded-lg bg-teal-700 font-semibold text-white"
           >
             Xác nhận

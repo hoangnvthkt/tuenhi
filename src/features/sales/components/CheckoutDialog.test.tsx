@@ -113,3 +113,80 @@ it('locks payment method and cancellation while the confirmed command is running
   expect(onPaymentChange).not.toHaveBeenCalled();
   expect(onCancel).not.toHaveBeenCalled();
 });
+
+it('rechecks cash against a changed total and blocks both click and keyboard when short', () => {
+  const onConfirm = vi.fn();
+  const props = {
+    payment: 'CASH' as const,
+    total: '274000',
+    saving: false,
+    onConfirm,
+    onCancel: vi.fn(),
+    onPaymentChange: vi.fn(),
+  };
+  const view = render(<CheckoutDialog {...props} />);
+  fireEvent.change(screen.getByLabelText('Khách đưa (tùy chọn)'), {
+    target: { value: '300000' },
+  });
+  expect(screen.getByText(/Tiền thừa:/)).toHaveTextContent('26.000');
+  view.rerender(<CheckoutDialog {...props} total="350000" />);
+  expect(screen.getByText(/Còn thiếu:/)).toHaveTextContent('50.000');
+  fireEvent.click(screen.getByRole('button', { name: 'Xác nhận' }));
+  fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+  expect(onConfirm).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('Khách đưa (tùy chọn)'), {
+    target: { value: '400000' },
+  });
+  fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+  expect(onConfirm).toHaveBeenCalledWith(undefined);
+});
+
+it('clears cash help on payment switches and locks it while saving', () => {
+  const props = {
+    payment: 'CASH' as const,
+    total: '100000',
+    saving: false,
+    onConfirm: vi.fn(),
+    onCancel: vi.fn(),
+    onPaymentChange: vi.fn(),
+  };
+  const view = render(<CheckoutDialog {...props} />);
+  fireEvent.change(screen.getByLabelText('Khách đưa (tùy chọn)'), {
+    target: { value: '200000' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Chuyển khoản' }));
+  view.rerender(<CheckoutDialog {...props} payment="BANK_TRANSFER" />);
+  expect(
+    screen.queryByLabelText('Khách đưa (tùy chọn)'),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Tiền mặt' }));
+  view.rerender(<CheckoutDialog {...props} saving />);
+  expect(screen.getByLabelText('Khách đưa (tùy chọn)')).toHaveValue('');
+  expect(screen.getByLabelText('Khách đưa (tùy chọn)')).toBeDisabled();
+  fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+  expect(props.onConfirm).not.toHaveBeenCalled();
+});
+
+it('shows fractional shortfall and large change without rounding away money', () => {
+  const props = {
+    payment: 'CASH' as const,
+    total: '100.01',
+    saving: false,
+    onConfirm: vi.fn(),
+    onCancel: vi.fn(),
+    onPaymentChange: vi.fn(),
+  };
+  const view = render(<CheckoutDialog {...props} />);
+  fireEvent.change(screen.getByLabelText('Khách đưa (tùy chọn)'), {
+    target: { value: '100' },
+  });
+  expect(screen.getByText(/Còn thiếu:/)).toHaveTextContent('0,01');
+  view.rerender(<CheckoutDialog {...props} total="0" />);
+  fireEvent.change(screen.getByLabelText('Khách đưa (tùy chọn)'), {
+    target: { value: '9007199254740993.01' },
+  });
+  expect(screen.getByText(/Tiền thừa:/)).toHaveTextContent(
+    '9.007.199.254.740.993,01',
+  );
+});
