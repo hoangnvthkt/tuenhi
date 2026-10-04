@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 19, TypeScript, TanStack Query, Supabase/PostgreSQL, Vitest, Playwright.
 
-**Spec:** [docs/superpowers/specs/2026-10-03-tuenhi-audit-remediation-design.md](/Users/admin/tuenhi/docs/superpowers/specs/2026-10-03-tuenhi-audit-remediation-design.md). Trạng thái: phương án đề xuất ngày 03/10/2026, chưa triển khai.
+**Spec:** [docs/superpowers/specs/2026-10-03-tuenhi-audit-remediation-design.md](/Users/admin/tuenhi/docs/superpowers/specs/2026-10-03-tuenhi-audit-remediation-design.md). Trạng thái cập nhật 03/10/2026: Đã triển khai và review A09–A13, A16–A17; 120 file / 577 test tại nội dung commit 7269265 (merge ancestry 4afad47 không thay đổi nội dung). [PR #3](https://github.com/hoangnvthkt/tuenhi/pull/3). Chưa phát hành production.
 
 ## Global Constraints
 
@@ -34,11 +34,11 @@
 
 **Interfaces:** `CustomerPicker` nhận `value: string | null`, `disabled: boolean`, `onChange(id: string | null): void`; dùng `listCustomers({search,cursor,limit:30})`, resolve selected theo API detail hiện có. Product picker nhận `selectedSnapshot?: {id:string;name:string;sku:string}`; source snapshot từ receipt/import result, không chứa giá vốn cho người không quyền. Nếu tái dùng giữa feature, đặt tại `src/features/catalog/components/ProductSelect.tsx` với cùng interface, không import ngược từ catalog sang purchase.
 
-- [ ] Viết test chọn customer101/product101 qua search, load tiếp, selected ngoài trang đầu, ngừng hoạt động còn đọc snapshot, lỗi tải→retry, search trước trả muộn bị bỏ. Chứng từ đã ghi sổ không dùng ô trống chỉ vì lookup không thấy.
-- [ ] Chạy `pnpm exec vitest run src/features/sales/components src/features/inventory src/features/catalog`; thấy ca mới đỏ trước sửa.
-- [ ] Implement search debounce250ms và cursor bằng query có userId/filter; hydrate selection độc lập. Không tự chọn kết quả đầu khi danh sách tải lại; keyboard Enter chỉ chọn kết quả đúng search hiện tại. Product read-only hiển thị snapshot bằng text.
-- [ ] Chạy test lại; kiểm không rò giá cho kho chỉ xem, draft ngoài trang đầu vẫn đúng khách, import giữ tên sau áp dụng, không thêm/sửa dữ liệu chỉ do mở picker.
-- [ ] Review và commit `fix(pickers): search full directories and retain selected identities`.
+- [x] Viết test chọn customer101/product101 qua search, load tiếp, selected ngoài trang đầu, ngừng hoạt động còn đọc snapshot, lỗi tải→retry, search trước trả muộn bị bỏ. Chứng từ đã ghi sổ không dùng ô trống chỉ vì lookup không thấy.
+- [x] Chạy `pnpm exec vitest run src/features/sales/components src/features/inventory src/features/catalog`; thấy ca mới đỏ trước sửa.
+- [x] Implement search debounce250ms và cursor bằng query có userId/filter; hydrate selection độc lập. Không tự chọn kết quả đầu khi danh sách tải lại; keyboard Enter chỉ chọn kết quả đúng search hiện tại. Product read-only hiển thị snapshot bằng text.
+- [x] Chạy test lại; kiểm không rò giá cho kho chỉ xem, draft ngoài trang đầu vẫn đúng khách, import giữ tên sau áp dụng, không thêm/sửa dữ liệu chỉ do mở picker.
+- [x] Review và commit `fix(pickers): search full directories and retain selected identities`.
 
 ### Task 2: R6 — Phân trang và báo cáo — A10/A11
 
@@ -48,11 +48,11 @@
 
 Purchase/stock lists nhận `list(status?:string,cursor?:{updatedAt:string;id:string})`; opening `list(cursor?:{updatedAt:string;id:string})`; import dùng `listHistory` và cursor createdAt hiện có. Notifications `list(input?: {unreadOnly?:boolean;cursor?:{createdAt:string;id:string}})`; limit50. Profit dùng page cuối nếu có, chỉ dùng first-page cursor khi chưa có page tiếp.
 
-- [ ] Viết fixture 51 sales/returns, 101 purchase/opening/count, 31 import, 51 notifications; gồm timestamp trùng và scope OWN/ALL/NONE. Test đi hết không mất/trùng, null cuối dừng; filter đổi bỏ page cũ; loading/error không báo rỗng giả; report51 events tải cuối không nhân đôi và KPI không đổi.
-- [ ] Chạy test API/page theo feature; SQL fixture native cô lập đỏ trước migration. Kiểm old sales/returns parser vẫn nhận response endpoint cũ.
-- [ ] Implement keyset + limit+1, cursor cuối page thực hiển thị, SQL scope trước limit; tiếp tục query/index plan với dữ liệu giả. DTO chuyển thêm cursor đúng tên; key query chứa user/filter. Reset pages khi refresh hoặc filter đổi; bỏ response cũ và dedupe theo ID khi dữ liệu biến động giữa các trang; không hứa snapshot lịch sử nếu dữ liệu đang đổi.
-- [ ] Thêm Tải thêm và trạng thái đang tải/lỗi; notifications filter chưa đọc, không đánh dấu tất cả tự động. Import/đối tác giữ filter khi về danh sách. Kiểm quyền và URL trực tiếp, client cũ/v2 cùng hoạt động.
-- [ ] Chạy `pnpm exec vitest run src/features/sales src/features/returns src/features/inventory src/features/imports src/features/notifications src/features/reports`, SQL fixture và `pnpm check`; review/commit `fix(lists): paginate operational history without duplicate pages`.
+- [x] Viết fixture 51 sales/returns, 101 purchase/opening/count, 31 import, 51 notifications; gồm timestamp trùng và scope OWN/ALL/NONE. Test đi hết không mất/trùng, null cuối dừng; filter đổi bỏ page cũ; loading/error không báo rỗng giả; report51 events tải cuối không nhân đôi và KPI không đổi.
+- [x] Chạy test API/page theo feature; SQL fixture native cô lập đỏ trước migration. Kiểm old sales/returns parser vẫn nhận response endpoint cũ.
+- [x] Implement keyset + limit+1, cursor cuối page thực hiển thị, SQL scope trước limit; tiếp tục query/index plan với dữ liệu giả. DTO chuyển thêm cursor đúng tên; key query chứa user/filter. Reset pages khi refresh hoặc filter đổi; bỏ response cũ và dedupe theo ID khi dữ liệu biến động giữa các trang; không hứa snapshot lịch sử nếu dữ liệu đang đổi.
+- [x] Thêm Tải thêm và trạng thái đang tải/lỗi; notifications filter chưa đọc, không đánh dấu tất cả tự động. Import/đối tác giữ filter khi về danh sách. Kiểm quyền và URL trực tiếp, client cũ/v2 cùng hoạt động.
+- [x] Chạy `pnpm exec vitest run src/features/sales src/features/returns src/features/inventory src/features/imports src/features/notifications src/features/reports`, SQL fixture và `pnpm check`; review/commit `fix(lists): paginate operational history without duplicate pages`.
 
 ### Task 3: R7a — Không mất form khi realtime tới — A13
 
@@ -60,10 +60,10 @@ Purchase/stock lists nhận `list(status?:string,cursor?:{updatedAt:string;id:st
 
 **Interfaces:** form có callback `onDirtyChange(dirty:boolean):void`; giữ baseVersion của phiên sửa. Parent gọi save với baseVersion; nhận conflict không tự retry bằng version mới. Realtime không remount theo version. Đổi product ID bắt đầu phiên form mới sau khi xử lý dirty.
 
-- [ ] Test sửa tên rồi version2 tới: giữ tên đang nhập; save gửi version1 và báo conflict; tải bản mới cần xác nhận bỏ thay đổi; khi pristine có thể hydrate bản mới; route/back có guard, save thành công cập nhật baseline.
-- [ ] Chạy `pnpm exec vitest run src/features/catalog` và chứng minh probe mất form đỏ.
-- [ ] Thay key theo version bằng phiên chỉnh sửa, dirty/conflict state; dùng cơ chế route blocker phù hợp router hiện tại và beforeunload khi dirty. Không tự merge giá/tồn hoặc hiển thị giá từ snapshot không quyền.
-- [ ] Test lại với lỗi mạng, đổi ID, active/inactive, minStockQty0 khác effective50; review/commit `fix(catalog): preserve unsaved edits across realtime updates`.
+- [x] Test sửa tên rồi version2 tới: giữ tên đang nhập; save gửi version1 và báo conflict; tải bản mới cần xác nhận bỏ thay đổi; khi pristine có thể hydrate bản mới; route/back có guard, save thành công cập nhật baseline.
+- [x] Chạy `pnpm exec vitest run src/features/catalog` và chứng minh probe mất form đỏ.
+- [x] Thay key theo version bằng phiên chỉnh sửa, dirty/conflict state; dùng cơ chế route blocker phù hợp router hiện tại và beforeunload khi dirty. Không tự merge giá/tồn hoặc hiển thị giá từ snapshot không quyền.
+- [x] Test lại với lỗi mạng, đổi ID, active/inactive, minStockQty0 khác effective50; review/commit `fix(catalog): preserve unsaved edits across realtime updates`.
 
 ### Task 4: R7b — Modal và lỗi tải có thể phục hồi — A16/A17
 
@@ -71,10 +71,10 @@ Purchase/stock lists nhận `list(status?:string,cursor?:{updatedAt:string;id:st
 
 **Interfaces:** không đổi RPC settings. Dialog quản lý initial focus/focus trap/Escape/restore; chỉ dùng aria-modal nếu nền đã inert/không tương tác. Settings dùng query.isError + retry refetch; giữ values bẩn qua refetch.
 
-- [ ] Test focus trong dialog sau mở; Tab/Shift+Tab vòng trong, Escape đóng/trả focus; background không tương tác. Test fetch settings reject phải hiện role=alert và Thử lại, retry thành công hiện form, không gửi save khi chưa tải settings version.
-- [ ] Chạy `pnpm exec vitest run src/features/notifications/components/NotificationCenter.test.tsx src/features/settings/pages/StoreSettingsPage.test.tsx`; thấy ca mới đỏ.
-- [ ] Implement các trạng thái và câu báo tiếng Việt, không chỉ generic “thử lại” khi có mã lỗi nghiệp vụ biết trước. Không mở rộng quyền để vượt lỗi.
-- [ ] Chạy test + desktop/mobile keyboard UAT; review/commit `fix(ui): make dialogs and settings failures recoverable`.
+- [x] Test focus trong dialog sau mở; Tab/Shift+Tab vòng trong, Escape đóng/trả focus; background không tương tác. Test fetch settings reject phải hiện role=alert và Thử lại, retry thành công hiện form, không gửi save khi chưa tải settings version.
+- [x] Chạy `pnpm exec vitest run src/features/notifications/components/NotificationCenter.test.tsx src/features/settings/pages/StoreSettingsPage.test.tsx`; thấy ca mới đỏ.
+- [x] Implement các trạng thái và câu báo tiếng Việt, không chỉ generic “thử lại” khi có mã lỗi nghiệp vụ biết trước. Không mở rộng quyền để vượt lỗi.
+- [x] Chạy test + desktop/mobile keyboard UAT; review/commit `fix(ui): make dialogs and settings failures recoverable`.
 
 ## Phát hành
 

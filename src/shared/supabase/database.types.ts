@@ -2084,6 +2084,10 @@ export type Database = {
       get_sale_draft_print: { Args: { p_sale_id: string }; Returns: Json };
       get_sale_invoice: { Args: { p_sale_id: string }; Returns: Json };
       get_sale_return: { Args: { p_return_id: string }; Returns: Json };
+      get_staff_reactivation_recovery: {
+        Args: { p_user_id: string; p_idempotency_key: string };
+        Returns: Json;
+      };
       get_staff_access_capability: { Args: never; Returns: Json };
       get_stock_count: { Args: { p_count_id: string }; Returns: Json };
       get_store_settings: { Args: never; Returns: Json };

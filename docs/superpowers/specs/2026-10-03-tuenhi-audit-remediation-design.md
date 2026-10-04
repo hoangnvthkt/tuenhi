@@ -1,6 +1,6 @@
 # Thiết kế khắc phục audit và cải thiện vận hành Tuệ Nhi
 
-Trạng thái: **phương án đề xuất để triển khai**, không phải release đã được duyệt/phát hành. Căn cứ audit ngày 03/10/2026 tại commit `065b3d22681de3daef11796a15c06582ab7e6fce`.
+Trạng thái cập nhật 03/10/2026: **đã triển khai mã và review ba gói A01–A17, chưa phát hành production**. Auth/Storage/Realtime và thiết bị thật chưa được thay thế bằng kết quả unit/SQL. Căn cứ audit ngày 03/10/2026 tại commit `065b3d22681de3daef11796a15c06582ab7e6fce`.
 
 ## Mục tiêu và phạm vi
 
