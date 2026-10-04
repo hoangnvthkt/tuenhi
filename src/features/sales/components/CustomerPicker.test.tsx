@@ -120,8 +120,21 @@ it('only managers can add a customer, and selecting the new customer keeps the p
     this.setAttribute('open', '');
   };
   const auth: SessionValue = {
-    status:'authenticated', errorMessage:null, refresh:vi.fn(), signIn:vi.fn(), signOut:vi.fn(), changePassword:vi.fn(),
-    session: { userId: 'owner', permissions: ['customer.manage'], email:'owner@example.test',displayName:'Owner',roleTemplate:'OWNER',isActive:true,mustChangePassword:false },
+    status: 'authenticated',
+    errorMessage: null,
+    refresh: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+    changePassword: vi.fn(),
+    session: {
+      userId: 'owner',
+      permissions: ['customer.manage'],
+      email: 'owner@example.test',
+      displayName: 'Owner',
+      roleTemplate: 'OWNER',
+      isActive: true,
+      mustChangePassword: false,
+    },
   };
   mocks.listCustomers.mockResolvedValue({ items: [], nextCursor: null });
   mocks.saveCustomer.mockResolvedValue({ customerId: 'new-id', version: 1 });

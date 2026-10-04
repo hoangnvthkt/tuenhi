@@ -3,7 +3,9 @@ import { formatPosMoney } from '../model/format-money';
 import { usePrivateQueryKey } from '@/features/auth';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
+import { PosDraftStatus } from '../components/PosDraftStatus';
+import { isDraftDirty } from '../model/draft-save-state';
 import { useQuery } from '@tanstack/react-query';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { createCatalogApi, type ProductCatalogItem } from '@/features/catalog';
@@ -77,6 +79,10 @@ export function PosPage() {
   const [orderDiscount, setOrderDiscount] = useState('0');
   const [note, setNote] = useState('');
   const [draft, setDraft] = useState<Sale | null>(null);
+  const [localSaved, setLocalSaved] = useState(false);
+  const [failedSaveFingerprint, setFailedSaveFingerprint] = useState<
+    string | null
+  >(null);
   const [payment, setPayment] = useState<PosPaymentMethod | null>(null);
   const [cartWarning, setCartWarning] = useState<
     'INVALID_PAYLOAD' | 'DISCARDED_LINES' | null
@@ -258,6 +264,8 @@ export function PosPage() {
     setOrderDiscount('0');
     setNote('');
     setDraft(null);
+    setLocalSaved(false);
+    setFailedSaveFingerprint(null);
     setCartWarning(null);
     setStaleCartWarning(false);
     revisionRef.current = 0;
@@ -366,6 +374,7 @@ export function PosPage() {
       tabId,
       now: new Date(),
     });
+    setLocalSaved(saved);
     if (saved) revisionRef.current = nextRevision;
     else setCanEdit(false);
   }, [
@@ -559,6 +568,21 @@ export function PosPage() {
     saving,
     workspaceReady,
   ]);
+  const saveFingerprint = JSON.stringify([
+    items,
+    customerId,
+    channelId,
+    orderDiscount,
+    note,
+    draft?.version,
+  ]);
+  const dirty = isDraftDirty(draft, {
+    items,
+    customerId,
+    channelId,
+    orderDiscount,
+    note,
+  });
   return (
     <main
       inert={Boolean(provisionalDocument)}
@@ -571,6 +595,12 @@ export function PosPage() {
             Tìm hàng, lập giỏ và thanh toán.
           </p>
         </div>
+        <Link
+          to="/sales?status=DRAFT"
+          className="min-h-11 rounded-lg border border-slate-300 px-3 py-3 text-sm font-medium"
+        >
+          Đơn nháp
+        </Link>
         {draft ? (
           <button
             onClick={discard}
@@ -581,6 +611,17 @@ export function PosPage() {
           </button>
         ) : null}
       </div>
+      {workspaceReady ? (
+        <PosDraftStatus
+          draftId={draft?.id ?? null}
+          updatedAt={draft?.updatedAt ?? null}
+          dirty={dirty}
+          saving={saving}
+          saveFailed={failedSaveFingerprint === saveFingerprint}
+          localSaved={localSaved}
+          canEdit={canEdit}
+        />
+      ) : null}
       {cartWarning ? (
         <p
           role="alert"
@@ -735,7 +776,12 @@ export function PosPage() {
           onOrderDiscountChange={setOrderDiscount}
           onNoteChange={setNote}
           onPrint={() => void preparePrint()}
-          onSave={() => void save()}
+          onSave={() => {
+            setFailedSaveFingerprint(null);
+            void save().then((result) => {
+              if (!result) setFailedSaveFingerprint(saveFingerprint);
+            });
+          }}
           onCheckout={() => setPayment('CASH')}
         />
       </fieldset>
