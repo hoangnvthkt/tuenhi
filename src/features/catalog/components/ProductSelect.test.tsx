@@ -36,7 +36,10 @@ it('finds product101 remotely without selecting it automatically', async () => {
   });
   expect(onChange).not.toHaveBeenCalled();
   fireEvent.click(item);
-  expect(onChange).toHaveBeenCalledWith('101');
+  expect(onChange).toHaveBeenCalledWith(
+    '101',
+    expect.objectContaining({ id: '101' }),
+  );
 });
 
 it('selects SKU search results with Enter and omits duplicate products', async () => {
@@ -50,7 +53,10 @@ it('selects SKU search results with Enter and omits duplicate products', async (
   fireEvent.change(input, { target: { value: 'THUOC-A' } });
   await screen.findByRole('option', { name: 'THUOC-A — Thuốc A' });
   fireEvent.keyDown(input, { key: 'Enter' });
-  expect(onChange).toHaveBeenCalledWith('a');
+  expect(onChange).toHaveBeenCalledWith(
+    'a',
+    expect.objectContaining({ id: 'a' }),
+  );
   view.unmount();
   renderWithQueryClient(
     <ProductSelect
@@ -103,5 +109,8 @@ it('visibly highlights and scrolls the keyboard candidate before Enter selects i
   expect(scroll).toHaveBeenLastCalledWith({ block: 'nearest' });
   expect(scroll.mock.instances.at(-1)).toBe(candidate);
   fireEvent.keyDown(input, { key: 'Enter' });
-  expect(onChange).toHaveBeenCalledWith('15');
+  expect(onChange).toHaveBeenCalledWith(
+    '15',
+    expect.objectContaining({ id: '15' }),
+  );
 });

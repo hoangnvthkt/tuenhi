@@ -71,6 +71,11 @@ export function ProductDetailPage({
     session?.permissions.includes('catalog.basic.manage') ?? false;
   const canManageSalePrice =
     session?.permissions.includes('pricing.sale.manage') ?? false;
+  const canReadCost =
+    session?.permissions.includes('purchase.cost.read') ?? false;
+  const canManageDefaultCost =
+    canReadCost &&
+    (session?.permissions.includes('purchase.cost.enter') ?? false);
   const canReadPurchases = Boolean(
     session?.permissions.some((permission) =>
       [
@@ -291,6 +296,7 @@ export function ProductDetailPage({
       <ProductEditor
         key={productId ?? 'new'}
         canManageSalePrice={canManageSalePrice}
+        canManageDefaultCost={canManageDefaultCost}
         categories={categoriesQuery.data ?? []}
         detail={detail}
         isOnline={isOnline}
@@ -372,6 +378,7 @@ export function ProductDetailPage({
       {contextUrl.value.tab === 'overview' ? (
         <>
           <ProductDetailView
+            canReadDefaultCost={canReadCost}
             canReadSalePrice={
               session?.permissions.includes('pricing.sale.read') ?? false
             }

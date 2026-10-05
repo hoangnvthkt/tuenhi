@@ -9,6 +9,7 @@ type ProductOption = {
   name: string;
   sku: string;
   isActive?: boolean;
+  defaultCost?: string | null;
 };
 export function ProductSelect({
   label,
@@ -27,7 +28,7 @@ export function ProductSelect({
   selectedSnapshot?: ProductOption;
   excludedIds?: Set<string>;
   includeInactive?: boolean;
-  onChange: (id: string) => void;
+  onChange: (id: string, product?: ProductOption | null) => void;
 }) {
   const privateKey = usePrivateQueryKey();
   const [api] = useState(createCatalogApi);
@@ -71,7 +72,7 @@ export function ProductSelect({
           emptyLabel="Chưa chọn sản phẩm"
           onChange={(item) => {
             setChosen(item);
-            onChange(item?.id ?? '');
+            onChange(item?.id ?? '', item);
           }}
         />
       )}

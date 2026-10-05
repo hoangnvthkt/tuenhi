@@ -17,12 +17,14 @@ function productFormValues(detail: ProductDetail): ProductFormValues {
     description: detail.description ?? '',
     minStockQty: detail.minStockQty,
     salePrice: detail.currentSalePrice ?? '',
+    defaultCost: detail.defaultCost ?? '',
     isActive: detail.isActive,
   };
 }
 
 export function ProductEditor({
   canManageSalePrice,
+  canManageDefaultCost,
   categories,
   detail,
   isOnline,
@@ -30,6 +32,7 @@ export function ProductEditor({
   onSave,
 }: {
   canManageSalePrice: boolean;
+  canManageDefaultCost: boolean;
   categories: CategoryOption[];
   detail: ProductDetail | undefined;
   isOnline: boolean;
@@ -149,6 +152,7 @@ export function ProductEditor({
           initialValues={baseline ? productFormValues(baseline) : undefined}
           categories={categories}
           canManageSalePrice={canManageSalePrice}
+          canManageDefaultCost={canManageDefaultCost}
           isOnline={isOnline}
           onSave={save}
           onDirtyChange={onDirtyChange}

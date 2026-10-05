@@ -12,6 +12,7 @@ export function ProductDetailView({
   canManage,
   canManageSalePrice,
   canReadSalePrice,
+  canReadDefaultCost = false,
   detail,
   isOnline,
   onImagesChanged,
@@ -23,6 +24,7 @@ export function ProductDetailView({
   canManage: boolean;
   canManageSalePrice: boolean;
   canReadSalePrice: boolean;
+  canReadDefaultCost?: boolean;
   detail: ProductDetail;
   isOnline: boolean;
   onImagesChanged: () => Promise<void>;
@@ -116,6 +118,19 @@ export function ProductDetailView({
           </dl>
         </div>
         <aside className="space-y-4">
+          {canReadDefaultCost ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Giá vốn mặc định
+              </p>
+              <p className="mt-2 text-xl font-bold tabular-nums text-slate-950">
+                {formatMoney(detail.defaultCost ?? null)}
+              </p>
+              <p className="mt-2 text-sm text-slate-600">
+                Giá gợi ý cho phiếu nhập mới.
+              </p>
+            </div>
+          ) : null}
           {canReadSalePrice ? (
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">

@@ -31,6 +31,7 @@ function mount(onSave = vi.fn().mockResolvedValue('p1')) {
     publish = setRemote;
     return (
       <ProductEditor
+        canManageDefaultCost={false}
         canManageSalePrice
         categories={[]}
         detail={remote}

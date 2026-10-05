@@ -270,7 +270,13 @@ export function PurchaseDetailPage({
                   const first = current[0];
                   if (!first || first.productId) return current;
                   return [
-                    { ...first, productId: product.id },
+                    {
+                      ...first,
+                      productId: product.id,
+                      unitCost:
+                        first.unitCost ||
+                        (canEnterCost ? (product.defaultCost ?? '') : ''),
+                    },
                     ...current.slice(1),
                   ];
                 });
@@ -332,6 +338,7 @@ export function PurchaseDetailPage({
       active = false;
     };
   }, [
+    canEnterCost,
     canViewProduct,
     canViewSupplier,
     catalogApi,

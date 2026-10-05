@@ -18,6 +18,7 @@ const initial = Array.from({ length: 20 }, (_, i) => ({
 }));
 export function Demo() {
   const [items, setItems] = useState(initial);
+  const [orderDiscount, setOrderDiscount] = useState('0');
   const [payment, setPayment] = useState<PosPaymentMethod | null>(null);
   const [confirmed, setConfirmed] = useState(0);
   return (
@@ -31,7 +32,7 @@ export function Demo() {
           customers={[]}
           channelId=""
           customerId=""
-          orderDiscount="0"
+          orderDiscount={orderDiscount}
           note=""
           subtotal="274000"
           discountTotal="0"
@@ -51,7 +52,7 @@ export function Demo() {
           }
           onChannelChange={() => {}}
           onCustomerChange={() => {}}
-          onOrderDiscountChange={() => {}}
+          onOrderDiscountChange={setOrderDiscount}
           onNoteChange={() => {}}
           onSave={() => {}}
           onPrint={() => {}}

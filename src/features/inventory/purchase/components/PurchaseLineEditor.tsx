@@ -63,11 +63,21 @@ export function PurchaseLineEditor({
                       }
                     : products.find((item) => item.id === line.productId))
                 }
-                onChange={(productId) =>
+                onChange={(productId, product) =>
                   setLines((current) =>
                     current.map((item, itemIndex) =>
                       itemIndex === index
-                        ? { ...item, productId, selectedSnapshot: undefined }
+                        ? {
+                            ...item,
+                            productId,
+                            selectedSnapshot: product ?? undefined,
+                            unitCost:
+                              item.productId === productId
+                                ? item.unitCost
+                                : canEnterCost
+                                  ? (product?.defaultCost ?? '')
+                                  : '',
+                          }
                         : item,
                     ),
                   )

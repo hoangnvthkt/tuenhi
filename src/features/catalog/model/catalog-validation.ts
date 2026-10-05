@@ -17,6 +17,7 @@ const productFormSchema = z.object({
   description: z.string().max(2000, 'Mô tả tối đa 2.000 ký tự.'),
   minStockQty: z.string(),
   salePrice: z.string(),
+  defaultCost: z.string().optional(),
   isActive: z.boolean(),
 });
 
@@ -29,7 +30,7 @@ export type ProductValidationResult =
 
 export function validateProductForm(
   values: ProductFormValues,
-  options: { canManageSalePrice: boolean },
+  options: { canManageSalePrice: boolean; canManageDefaultCost?: boolean },
 ): ProductValidationResult {
   const parsed = productFormSchema.safeParse(values);
   const fieldErrors: Partial<Record<keyof ProductFormValues, string>> = {};
@@ -62,6 +63,19 @@ export function validateProductForm(
         nonNegative: true,
       });
       if (!price.ok) fieldErrors.salePrice = price.message;
+    }
+  }
+
+  if (values.defaultCost !== undefined) {
+    if (!options.canManageDefaultCost) {
+      fieldErrors.defaultCost = 'Bạn không có quyền thay đổi giá vốn mặc định.';
+    } else {
+      const cost = validateCanonicalNumber(values.defaultCost, {
+        kind: 'money',
+        precision: 18,
+        positive: true,
+      });
+      if (!cost.ok) fieldErrors.defaultCost = cost.message;
     }
   }
 

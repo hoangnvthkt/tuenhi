@@ -654,6 +654,7 @@ describe('PurchaseDetailPage cost boundary', () => {
       version: 1,
       primaryImagePath: null,
       currentSalePrice: '20000',
+      defaultCost: '12000',
       salePriceValidFrom: null,
       onHandQty: '0',
       images: [],
@@ -704,6 +705,8 @@ describe('PurchaseDetailPage cost boundary', () => {
             mustChangePassword: false,
             permissions: [
               'purchase.draft.manage',
+              'purchase.cost.enter',
+              'purchase.cost.read',
               'catalog.read',
               'supplier.read',
             ],
@@ -748,6 +751,7 @@ describe('PurchaseDetailPage cost boundary', () => {
     expect(
       await screen.findByText('SP-PREFILL — Sản phẩm prefill'),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('12000');
     expect(save).not.toHaveBeenCalled();
   });
 });
