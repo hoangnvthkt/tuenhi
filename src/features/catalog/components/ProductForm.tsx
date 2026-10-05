@@ -41,6 +41,7 @@ export function ProductForm({
   initialValues = emptyProduct,
   categories,
   canManageSalePrice,
+  canManageDefaultCost = false,
   isOnline,
   onSave,
   onDirtyChange,
@@ -49,6 +50,7 @@ export function ProductForm({
   initialValues?: ProductFormValues;
   categories: CategoryOption[];
   canManageSalePrice: boolean;
+  canManageDefaultCost?: boolean;
   isOnline: boolean;
   onSave: (request: ProductSaveRequest) => Promise<void>;
   submitLabel?: string;
@@ -89,9 +91,13 @@ export function ProductForm({
       unitName: values.unitName.trim(),
       description: values.description.trim(),
       salePrice: canManageSalePrice ? values.salePrice : '',
+      defaultCost: canManageDefaultCost
+        ? (values.defaultCost ?? '')
+        : undefined,
     };
     const validation = validateProductForm(normalized, {
       canManageSalePrice,
+      canManageDefaultCost,
     });
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors);
@@ -250,6 +256,18 @@ export function ProductForm({
             precision={18}
             error={fieldErrors.salePrice}
             helperText="Chỉ chủ cửa hàng được thay đổi giá bán."
+          />
+        ) : null}
+        {canManageDefaultCost ? (
+          <NumericField
+            label="Giá vốn mặc định"
+            value={values.defaultCost ?? ''}
+            onChange={(value) => update('defaultCost', value)}
+            kind="money"
+            precision={18}
+            positive
+            error={fieldErrors.defaultCost}
+            helperText="Dùng để điền sẵn đơn giá nhập; có thể sửa theo từng lần nhập. Chưa làm tăng tồn kho. Để trống nếu chưa có giá."
           />
         ) : null}
         <div className="md:col-span-2">

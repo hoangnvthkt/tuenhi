@@ -90,12 +90,13 @@ export function CartPanel({
               />
               <NumericField
                 label="Giảm dòng"
+                helperText="Số tiền giảm cho cả dòng (đ), không phải phần trăm."
                 value={item.lineDiscountAmount}
                 onChange={(value) =>
                   onUpdateLine(item.productId, 'lineDiscountAmount', value)
                 }
                 kind="money"
-                precision={2}
+                precision={20}
                 disabled={!canDiscount}
               />
             </div>
@@ -133,7 +134,7 @@ export function CartPanel({
           value={orderDiscount}
           onChange={onOrderDiscountChange}
           kind="money"
-          precision={2}
+          precision={20}
           disabled={!canDiscount}
         />
         <textarea

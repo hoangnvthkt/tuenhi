@@ -50,3 +50,17 @@ test('20-line cart keeps checkout visible above navigation and modal contains ke
   await expect(pay).toBeFocused();
   await expect(page.getByLabel('Số lần xác nhận')).toHaveText('0');
 });
+
+test('valid cash discounts do not show a numeric range error after blur', async ({
+  page,
+}) => {
+  const lineDiscount = page.getByLabel('Giảm dòng', { exact: true }).first();
+  await lineDiscount.fill('1000');
+  await lineDiscount.press('Tab');
+  await expect(lineDiscount).toHaveAttribute('aria-invalid', 'false');
+  const orderDiscount = page.getByLabel('Giảm toàn đơn', { exact: true });
+  await orderDiscount.fill('5000');
+  await orderDiscount.press('Tab');
+  await expect(orderDiscount).toHaveAttribute('aria-invalid', 'false');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});

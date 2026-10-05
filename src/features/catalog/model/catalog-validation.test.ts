@@ -62,3 +62,23 @@ describe('validateProductForm', () => {
     expect(result.ok).toBe(false);
   });
 });
+
+it.each(['0', '-1', '1.234', '10000000000000000'])(
+  'rejects invalid default purchase cost %s',
+  (defaultCost) => {
+    expect(
+      validateProductForm(
+        { ...validProduct, defaultCost },
+        { canManageSalePrice: true, canManageDefaultCost: true },
+      ).ok,
+    ).toBe(false);
+  },
+);
+it('rejects default cost without its permission', () => {
+  expect(
+    validateProductForm(
+      { ...validProduct, defaultCost: '30000' },
+      { canManageSalePrice: true, canManageDefaultCost: false },
+    ).ok,
+  ).toBe(false);
+});

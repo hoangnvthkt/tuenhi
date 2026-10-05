@@ -48,6 +48,7 @@ const catalogItemSchema = z.object({
   version: z.number().int().positive(),
   primaryImagePath: z.string().max(500).nullable(),
   currentSalePrice: z.string().nullable(),
+  defaultCost: z.string().nullable().optional(),
   onHandQty: z.string().regex(INTEGER_FINAL),
 });
 
@@ -247,6 +248,9 @@ export function createCatalogApi(): CatalogApi {
           description: input.values.description,
           minStockQty: input.values.minStockQty,
           isActive: input.values.isActive,
+          ...(input.values.defaultCost !== undefined
+            ? { defaultCost: input.values.defaultCost }
+            : {}),
         },
         p_idempotency_key: input.idempotencyKey,
       });

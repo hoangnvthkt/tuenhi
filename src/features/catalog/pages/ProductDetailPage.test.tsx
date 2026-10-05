@@ -246,6 +246,8 @@ describe('ProductDetailPage', () => {
         'catalog.read',
         'catalog.basic.manage',
         'pricing.sale.manage',
+        'purchase.cost.read',
+        'purchase.cost.enter',
       ],
     });
 
@@ -253,9 +255,15 @@ describe('ProductDetailPage', () => {
     await user.type(screen.getByLabelText('Tên sản phẩm'), 'Sản phẩm mới');
     await user.type(screen.getByLabelText('Đơn vị tính'), 'Hộp');
     await user.type(screen.getByLabelText('Giá bán hiện hành'), '30000');
+    await user.type(screen.getByLabelText('Giá vốn mặc định'), '20000');
     await user.click(screen.getByRole('button', { name: 'Lưu sản phẩm' }));
 
     await waitFor(() => expect(saveProduct).toHaveBeenCalledOnce());
+    expect(saveProduct).toHaveBeenCalledWith(
+      expect.objectContaining({
+        values: expect.objectContaining({ defaultCost: '20000' }),
+      }),
+    );
     expect(setSalePrice).toHaveBeenCalledWith(
       expect.objectContaining({ productId: detail.id, salePrice: '30000' }),
     );

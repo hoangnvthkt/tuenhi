@@ -3,6 +3,7 @@ import { screen } from '@testing-library/react';
 import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { calculatePosTotals } from '../model/pos-totals';
 import { CartPanel } from './CartPanel';
 
 describe('CartPanel', () => {
@@ -125,4 +126,82 @@ describe('CartPanel', () => {
     expect(quantity).toHaveValue('999999999999999999');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+});
+
+function DiscountCart() {
+  const [items, setItems] = useState([
+    {
+      productId: 'p',
+      productName: '12B Linh Chi',
+      sku: 'SP527697',
+      unitName: 'Hộp',
+      quantity: '1',
+      unitSalePrice: '55000',
+      lineDiscountAmount: '0',
+      lineOrder: 0,
+      onHandQty: '10',
+    },
+  ]);
+  const [orderDiscount, setOrderDiscount] = useState('0');
+  return (
+    <CartPanel
+      items={items}
+      channels={[]}
+      customers={[]}
+      channelId=""
+      customerId=""
+      orderDiscount={orderDiscount}
+      note=""
+      {...calculatePosTotals(items, orderDiscount)}
+      canDiscount
+      online
+      saving={false}
+      onUpdateLine={(id, field, value) =>
+        setItems((current) =>
+          current.map((item) =>
+            item.productId === id ? { ...item, [field]: value } : item,
+          ),
+        )
+      }
+      onOrderDiscountChange={setOrderDiscount}
+      onRemoveLine={() => {}}
+      onChannelChange={() => {}}
+      onCustomerChange={() => {}}
+      onNoteChange={() => {}}
+      onSave={() => {}}
+      onPrint={() => {}}
+      onCheckout={() => {}}
+    />
+  );
+}
+it.each(['Giảm dòng', 'Giảm toàn đơn'])(
+  'accepts a 1000 VND discount in %s and computes 54000',
+  async (label) => {
+    const user = userEvent.setup();
+    render(<DiscountCart />);
+    const input = screen.getByLabelText(label);
+    await user.clear(input);
+    await user.type(input, '1000');
+    await user.tab();
+    expect(input).toHaveValue('1000');
+    expect(input).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getAllByText('54.000 ₫').length).toBeGreaterThan(0);
+  },
+);
+it('treats line discount as the whole row amount, separately from order discount', async () => {
+  const user = userEvent.setup();
+  render(<DiscountCart />);
+  for (const [label, value] of [
+    ['Số lượng', '2'],
+    ['Giảm dòng', '1000'],
+    ['Giảm toàn đơn', '500'],
+  ]) {
+    const input = screen.getByLabelText(label!);
+    await user.clear(input);
+    await user.type(input, value!);
+    await user.tab();
+  }
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.getAllByText('108.500 ₫').length).toBeGreaterThan(0);
 });

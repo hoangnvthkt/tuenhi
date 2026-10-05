@@ -7,6 +7,7 @@ export type ProductFormValues = {
   description: string;
   minStockQty: string;
   salePrice: string;
+  defaultCost?: string;
   isActive: boolean;
 };
 
@@ -34,6 +35,7 @@ export type ProductCatalogItem = {
   version: number;
   primaryImagePath: string | null;
   currentSalePrice: string | null;
+  defaultCost?: string | null;
   onHandQty: string;
 };
 
