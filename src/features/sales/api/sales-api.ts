@@ -1,3 +1,5 @@
+import type { PaymentAllocation } from '@/shared/lib/numeric/payment-allocation';
+import type { PosPaymentMethod } from '../model/pos-types';
 import { z } from 'zod';
 import { getBusinessErrorMessage } from '@/shared/api/command-error';
 import {
@@ -103,10 +105,26 @@ export function createSalesApi() {
     async complete(
       saleId: string,
       expectedVersion: number,
-      method: 'CASH' | 'BANK_TRANSFER',
+      method: PosPaymentMethod,
       idempotencyKey: string,
       transferProofPath?: string,
+      allocation?: PaymentAllocation,
     ) {
+      if (method === 'SPLIT') {
+        if (!allocation)
+          throw new FinancialBusinessError('Nhập số tiền mặt và chuyển khoản.');
+        return parseSalesRpc(
+          completeSaleSchema,
+          await rpc('complete_sale_with_allocations', {
+            p_sale_id: saleId,
+            p_expected_version: expectedVersion,
+            p_cash_amount: allocation.cashAmount,
+            p_bank_transfer_amount: allocation.bankTransferAmount,
+            p_idempotency_key: idempotencyKey,
+            p_transfer_proof_path: transferProofPath ?? null,
+          }),
+        );
+      }
       return parseSalesRpc(
         completeSaleSchema,
         await rpc('complete_sale', {

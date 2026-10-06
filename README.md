@@ -182,6 +182,15 @@ hành frontend tương ứng. Kiểm thử SQL dùng database cô lập qua Unix
 `supabase/tests/isolated/optional_transfer_proofs.sql`; không chạy fixture trên
 Cloud production.
 
+## Công nợ theo khách hàng
+
+Chọn khách có mã và **Kết hợp / Ghi nợ** ở quầy để nhập tiền mặt, chuyển khoản
+và ghi nợ phần còn lại. Mở chi tiết khách hàng để **Thu nợ** hoặc **Chỉnh số dư
+nợ** có lý do; lịch sử giữ người thực hiện, số tiền và số dư sau mỗi thao tác.
+KH01 mua 100.000đ, trả 30.000đ tiền mặt + 50.000đ chuyển khoản thì nợ 20.000đ;
+thu đủ 20.000đ về 0. Chi tiết quyền, trả hàng và triển khai xem
+[runbook công nợ](docs/runbooks/2026-10-06-customer-debt.md).
+
 ## Import Excel và thời hạn lưu
 
 Workbook generic và workbook cũ được parse trong bộ nhớ trình duyệt; file gốc không upload lên Storage hoặc server. Dữ liệu được gửi theo gói tối đa 250 dòng, kiểm tra trước và commit nguyên tử/idempotent. Raw row và lỗi nhập được giữ tối đa 30 ngày rồi job Cloud xóa; record nghiệp vụ đã commit không bị xóa theo raw payload.

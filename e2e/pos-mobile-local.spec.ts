@@ -64,3 +64,42 @@ test('valid cash discounts do not show a numeric range error after blur', async 
   await expect(orderDiscount).toHaveAttribute('aria-invalid', 'false');
   await expect(page.getByRole('alert')).toHaveCount(0);
 });
+
+test('KH01 mixed settlement, debt collection and reasoned adjustment fit a mobile screen', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/e2e/fixtures/customer-debt.html');
+  await page.getByLabel('Tiền mặt thanh toán', { exact: true }).fill('30000');
+  await page
+    .getByLabel('Chuyển khoản thanh toán', { exact: true })
+    .fill('50000');
+  await expect(page.getByRole('dialog')).toContainText('20.000');
+  await page.screenshot({ path: testInfo.outputPath('mixed-credit.png') });
+  await page.getByRole('button', { name: 'Xác nhận', exact: true }).click();
+  await expect(page.getByTestId('customer-debt-balance')).toHaveText(
+    '20.000 ₫',
+  );
+  await page.getByRole('button', { name: 'Thu nợ', exact: true }).click();
+  await page.getByLabel('Chuyển khoản thu nợ').fill('20000');
+  await page.getByRole('button', { name: 'Ghi nhận thu nợ' }).click();
+  await expect(page.getByTestId('customer-debt-balance')).toHaveText('0 ₫');
+  await page.getByRole('button', { name: 'Chỉnh số dư nợ' }).click();
+  await page.getByLabel('Số nợ mới').fill('50000');
+  await expect(
+    page.getByRole('button', { name: 'Lưu số dư nợ' }),
+  ).toBeDisabled();
+  await page.getByLabel('Lý do điều chỉnh').fill('Nhập nợ cũ');
+  await page.getByRole('button', { name: 'Lưu số dư nợ' }).click();
+  await expect(page.getByTestId('customer-debt-balance')).toHaveText(
+    '50.000 ₫',
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath('customer-debt.png'),
+    fullPage: true,
+  });
+});

@@ -693,7 +693,11 @@ export function PosPage() {
           {pendingPayment ? (
             <p className="mt-1 text-sm">
               Giao dịch ban đầu: {formatPosMoney(pendingPayment.total)} ·{' '}
-              {pendingPayment.method === 'CASH' ? 'Tiền mặt' : 'Chuyển khoản'}
+              {pendingPayment.method === 'CASH'
+                ? 'Tiền mặt'
+                : pendingPayment.method === 'BANK_TRANSFER'
+                  ? 'Chuyển khoản'
+                  : 'Kết hợp / Ghi nợ'}
             </p>
           ) : (
             <p className="mt-1 text-sm">
@@ -792,10 +796,11 @@ export function PosPage() {
         <CheckoutDialog
           payment={payment}
           total={totals.total}
+          customerId={customerId}
           saving={saving}
           onPaymentChange={setPayment}
           onCancel={() => setPayment(null)}
-          onConfirm={(proofFile) => void pay(proofFile)}
+          onConfirm={(proofFile, allocation) => void pay(proofFile, allocation)}
         />
       ) : null}
     </main>

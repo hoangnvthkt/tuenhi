@@ -4,6 +4,8 @@ declare
   allowlist_block text;
   actual_allowlist text[];
   expected_allowlist constant text[] := array[
+    'customer.debt.adjust',
+    'customer.debt.collect',
     'opening.post',
     'purchase.post',
     'purchase.reverse',

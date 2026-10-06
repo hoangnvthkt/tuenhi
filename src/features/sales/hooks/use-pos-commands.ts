@@ -1,3 +1,7 @@
+import {
+  calculatePaymentAllocation,
+  type PaymentAllocation,
+} from '@/shared/lib/numeric/payment-allocation';
 import { hasCheckoutChanged } from '../model/checkout-confirmation';
 import { calculatePosTotals } from '../model/pos-totals';
 import {
@@ -239,7 +243,7 @@ export function usePosCommands({
     }
   };
 
-  const pay = async (proofFile?: File) => {
+  const pay = async (proofFile?: File, allocation?: PaymentAllocation) => {
     if (!payment || payingRef.current || saving || preparingPrint) return;
     let pendingCompletion;
     try {
@@ -281,6 +285,27 @@ export function usePosCommands({
       });
       return;
     }
+    let allocationSnapshot = allocation ? { ...allocation } : undefined;
+    if (payment === 'SPLIT') {
+      const check = allocationSnapshot
+        ? calculatePaymentAllocation(
+            calculatePosTotals(items, orderDiscount).total,
+            allocationSnapshot.cashAmount,
+            allocationSnapshot.bankTransferAmount,
+          )
+        : null;
+      if (!check?.ok || (check.debt !== '0' && !customerId)) {
+        toast.show({
+          kind: 'error',
+          title: 'Thanh toán chưa hợp lệ',
+          message: check?.ok
+            ? 'Chọn khách hàng có mã để ghi nợ.'
+            : (check?.message ?? 'Nhập số tiền mặt và chuyển khoản.'),
+        });
+        return;
+      }
+      allocationSnapshot = { ...check.allocation };
+    }
     const confirmed = {
       customerId: customerId || null,
       channelId,
@@ -310,7 +335,13 @@ export function usePosCommands({
         userId,
         invoke: async (idempotencyKey: string) => {
           attempt.key = idempotencyKey;
-          if (payment === 'BANK_TRANSFER' && proofFile && !attempt.proofPath) {
+          if (
+            (payment === 'BANK_TRANSFER' ||
+              (payment === 'SPLIT' &&
+                allocationSnapshot?.bankTransferAmount !== '0')) &&
+            proofFile &&
+            !attempt.proofPath
+          ) {
             try {
               attempt.proofPath = (
                 await paymentProofApi.upload({
@@ -325,6 +356,15 @@ export function usePosCommands({
               );
             }
           }
+          if (payment === 'SPLIT')
+            return api.complete(
+              saved.id,
+              saved.version,
+              payment,
+              idempotencyKey,
+              attempt.proofPath,
+              allocationSnapshot,
+            );
           return api.complete(
             saved.id,
             saved.version,

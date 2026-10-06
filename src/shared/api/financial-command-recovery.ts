@@ -37,6 +37,8 @@ export type PendingFinancialCommandRecovery = {
 };
 
 const commandLabels: Record<FinancialCommandName, string> = {
+  'customer.debt.collect': 'Thu nợ khách hàng',
+  'customer.debt.adjust': 'Chỉnh số dư công nợ',
   'sale.complete': 'Thanh toán hóa đơn',
   'sale.cancel': 'Hủy hóa đơn',
   'sale.return.complete': 'Hoàn tất trả hàng',
@@ -50,6 +52,11 @@ export function financialCommandActionRoute(
   commandName: FinancialCommandName,
   entityId: string,
 ) {
+  if (
+    commandName === 'customer.debt.collect' ||
+    commandName === 'customer.debt.adjust'
+  )
+    return `/more/customers/${entityId}`;
   if (commandName === 'sale.complete' || commandName === 'sale.cancel') {
     return `/sales/${entityId}`;
   }

@@ -1,3 +1,4 @@
+import { CustomerDebtPanel } from '@/features/customer-debt';
 import { usePrivateQueryKey } from '@/features/auth';
 import {
   keepPreviousData,
@@ -347,6 +348,7 @@ export function CustomerDetailPage({
         </EntityActionBar>
       </div>
 
+      <CustomerDebtPanel key={detail.id} customerId={detail.id} />
       <ContextTabs
         current={contextUrl.value.tab}
         params={contextUrl.canonical}

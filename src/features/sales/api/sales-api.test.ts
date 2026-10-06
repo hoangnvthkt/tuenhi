@@ -83,3 +83,40 @@ describe('SalesApi', () => {
     ).rejects.toBeInstanceOf(FinancialTransportError);
   });
 });
+
+it('sends split settlement amounts in one atomic RPC', async () => {
+  const completed = {
+    saleId: invoiceFixture.sale.id,
+    saleNumber: 'HD000001',
+    status: 'COMPLETED',
+    version: 2,
+  };
+  rpc.mockResolvedValueOnce({
+    data: {
+      ok: true,
+      data: completed,
+      error: null,
+      correlationId: '90000000-0000-4000-8000-000000000001',
+    },
+    error: null,
+  });
+  const key = '20000000-0000-4000-8000-000000000001';
+  expect(
+    await createSalesApi().complete(
+      invoiceFixture.sale.id,
+      1,
+      'SPLIT' as never,
+      key,
+      undefined,
+      { cashAmount: '30000', bankTransferAmount: '50000' },
+    ),
+  ).toEqual(completed);
+  expect(rpc).toHaveBeenLastCalledWith('complete_sale_with_allocations', {
+    p_sale_id: invoiceFixture.sale.id,
+    p_expected_version: 1,
+    p_cash_amount: '30000',
+    p_bank_transfer_amount: '50000',
+    p_idempotency_key: key,
+    p_transfer_proof_path: null,
+  });
+});

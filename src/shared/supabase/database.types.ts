@@ -1797,6 +1797,16 @@ export type Database = {
       };
     };
     Functions: {
+      adjust_customer_debt: {
+        Args: {
+          p_customer_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_new_balance: string;
+          p_reason: string;
+        };
+        Returns: Json;
+      };
       attach_product_image: {
         Args: {
           p_idempotency_key: string;
@@ -1873,6 +1883,17 @@ export type Database = {
         Args: { p_user_ids: string[] };
         Returns: Json;
       };
+      collect_customer_debt: {
+        Args: {
+          p_bank_transfer_amount: string;
+          p_cash_amount: string;
+          p_customer_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_note: string;
+        };
+        Returns: Json;
+      };
       commit_import: {
         Args: { p_idempotency_key: string; p_import_run_id: string };
         Returns: Json;
@@ -1902,6 +1923,17 @@ export type Database = {
           p_lines: Json;
           p_refund_method: string;
           p_return_id: string;
+          p_transfer_proof_path?: string;
+        };
+        Returns: Json;
+      };
+      complete_sale_with_allocations: {
+        Args: {
+          p_bank_transfer_amount: string;
+          p_cash_amount: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_sale_id: string;
           p_transfer_proof_path?: string;
         };
         Returns: Json;
@@ -1957,6 +1989,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_customer_debt: { Args: { p_customer_id: string }; Returns: Json };
       get_customer_detail: {
         Args: { p_customer_id: string; p_from?: string; p_to?: string };
         Returns: Json;
@@ -2092,6 +2125,15 @@ export type Database = {
         Args: { p_include_inactive?: boolean };
         Returns: Json;
       };
+      list_customer_debt_entries: {
+        Args: {
+          p_cursor_at?: string;
+          p_cursor_id?: string;
+          p_customer_id: string;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
       list_customer_products: {
         Args: {
           p_cursor_last_purchased_at?: string;
@@ -2216,6 +2258,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      list_sales_channels: {
+        Args: { p_include_inactive?: boolean };
+        Returns: Json;
+      };
       list_sales_v2: {
         Args: {
           p_cursor_id?: string;
@@ -2223,10 +2269,6 @@ export type Database = {
           p_filters?: Json;
           p_limit?: number;
         };
-        Returns: Json;
-      };
-      list_sales_channels: {
-        Args: { p_include_inactive?: boolean };
         Returns: Json;
       };
       list_staff: {
@@ -2329,6 +2371,10 @@ export type Database = {
       };
       remove_product_image: {
         Args: { p_idempotency_key: string; p_product_image_id: string };
+        Returns: Json;
+      };
+      resolve_purchase_receipt_products: {
+        Args: { p_skus: string[] };
         Returns: Json;
       };
       reverse_purchase_receipt: {

@@ -45,6 +45,8 @@ export const saleReturnSchema = z.object({
   status: z.string(),
   reason: z.string(),
   refundTotal: z.string(),
+  cashRefundAmount: z.string().optional(),
+  debtOffsetAmount: z.string().optional(),
   version: z.number().int(),
   createdByName: z.string(),
   createdAt: z.string(),

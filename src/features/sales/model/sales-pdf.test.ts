@@ -70,3 +70,27 @@ describe('sales PDF', () => {
     expect((binary.match(/\/Type \/Page\b/g) ?? []).length).toBeGreaterThan(1);
   });
 });
+
+it('prints cash, bank transfer and outstanding debt for KH01', () => {
+  const document = {
+    ...invoiceFixture,
+    sale: { ...invoiceFixture.sale, customerCode: 'KH01' },
+    totals: {
+      ...invoiceFixture.totals,
+      netTotal: '100000',
+      capturedAmount: '80000',
+      cashAmount: '30000',
+      bankTransferAmount: '50000',
+      initialDebtAmount: '20000',
+      outstandingAmount: '15000',
+      debtOffsetAmount: '5000',
+    },
+  };
+  const text = JSON.stringify(buildInvoicePdf(document).content);
+  expect(text).toContain('KH01');
+  expect(text).toContain('Tiền mặt: 30.000');
+  expect(text).toContain('Chuyển khoản: 50.000');
+  expect(text).toContain('Nợ ban đầu: 20.000');
+  expect(text).toContain('Còn nợ: 15.000');
+  expect(text).toContain('Đã cấn trừ nợ: 5.000');
+});

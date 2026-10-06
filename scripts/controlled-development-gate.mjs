@@ -93,6 +93,17 @@ export const GATE_COMMANDS = Object.freeze([
     command: 'pnpm',
     args: Object.freeze(['cloud:verify:feedback']),
   }),
+  Object.freeze({
+    id: 'customerDebtAssertions',
+    command: 'supabase',
+    args: Object.freeze([
+      'db',
+      'query',
+      '--linked',
+      '--file',
+      'supabase/tests/customer_debt_assertions.sql',
+    ]),
+  }),
 ]);
 
 const GATE_IDS = [

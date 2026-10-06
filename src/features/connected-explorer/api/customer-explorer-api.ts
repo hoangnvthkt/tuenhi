@@ -93,7 +93,7 @@ const customerSaleItemSchema = z
     customerNameSnapshot: z.string().max(200).nullable(),
     channelName: z.string().min(1).max(120),
     createdByName: z.string().min(1).max(200),
-    paymentMethod: z.enum(['CASH', 'BANK_TRANSFER']),
+    paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'MIXED', 'CREDIT']),
     paymentStatus: z.enum(['CAPTURED', 'REVERSED']),
     originalNetTotal: nonNegativeDecimalSchema,
     returnedTotal: nonNegativeDecimalSchema,

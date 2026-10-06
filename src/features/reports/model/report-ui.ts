@@ -11,7 +11,11 @@ export function paymentLabel(method: string) {
     ? 'Tiền mặt'
     : method === 'BANK_TRANSFER'
       ? 'Chuyển khoản'
-      : 'Không xác định';
+      : method === 'MIXED'
+        ? 'Kết hợp'
+        : method === 'CREDIT'
+          ? 'Ghi nợ / Một phần'
+          : 'Không xác định';
 }
 export function eventLabel(type: string) {
   return type === 'SALE_COMPLETED'

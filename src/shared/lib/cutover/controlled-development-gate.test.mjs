@@ -298,6 +298,17 @@ test('keeps the gate command allowlist read-only and in release order', () => {
       command: 'pnpm',
       args: ['cloud:verify:feedback'],
     },
+    {
+      id: 'customerDebtAssertions',
+      command: 'supabase',
+      args: [
+        'db',
+        'query',
+        '--linked',
+        '--file',
+        'supabase/tests/customer_debt_assertions.sql',
+      ],
+    },
   ]);
   assert.doesNotMatch(
     JSON.stringify(GATE_COMMANDS),

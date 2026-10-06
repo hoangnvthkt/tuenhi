@@ -1,0 +1,122 @@
+\set ON_ERROR_STOP on
+begin;
+do $$ begin if current_database() <> 'customer_debt_test' or inet_server_addr() is not null then raise exception 'ISOLATED_DATABASE_REQUIRED'; end if; end $$;
+insert into app_private.permission_definitions(code,category,label,description)
+select permission,'audit',permission,'Synthetic local audit' from unnest(array['sale.draft.manage','sale.complete','sale.cancel','sale.discount.apply','sale.own.read','sale.all.read','return.request.create','return.complete']) permission;
+insert into auth.users(id,email) values('10000000-0000-4000-8000-000000000001','sales-audit@example.invalid');
+insert into api.profiles(id,email,display_name,role_template,must_change_password) values('10000000-0000-4000-8000-000000000001','sales-audit@example.invalid','Synthetic audit','OWNER',false);
+insert into api.store_settings(id,display_name) values(1,'Synthetic audit');
+insert into api.sales_channels(id,code,name,name_normalized) values('20000000-0000-4000-8000-000000000001','IN_STORE','Local audit','local audit');
+insert into api.products(id,sku,sku_normalized,name,name_normalized,unit_name,created_by,updated_by) values('30000000-0000-4000-8000-000000000001','AUDIT','audit','Audit item','audit item','Box','10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001');
+insert into api.inventory_balances(product_id,on_hand_qty) values('30000000-0000-4000-8000-000000000001',100);
+insert into app_private.inventory_cost_balances(product_id,inventory_value,avg_unit_cost) values('30000000-0000-4000-8000-000000000001',500,5) on conflict(product_id) do update set inventory_value=500,avg_unit_cost=5;
+insert into app_private.product_sale_prices(product_id,sale_price,changed_by) values('30000000-0000-4000-8000-000000000001',20000,'10000000-0000-4000-8000-000000000001');
+insert into app_private.document_sequences(document_type,prefix) values('SALE','HD'),('SALE_RETURN','TH');
+select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',true);
+insert into api.customers(id,code,code_normalized,customer_type,name,name_normalized,created_by,updated_by) values
+('40000000-0000-4000-8000-000000000001','KH01','kh01','INDIVIDUAL','Khách 01','khách 01','10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001'),
+('40000000-0000-4000-8000-000000000002','KH02','kh02','INDIVIDUAL','Khách 02','khách 02','10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001');
+do $$
+declare saved jsonb; result jsonb; sid uuid; sale_key uuid:=gen_random_uuid(); debt jsonb; collect_key uuid:=gen_random_uuid(); collected jsonb; operation uuid; version bigint; lid uuid; rid uuid; rlid uuid; lines jsonb; bad text; invoice jsonb; before_count bigint;
+begin
+ saved:=api.save_sale_draft(null,null,'40000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','[{"productId":"30000000-0000-4000-8000-000000000001","quantity":"5","lineDiscountAmount":"0","lineOrder":0}]','0','Credit test',gen_random_uuid());
+ if saved->>'ok' is distinct from 'true' then raise exception 'Save failed %',saved; end if;
+ sid:=(saved#>>'{data,sale,id}')::uuid;
+ -- KH01: total 100000, bank 50000 + cash 30000 = debt 20000.
+ result:=api.complete_sale_with_allocations(sid,(saved#>>'{data,sale,version}')::bigint,'30000','50000',sale_key,null);
+ if result->>'ok' is distinct from 'true' then raise exception 'Split sale failed %',result; end if;
+ debt:=api.get_customer_debt('40000000-0000-4000-8000-000000000001');
+ if (debt#>>'{data,balance}')::numeric<>20000 then raise exception 'Initial debt is wrong %',debt; end if;
+ collected:=api.collect_customer_debt('40000000-0000-4000-8000-000000000001',(debt#>>'{data,version}')::bigint,'20000','0','Khách trả hết',collect_key);
+ if collected->>'ok' is distinct from 'true' or (collected#>>'{data,balance}')::numeric<>0 then raise exception 'Collection failed %',collected; end if;
+ if api.collect_customer_debt('40000000-0000-4000-8000-000000000001',(debt#>>'{data,version}')::bigint,'20000','0','Khách trả hết',collect_key) is distinct from collected then raise exception 'Collection replay differs'; end if;
+ if (select amount from api.payments where sale_id=sid)<>100000 then raise exception 'Collected sale amount wrong'; end if;
+ if (api.get_customer_debt('40000000-0000-4000-8000-000000000002')#>>'{data,balance}')::numeric<>0 then raise exception 'Another customer affected'; end if;
+
+ saved:=api.save_sale_draft(null,null,'40000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','[{"productId":"30000000-0000-4000-8000-000000000001","quantity":"5","lineDiscountAmount":"0","lineOrder":0}]','0','Second credit sale',gen_random_uuid());
+ sid:=(saved#>>'{data,sale,id}')::uuid;
+ result:=api.complete_sale_with_allocations(sid,(saved#>>'{data,sale,version}')::bigint,'0','0',gen_random_uuid(),null);
+ if result->>'ok' is distinct from 'true' then raise exception 'All-credit sale failed %',result; end if;
+ debt:=api.get_customer_debt('40000000-0000-4000-8000-000000000001');
+ result:=api.adjust_customer_debt('40000000-0000-4000-8000-000000000001',(debt#>>'{data,version}')::bigint,'150000','Nhập nợ cũ 50000',gen_random_uuid());
+ if result->>'ok' is distinct from 'true' then raise exception 'Opening debt failed %',result; end if;
+ result:=api.collect_customer_debt('40000000-0000-4000-8000-000000000001',(result#>>'{data,version}')::bigint,'20000','0','Thu một phần',gen_random_uuid());
+ if result->>'ok' is distinct from 'true' or (result#>>'{data,balance}')::numeric<>130000 then raise exception 'FIFO collection with opening debt failed %',result; end if;
+ if (select outstanding_amount from app_private.sale_payment_allocations where sale_id=sid)<>80000 then raise exception 'FIFO allocation wrong'; end if;
+ if (select unallocated_balance from app_private.customer_debt_accounts where customer_id='40000000-0000-4000-8000-000000000001')<>50000 then raise exception 'Opening debt was reduced before old invoice'; end if;
+
+ debt:=api.get_customer_debt('40000000-0000-4000-8000-000000000001');
+ operation:=gen_random_uuid();
+ result:=api.adjust_customer_debt('40000000-0000-4000-8000-000000000001',(debt#>>'{data,version}')::bigint,'90000','Giảm nợ cũ 40000',operation);
+ if result->>'ok' is distinct from 'true' then raise exception 'Adjustment failed %',result; end if;
+ if api.adjust_customer_debt('40000000-0000-4000-8000-000000000001',(debt#>>'{data,version}')::bigint,'90000','Giảm nợ cũ 40000',operation) is distinct from result then raise exception 'Adjustment replay differs'; end if;
+ collected:=api.adjust_customer_debt('40000000-0000-4000-8000-000000000001',(debt#>>'{data,version}')::bigint,'80000','Changed payload',operation);
+ if collected#>>'{error,code}' is distinct from 'IDEMPOTENCY_CONFLICT' then raise exception 'Conflicting adjustment accepted'; end if;
+ result:=api.adjust_customer_debt('40000000-0000-4000-8000-000000000001',(result#>>'{data,version}')::bigint,'30000','Giảm nợ cũ và miễn một phần nợ đơn',gen_random_uuid());
+ if result->>'ok' is distinct from 'true' then raise exception 'Invoice adjustment failed %',result; end if;
+ if (select amount from api.payments where sale_id=sid)<>20000 then raise exception 'Write-off counted as cash'; end if;
+ invoice:=api.get_sale_invoice(sid);
+ if (invoice#>>'{data,totals,outstandingAmount}')::numeric<>30000 or (invoice#>>'{data,totals,adjustedDebtAmount}')::numeric<>50000 then raise exception 'Invoice debt presentation wrong %',invoice; end if;
+ version:=(result#>>'{data,version}')::bigint;
+ select count(*) into before_count from app_private.customer_debt_entries;
+ result:=api.collect_customer_debt('40000000-0000-4000-8000-000000000001',version,'30001','0','Overpay',gen_random_uuid());
+ if result#>>'{error,code}' is distinct from 'DEBT_PAYMENT_EXCEEDS_BALANCE' then raise exception 'Overpayment accepted'; end if;
+ result:=api.collect_customer_debt('40000000-0000-4000-8000-000000000001',version-1,'1','0','Stale',gen_random_uuid());
+ if result#>>'{error,code}' is distinct from 'VERSION_CONFLICT' then raise exception 'Stale collection accepted'; end if;
+ result:=api.adjust_customer_debt('40000000-0000-4000-8000-000000000001',version,'0','  ',gen_random_uuid());
+ if result#>>'{error,code}' is distinct from 'VALIDATION_FAILED' then raise exception 'Reasonless adjustment accepted'; end if;
+ foreach bad in array array[null,'-1','1.001','1,00','1000000000000000000','NaN'] loop
+  result:=api.collect_customer_debt('40000000-0000-4000-8000-000000000001',version,bad,'0','Bad input',gen_random_uuid());
+  if result#>>'{error,code}' is distinct from 'VALIDATION_FAILED' then raise exception 'Invalid money accepted: %',bad; end if;
+ end loop;
+ if (select count(*) from app_private.customer_debt_entries)<>before_count then raise exception 'Rejected inputs wrote ledger'; end if;
+ select id into lid from api.sale_lines where sale_id=sid;
+ result:=api.create_sale_return_request(sid,'Trả bốn món',jsonb_build_array(jsonb_build_object('originalSaleLineId',lid,'requestedQty','4')),gen_random_uuid());
+ rid:=(result#>>'{data,returnId}')::uuid; version:=(result#>>'{data,version}')::bigint;
+ select id into rlid from api.sale_return_lines where sale_return_id=rid;
+ lines:=jsonb_build_array(jsonb_build_object('saleReturnLineId',rlid,'acceptedQty','4')); operation:=gen_random_uuid();
+ result:=api.complete_sale_return(rid,version,lines,'CASH',operation,null);
+ if result->>'ok' is distinct from 'true' or (result#>>'{data,cashRefundAmount}')::numeric<>0 or (result#>>'{data,debtOffsetAmount}')::numeric<>80000 then raise exception 'Return offset wrong %',result; end if;
+ if api.complete_sale_return(rid,version,lines,'CASH',operation,null) is distinct from result then raise exception 'Return replay differs'; end if;
+ if (api.get_customer_debt('40000000-0000-4000-8000-000000000001')#>>'{data,balance}')::numeric<>0 then raise exception 'Return did not clear debt'; end if;
+ if (select amount from api.sale_return_payments where sale_return_id=rid)<>0 then raise exception 'Unpaid/write-off returned as cash'; end if;
+ result:=api.get_sale_return(rid);
+ if (result#>>'{data,cashRefundAmount}')::numeric<>0 or (result#>>'{data,debtOffsetAmount}')::numeric<>80000 then raise exception 'Return detail wrong'; end if;
+ result:=api.create_sale_return_request(sid,'Trả món còn lại',jsonb_build_array(jsonb_build_object('originalSaleLineId',lid,'requestedQty','1')),gen_random_uuid());
+ rid:=(result#>>'{data,returnId}')::uuid; select id into rlid from api.sale_return_lines where sale_return_id=rid;
+ result:=api.complete_sale_return(rid,(result#>>'{data,version}')::bigint,jsonb_build_array(jsonb_build_object('saleReturnLineId',rlid,'acceptedQty','1')),'CASH',gen_random_uuid(),null);
+ if result->>'ok' is distinct from 'true' or (result#>>'{data,cashRefundAmount}')::numeric<>20000 then raise exception 'Paid remainder refund wrong %',result; end if;
+ saved:=api.save_sale_draft(null,null,'40000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','[{"productId":"30000000-0000-4000-8000-000000000001","quantity":"5","lineDiscountAmount":"0","lineOrder":0}]','0','Cancel debt',gen_random_uuid());
+ sid:=(saved#>>'{data,sale,id}')::uuid; sale_key:=gen_random_uuid();
+ result:=api.complete_sale_with_allocations(sid,(saved#>>'{data,sale,version}')::bigint,'20000','0',sale_key,null);
+ if result->>'ok' is distinct from 'true' then raise exception 'Cancel setup failed %',result; end if;
+ collected:=api.complete_sale_with_allocations(sid,(saved#>>'{data,sale,version}')::bigint,'0','20000',sale_key,null);
+ if collected#>>'{error,code}' is distinct from 'IDEMPOTENCY_CONFLICT' then raise exception 'Changed split replay accepted'; end if;
+ version:=(result#>>'{data,version}')::bigint; operation:=gen_random_uuid();
+ result:=api.cancel_sale(sid,version,'Hủy đơn còn nợ',operation);
+ if result->>'ok' is distinct from 'true' then raise exception 'Cancel failed %',result; end if;
+ if api.cancel_sale(sid,version,'Hủy đơn còn nợ',operation) is distinct from result then raise exception 'Cancel replay differs'; end if;
+ if (api.get_customer_debt('40000000-0000-4000-8000-000000000002')#>>'{data,balance}')::numeric<>0 then raise exception 'Cancelled debt remains'; end if;
+ if (select count(*) from app_private.customer_debt_entries where sale_id=sid and kind='SALE_CANCELLED')<>1 then raise exception 'Duplicate cancel debt effect'; end if;
+ -- Reject aggregate overflow before completing stock/payment commands.
+ debt:=api.get_customer_debt('40000000-0000-4000-8000-000000000002');
+ result:=api.adjust_customer_debt('40000000-0000-4000-8000-000000000002',(debt#>>'{data,version}')::bigint,'999999999999999999.99','Maximum opening debt',gen_random_uuid());
+ if result->>'ok' is distinct from 'true' then raise exception 'Maximum balance setup failed %',result; end if;
+ saved:=api.save_sale_draft(null,null,'40000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','[{"productId":"30000000-0000-4000-8000-000000000001","quantity":"1","lineDiscountAmount":"0","lineOrder":0}]','0','Overflow rejection',gen_random_uuid());
+ sid:=(saved#>>'{data,sale,id}')::uuid;
+ result:=api.complete_sale_with_allocations(sid,(saved#>>'{data,sale,version}')::bigint,'0','0',gen_random_uuid(),null);
+ if result#>>'{error,code}' is distinct from 'VALIDATION_FAILED' or (select status from api.sales where id=sid)<>'DRAFT' or exists(select 1 from api.payments where sale_id=sid) then raise exception 'Aggregate overflow not safely rejected %',result; end if;
+ if exists(select 1 from app_private.customer_debt_accounts a where a.balance<>a.unallocated_balance+(select coalesce(sum(p.outstanding_amount),0) from app_private.sale_payment_allocations p where p.customer_id=a.customer_id)) then raise exception 'Account not reconciled'; end if;
+ perform set_config('request.jwt.claim.sub','',true);
+ result:=api.get_customer_debt('40000000-0000-4000-8000-000000000001');
+ if result#>>'{error,code}' is distinct from 'PERMISSION_DENIED' then raise exception 'Anonymous debt exposed'; end if;
+ result:=api.collect_customer_debt('40000000-0000-4000-8000-000000000001',1,'1','0','Unauthorized',gen_random_uuid());
+ if result#>>'{error,code}' is distinct from 'PERMISSION_DENIED' then raise exception 'Anonymous collection accepted'; end if;
+ perform set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',true);
+ result:=api.list_customer_debt_entries('40000000-0000-4000-8000-000000000001',null,null,2);
+ if jsonb_array_length(result#>'{data,items}')<>2 or result#>'{data,nextCursor}'='null'::jsonb then raise exception 'Debt pagination wrong'; end if;
+ collected:=api.list_customer_debt_entries('40000000-0000-4000-8000-000000000001',(result#>>'{data,nextCursor,occurredAt}')::timestamptz,(result#>>'{data,nextCursor,id}')::uuid,2);
+ if jsonb_array_length(collected#>'{data,items}')<>2 or collected#>>'{data,items,0,id}'=result#>>'{data,items,0,id}' then raise exception 'Debt paging repeats'; end if;
+ raise notice 'PASS split sale and debt collection';
+end $$;
+rollback;

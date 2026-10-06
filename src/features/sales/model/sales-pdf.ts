@@ -1,6 +1,10 @@
+import { formatCashAmount } from './cash-change';
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import type { DraftPrint, Invoice } from '../api/sales-schemas';
-import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
+import {
+  formatViNumber,
+  compareCanonicalNumbers,
+} from '@/shared/lib/numeric/canonical-number';
 import { formatPosMoney } from './format-money';
 
 export async function createSalesPdf(definition: TDocumentDefinitions) {
@@ -27,6 +31,9 @@ export function buildInvoicePdf(invoice: Invoice): TDocumentDefinitions {
       { text: invoice.store.displayName, style: 'header' },
       { text: `HÓA ĐƠN ${invoice.sale.saleNumber}` },
       { text: new Date(invoice.sale.completedAt).toLocaleString('vi-VN') },
+      {
+        text: `Khách hàng: ${invoice.sale.customerName ?? 'Khách lẻ'}${invoice.sale.customerCode ? ` · ${invoice.sale.customerCode}` : ''}`,
+      },
       { text: ' ' },
       {
         table: {
@@ -37,12 +44,50 @@ export function buildInvoicePdf(invoice: Invoice): TDocumentDefinitions {
             ...invoice.lines.map((line) => [
               line.productName,
               formatViNumber(line.quantity),
-              formatPosMoney(line.netAmount),
+              formatCashAmount(line.netAmount),
             ]),
-            ['Tổng cộng', '', formatPosMoney(invoice.totals.netTotal)],
+            ['Tổng cộng', '', formatCashAmount(invoice.totals.netTotal)],
           ],
         },
       },
+      ...(invoice.totals.cashAmount !== undefined
+        ? [
+            {
+              text: `Tiền mặt: ${formatCashAmount(invoice.totals.cashAmount)}`,
+              margin: [0, 12, 0, 0] as [number, number, number, number],
+            },
+            {
+              text: `Chuyển khoản: ${formatCashAmount(invoice.totals.bankTransferAmount ?? '0')}`,
+            },
+            {
+              text: `Đã thu: ${formatCashAmount(invoice.totals.capturedAmount)}`,
+            },
+            {
+              text: `Còn nợ: ${formatCashAmount(invoice.totals.outstandingAmount ?? '0')}`,
+              bold: true,
+            },
+            {
+              text: `Nợ ban đầu: ${formatCashAmount(invoice.totals.initialDebtAmount ?? '0')}`,
+            },
+            ...(invoice.totals.debtOffsetAmount &&
+            compareCanonicalNumbers(invoice.totals.debtOffsetAmount, '0') > 0
+              ? [
+                  {
+                    text: `Đã cấn trừ nợ: ${formatCashAmount(invoice.totals.debtOffsetAmount)}`,
+                  },
+                ]
+              : []),
+            ...(invoice.totals.adjustedDebtAmount &&
+            invoice.totals.adjustedDebtAmount !== '0' &&
+            invoice.totals.adjustedDebtAmount !== '0.00'
+              ? [
+                  {
+                    text: `Đã chỉnh giảm nợ: ${formatCashAmount(invoice.totals.adjustedDebtAmount)}`,
+                  },
+                ]
+              : []),
+          ]
+        : []),
       { text: invoice.store.invoiceFooter ?? '', margin: [0, 12, 0, 0] },
     ],
     styles: { header: { fontSize: 16, bold: true } },

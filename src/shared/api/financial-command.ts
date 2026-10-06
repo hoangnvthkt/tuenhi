@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export const financialCommandNameSchema = z.enum([
   'sale.complete',
+  'customer.debt.collect',
+  'customer.debt.adjust',
   'sale.cancel',
   'sale.return.complete',
   'purchase.post',

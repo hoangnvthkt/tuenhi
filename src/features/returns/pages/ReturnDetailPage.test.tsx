@@ -185,3 +185,15 @@ describe('optional bank-transfer refund proofs', () => {
     },
   );
 });
+
+it('distinguishes credit offset from cash refunded after a return', async () => {
+  returnsApi.detail.mockResolvedValue({
+    ...document,
+    refundTotal: '30000',
+    cashRefundAmount: '10000.50',
+    debtOffsetAmount: '20000',
+  });
+  renderPage();
+  expect(await screen.findByText(/Thực hoàn/)).toHaveTextContent('10.000,5');
+  expect(screen.getByText(/Cấn trừ nợ/)).toHaveTextContent('20.000');
+});

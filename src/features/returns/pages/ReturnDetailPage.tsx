@@ -13,6 +13,7 @@ import { NumericField } from '@/shared/ui/forms/NumericField';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import {
   compareCanonicalNumbers,
+  formatViDecimal,
   formatViNumber,
   normalizeCanonicalNumber,
   validateCanonicalNumber,
@@ -22,12 +23,7 @@ import { createPaymentProofApi, PaymentProofLink } from '@/features/payments';
 import { useSession } from '@/features/auth';
 import { createSalesApi } from '@/features/sales';
 
-const money = (value: string) =>
-  new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(Number(value));
+const money = (value: string) => `${formatViDecimal(value, 2)} ₫`;
 
 export function ReturnDetailPage() {
   const privateKey = usePrivateQueryKey();
@@ -114,7 +110,7 @@ export function ReturnDetailPage() {
     }
     if (
       !window.confirm(
-        'Xác nhận hoàn tiền và nhập lại tồn kho cho số lượng đã kiểm nhận?',
+        'Xác nhận trả hàng và nhập lại tồn kho? Giá trị trả hàng được cấn trừ phần nợ của hóa đơn trước; phần còn lại mới hoàn tiền cho khách.',
       )
     )
       return;
@@ -257,8 +253,8 @@ export function ReturnDetailPage() {
               </p>
               {document.status === 'COMPLETED' ? (
                 <p className="mt-1 text-sm text-teal-800">
-                  Chấp nhận {formatViNumber(line.acceptedQty ?? '0')} · Hoàn{' '}
-                  {money(line.refundAmount)}
+                  Chấp nhận {formatViNumber(line.acceptedQty ?? '0')} · Giá trị
+                  trả {money(line.refundAmount)}
                 </p>
               ) : null}
             </div>
@@ -279,8 +275,15 @@ export function ReturnDetailPage() {
         {document.status === 'COMPLETED' ? (
           <div>
             <p className="text-lg font-bold">
-              Đã hoàn {money(document.refundTotal)}
+              {document.cashRefundAmount !== undefined
+                ? `Thực hoàn ${money(document.cashRefundAmount)}`
+                : `Đã hoàn ${money(document.refundTotal)}`}
             </p>
+            {document.debtOffsetAmount !== undefined ? (
+              <p className="mt-1 text-sm">
+                Cấn trừ nợ: {money(document.debtOffsetAmount)}
+              </p>
+            ) : null}
             {document.refundMethod === 'BANK_TRANSFER' ? (
               <PaymentProofLink objectPath={document.transferProofPath} />
             ) : null}
@@ -291,6 +294,10 @@ export function ReturnDetailPage() {
         <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
           {document.canComplete ? (
             <>
+              <p className="text-sm text-slate-600">
+                Giá trị trả hàng cấn trừ phần nợ của hóa đơn trước. Phần còn lại
+                được hoàn theo phương thức dưới đây.
+              </p>
               <label className="block text-sm font-medium">
                 Phương thức hoàn tiền
                 <select

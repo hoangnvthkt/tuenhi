@@ -87,7 +87,9 @@ export const profitPageSchema = z.object({
       attributedUserName: z.string(),
       channelCode: z.string().nullable(),
       channelName: z.string().nullable(),
-      paymentMethod: z.enum(['CASH', 'BANK_TRANSFER']).nullable(),
+      paymentMethod: z
+        .enum(['CASH', 'BANK_TRANSFER', 'MIXED', 'CREDIT'])
+        .nullable(),
       grossSales: decimal,
       netRevenue: decimal,
       netCogs: decimal,

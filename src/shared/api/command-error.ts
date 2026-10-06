@@ -1,4 +1,13 @@
 export const businessErrorMessages = {
+  CUSTOMER_REQUIRED_FOR_CREDIT:
+    'Chọn khách hàng đang hoạt động và có mã để ghi nợ.',
+  PAYMENT_EXCEEDS_TOTAL: 'Tiền thanh toán vượt tổng hóa đơn.',
+  DEBT_PAYMENT_EXCEEDS_BALANCE:
+    'Tiền thu phải lớn hơn 0 và không vượt số nợ hiện tại.',
+  IDEMPOTENCY_CONFLICT:
+    'Mã yêu cầu đã dùng cho nội dung khác. Hãy đối soát giao dịch trước.',
+  NO_CHANGES: 'Số dư công nợ chưa thay đổi.',
+
   AUTH_REQUIRED: 'Vui lòng đăng nhập để tiếp tục.',
   ACCOUNT_INACTIVE: 'Tài khoản đã bị khóa.',
   PERMISSION_DENIED: 'Bạn không có quyền thực hiện thao tác này.',

@@ -238,3 +238,24 @@ describe('SaleDetailPage productivity actions', () => {
     expect(screen.queryByText('private raw error')).not.toBeInTheDocument();
   });
 });
+
+it('shows received amounts and outstanding debt on the printable invoice', async () => {
+  api.invoice.mockResolvedValue({
+    ...invoice,
+    sale: { ...invoice.sale, customerCode: 'KH01' },
+    totals: {
+      ...invoice.totals,
+      netTotal: '100000',
+      capturedAmount: '80000',
+      cashAmount: '30000',
+      bankTransferAmount: '50000',
+      initialDebtAmount: '20000',
+      outstandingAmount: '20000',
+    },
+  });
+  renderPage();
+  expect(await screen.findByText('Còn nợ')).toBeInTheDocument();
+  expect(screen.getByText('Nợ ban đầu')).toBeInTheDocument();
+  expect(screen.getByText('KH01')).toBeInTheDocument();
+  expect(screen.getAllByText(/20\.000/).length).toBeGreaterThan(0);
+});

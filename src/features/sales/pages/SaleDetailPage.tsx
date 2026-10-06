@@ -16,19 +16,34 @@ import {
   requestFinancialCommandReconciliation,
 } from '@/shared/api/financial-command-recovery';
 import { useFinancialCommand } from '@/shared/hooks/use-financial-command';
-import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
+import {
+  formatViNumber,
+  compareCanonicalNumbers,
+} from '@/shared/lib/numeric/canonical-number';
 import { useToast } from '@/shared/ui/feedback/use-toast';
 import { createSalesApi } from '../api/sales-api';
 import { downloadInvoicePdf } from '../model/sales-pdf';
 import { getSupabaseClient } from '@/shared/supabase/client';
 import { useSession } from '@/features/auth';
 import { PaymentProofLink } from '@/features/payments';
-const money = (v: string) =>
-  new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(Number(v));
+import { formatCashAmount } from '../model/cash-change';
+import type { Invoice } from '../api/sales-schemas';
+const money = formatCashAmount;
+function invoicePaymentLabel(invoice: Invoice) {
+  if (
+    invoice.totals.cashAmount &&
+    invoice.totals.bankTransferAmount &&
+    compareCanonicalNumbers(invoice.totals.cashAmount, '0') > 0 &&
+    compareCanonicalNumbers(invoice.totals.bankTransferAmount, '0') > 0
+  )
+    return 'Kết hợp tiền mặt và chuyển khoản';
+  if (
+    invoice.totals.initialDebtAmount &&
+    compareCanonicalNumbers(invoice.totals.initialDebtAmount, '0') > 0
+  )
+    return 'Thanh toán một phần / Ghi nợ';
+  return invoice.sale.paymentMethod === 'CASH' ? 'Tiền mặt' : 'Chuyển khoản';
+}
 function findSalePendingCommand(userId?: string, saleId?: string) {
   if (!userId || !saleId) return undefined;
   try {
@@ -290,11 +305,51 @@ export function SaleDetailPage() {
             <span>Thanh toán</span>
             <span>{money(invoice.totals.netTotal)}</span>
           </div>
+          {invoice.sale.customerCode ? (
+            <p className="pt-2 text-sm">
+              Mã khách: <span>{invoice.sale.customerCode}</span>
+            </p>
+          ) : null}
+          {invoice.totals.cashAmount !== undefined ? (
+            <>
+              <div className="flex justify-between">
+                <span>Tiền mặt</span>
+                <span>{money(invoice.totals.cashAmount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Chuyển khoản</span>
+                <span>{money(invoice.totals.bankTransferAmount ?? '0')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Đã thu</span>
+                <span>{money(invoice.totals.capturedAmount)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-amber-900">
+                <span>Còn nợ</span>
+                <span>{money(invoice.totals.outstandingAmount ?? '0')}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Nợ ban đầu</span>
+                <span>{money(invoice.totals.initialDebtAmount ?? '0')}</span>
+              </div>
+              {invoice.totals.adjustedDebtAmount &&
+              invoice.totals.adjustedDebtAmount !== '0.00' &&
+              invoice.totals.adjustedDebtAmount !== '0' ? (
+                <p className="text-sm">
+                  Đã chỉnh giảm nợ: {money(invoice.totals.adjustedDebtAmount)}
+                </p>
+              ) : null}
+              {invoice.totals.debtOffsetAmount &&
+              invoice.totals.debtOffsetAmount !== '0.00' &&
+              invoice.totals.debtOffsetAmount !== '0' ? (
+                <p className="text-sm">
+                  Đã cấn trừ nợ: {money(invoice.totals.debtOffsetAmount)}
+                </p>
+              ) : null}
+            </>
+          ) : null}
           <p className="pt-2 text-sm">
-            Phương thức:{' '}
-            {invoice.sale.paymentMethod === 'CASH'
-              ? 'Tiền mặt'
-              : 'Chuyển khoản'}
+            Phương thức: {invoicePaymentLabel(invoice)}
           </p>
           {invoice.sale.paymentMethod === 'BANK_TRANSFER' ? (
             <PaymentProofLink objectPath={invoice.sale.transferProofPath} />
@@ -359,11 +414,7 @@ export function SaleDetailPage() {
           </div>
           <div>
             <dt className="text-slate-500">Phương thức</dt>
-            <dd className="font-medium">
-              {invoice.sale.paymentMethod === 'CASH'
-                ? 'Tiền mặt'
-                : 'Chuyển khoản'}
-            </dd>
+            <dd className="font-medium">{invoicePaymentLabel(invoice)}</dd>
           </div>
           <div>
             <dt className="text-slate-500">Nhân viên</dt>

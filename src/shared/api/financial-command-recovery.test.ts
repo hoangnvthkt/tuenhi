@@ -137,6 +137,8 @@ describe('financial command recovery', () => {
 
 describe('financialCommandActionRoute', () => {
   it.each([
+    ['customer.debt.collect', `/more/customers/${entityId}`],
+    ['customer.debt.adjust', `/more/customers/${entityId}`],
     ['sale.complete', `/sales/${entityId}`],
     ['sale.cancel', `/sales/${entityId}`],
     ['sale.return.complete', `/returns/${entityId}`],

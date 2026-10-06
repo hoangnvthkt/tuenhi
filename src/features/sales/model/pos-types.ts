@@ -8,4 +8,4 @@ export type PosCartItem = CartLine & {
   onHandQty: string;
 };
 
-export type PosPaymentMethod = 'CASH' | 'BANK_TRANSFER';
+export type PosPaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'SPLIT';

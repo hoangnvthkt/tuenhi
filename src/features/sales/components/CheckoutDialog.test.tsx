@@ -220,3 +220,50 @@ it('shows fractional shortfall and large change without rounding away money', ()
     '9.007.199.254.740.993,01',
   );
 });
+
+it('confirms KH01 with 30000 cash, 50000 transfer and 20000 debt without a proof', async () => {
+  const user = userEvent.setup();
+  const onConfirm = vi.fn();
+  render(
+    <CheckoutDialog
+      payment={'SPLIT' as never}
+      customerId="KH01"
+      total="100000"
+      saving={false}
+      onPaymentChange={vi.fn()}
+      onCancel={vi.fn()}
+      onConfirm={onConfirm}
+    />,
+  );
+  await user.type(screen.getByLabelText('Tiền mặt thanh toán'), '30000');
+  await user.type(screen.getByLabelText('Chuyển khoản thanh toán'), '50000');
+  expect(screen.getByText(/Còn nợ:/)).toHaveTextContent('20.000');
+  await user.click(screen.getByRole('button', { name: 'Xác nhận' }));
+  expect(onConfirm).toHaveBeenCalledWith(undefined, {
+    cashAmount: '30000',
+    bankTransferAmount: '50000',
+  });
+});
+
+it('requires a customer only for the unpaid part of a split payment', () => {
+  const props = {
+    payment: 'SPLIT' as never,
+    total: '100000',
+    saving: false,
+    onPaymentChange: vi.fn(),
+    onCancel: vi.fn(),
+    onConfirm: vi.fn(),
+  };
+  render(<CheckoutDialog {...props} />);
+  expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('Tiền mặt thanh toán'), {
+    target: { value: '100000' },
+  });
+  expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeEnabled();
+  fireEvent.change(screen.getByLabelText('Chuyển khoản thanh toán'), {
+    target: { value: '1' },
+  });
+  expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeDisabled();
+  fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+  expect(props.onConfirm).not.toHaveBeenCalled();
+});

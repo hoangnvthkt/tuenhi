@@ -204,6 +204,78 @@ describe('usePosCommands', () => {
     );
   });
 
+  it('completes a split payment with the original allocation across retries', async () => {
+    const customer = '70000000-0000-4000-8000-000000000001';
+    const savedDraft = { ...draft, customerId: customer };
+    const saveDraft = vi.fn().mockResolvedValue({
+      sale: savedDraft,
+      priceRefreshed: false,
+    });
+    const complete = vi.fn().mockResolvedValue({
+      saleId,
+      saleNumber: 'HD000002',
+      status: 'COMPLETED',
+      version: 3,
+    });
+    mocks.runFinancialCommand.mockImplementation(
+      async ({ invoke }: { invoke: (key: string) => Promise<unknown> }) => {
+        await invoke('30000000-0000-4000-8000-000000000002');
+        return invoke('30000000-0000-4000-8000-000000000002');
+      },
+    );
+
+    const { result } = renderHook(
+      () =>
+        usePosCommands({
+          api: { saveDraft, complete } as unknown as SalesApi,
+          online: true,
+          userId,
+          saleId,
+          draft,
+          items: [
+            {
+              productId: '50000000-0000-4000-8000-000000000001',
+              productName: 'Sản phẩm thử',
+              sku: 'SP001',
+              unitName: 'cái',
+              quantity: '1',
+              unitSalePrice: '100000',
+              lineDiscountAmount: '0',
+              lineOrder: 0,
+              onHandQty: '10',
+            },
+          ],
+          customerId: customer,
+          channelId: draft.salesChannelId,
+          orderDiscount: '0',
+          note: '',
+          canDiscount: true,
+          payment: 'SPLIT' as never,
+          setDraft: vi.fn(),
+          setItems: vi.fn(),
+          setPayment: vi.fn(),
+        }),
+      { wrapper },
+    );
+    await act(() =>
+      result.current.pay(undefined, {
+        cashAmount: '30000',
+        bankTransferAmount: '50000',
+      }),
+    );
+
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(complete).toHaveBeenLastCalledWith(
+      saleId,
+      draft.version,
+      'SPLIT',
+      '30000000-0000-4000-8000-000000000002',
+      undefined,
+      { cashAmount: '30000', bankTransferAmount: '50000' },
+    );
+    expect(complete).toHaveBeenCalledTimes(2);
+  });
+
   it('uploads a bank-transfer proof once across same-key invocations', async () => {
     const savedDraft = { ...draft };
     const saveDraft = vi.fn().mockResolvedValue({
@@ -395,9 +467,9 @@ function renderCheckout(api: SalesApi) {
       const [items, setItems] = useState<PosCartItem[]>(
         draft.lines.map((line) => ({ ...line, onHandQty: '10' })),
       );
-      const [payment, setPayment] = useState<'CASH' | 'BANK_TRANSFER' | null>(
-        'BANK_TRANSFER',
-      );
+      const [payment, setPayment] = useState<
+        'CASH' | 'BANK_TRANSFER' | 'SPLIT' | null
+      >('BANK_TRANSFER');
       const commands = usePosCommands({
         api,
         online: true,

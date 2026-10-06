@@ -15,6 +15,7 @@ const operationalQueryRoots = new Set([
   'import-history',
   'import-result',
   'directories',
+  'customer-debt',
   'settings',
   'pos-products',
   'pos-channels',
