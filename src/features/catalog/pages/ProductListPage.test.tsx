@@ -69,6 +69,130 @@ function renderPage(api: CatalogApi, permissions: string[] = ['catalog.read']) {
 }
 
 describe('ProductListPage', () => {
+  it('summarizes only the visible page and lets the user hide sale prices', async () => {
+    const user = userEvent.setup();
+    const product = {
+      id: '10000000-0000-4000-8000-000000000030',
+      sku: 'SP527986',
+      barcode: null,
+      name: 'Ferromax hoa quả',
+      categoryId: null,
+      categoryName: null,
+      unitName: 'Hộp',
+      minStockQty: '10',
+      isActive: true,
+      version: 1,
+      primaryImagePath: null,
+      currentSalePrice: '57000.00',
+      onHandQty: '86',
+    };
+    renderPage(
+      createApi({
+        list: vi.fn().mockResolvedValue({
+          items: [
+            product,
+            {
+              ...product,
+              id: '10000000-0000-4000-8000-000000000031',
+              name: 'Canxi mk7 ống trắng dài',
+              sku: 'SP527984',
+              onHandQty: '37',
+            },
+          ],
+          nextCursor: { name: 'canxi', id: product.id },
+        }),
+      }),
+      ['catalog.read', 'pricing.sale.read'],
+    );
+
+    expect(
+      await screen.findByText('2 hàng hóa trên trang này'),
+    ).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByRole('region', { name: 'Tổng tồn trên trang này' }),
+      ).getByText('123'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId(`product-row-${product.id}`)).getByText(
+        '57.000',
+      ),
+    ).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Hiển thị giá'), 'stock');
+    expect(screen.queryByText('57.000')).not.toBeInTheDocument();
+    expect(screen.getByText('Tồn: 86')).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: 'Đảo thứ tự tên trên trang' }),
+    );
+    expect(screen.getAllByTestId(/^product-row-/)[0]).toHaveTextContent(
+      'Ferromax hoa quả',
+    );
+  });
+
+  it('applies the category chip immediately without needing to open advanced filters', async () => {
+    const user = userEvent.setup();
+    const list = vi.fn().mockResolvedValue(emptyPage);
+    renderPage(createApi({ list }));
+    await screen.findByText('Chưa có sản phẩm.');
+    await user.selectOptions(
+      screen.getByLabelText('Nhóm hàng'),
+      '10000000-0000-4000-8000-000000000001',
+    );
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          categoryId: '10000000-0000-4000-8000-000000000001',
+          cursor: undefined,
+        }),
+      ),
+    );
+  });
+
+  it('does not apply an unsubmitted search draft when changing categories', async () => {
+    const user = userEvent.setup();
+    const list = vi.fn().mockResolvedValue(emptyPage);
+    renderPage(createApi({ list }));
+    await screen.findByText('Chưa có sản phẩm.');
+    await user.click(screen.getByRole('button', { name: 'Mở tìm kiếm' }));
+    await user.type(screen.getByLabelText('Tìm sản phẩm'), 'chưa áp dụng');
+    await user.selectOptions(
+      screen.getByLabelText('Nhóm hàng'),
+      '10000000-0000-4000-8000-000000000001',
+    );
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          search: '',
+          categoryId: '10000000-0000-4000-8000-000000000001',
+        }),
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: 'Đóng tìm kiếm' }));
+    await user.click(screen.getByRole('button', { name: 'Mở tìm kiếm' }));
+    expect(screen.getByLabelText('Tìm sản phẩm')).toHaveValue('');
+  });
+
+  it('keeps an applied search visible when closed and lets the user clear it', async () => {
+    const user = userEvent.setup();
+    const list = vi.fn().mockResolvedValue(emptyPage);
+    renderPage(createApi({ list }));
+    await screen.findByText('Chưa có sản phẩm.');
+    await user.click(screen.getByRole('button', { name: 'Mở tìm kiếm' }));
+    await user.type(screen.getByLabelText('Tìm sản phẩm'), 'SP527986');
+    await user.click(screen.getByRole('button', { name: 'Tìm kiếm' }));
+    await user.click(screen.getByRole('button', { name: 'Đóng tìm kiếm' }));
+    expect(screen.getByText('Đang tìm: SP527986')).toBeVisible();
+    await user.click(
+      screen.getByRole('button', { name: 'Xóa tìm kiếm đang áp dụng' }),
+    );
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: '' }),
+      ),
+    );
+    expect(screen.queryByText('Đang tìm: SP527986')).not.toBeInTheDocument();
+  });
+
   it('shows a stable skeleton then an actionable empty state', async () => {
     let resolvePage!: (page: CatalogPage) => void;
     renderPage(
@@ -173,12 +297,14 @@ describe('ProductListPage', () => {
       ),
     );
 
+    await user.click(screen.getByRole('button', { name: 'Mở tìm kiếm' }));
     await user.clear(screen.getByLabelText('Tìm sản phẩm'));
     await user.type(screen.getByLabelText('Tìm sản phẩm'), 'SP-001');
     await user.selectOptions(
       screen.getByLabelText('Nhóm hàng'),
       '10000000-0000-4000-8000-000000000001',
     );
+    await user.click(screen.getByRole('button', { name: 'Bộ lọc hàng hóa' }));
     await user.selectOptions(
       screen.getByLabelText('Tình trạng tồn'),
       'OUT_OF_STOCK',

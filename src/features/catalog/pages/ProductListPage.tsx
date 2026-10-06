@@ -2,6 +2,13 @@ import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import {
+  ArrowsDownUp,
+  DotsThree,
+  MagnifyingGlass,
+  Plus,
+  X,
+} from '@phosphor-icons/react';
 import { useSession } from '@/features/auth';
 import {
   catalogKeys,
@@ -9,7 +16,10 @@ import {
   type CatalogApi,
 } from '../api/catalog-api';
 import type { CatalogCursor, CatalogStockState } from '../model/catalog-types';
-import type { ProductListFilters as Filters } from '../model/product-list';
+import {
+  formatPageStockTotal,
+  type ProductListFilters as Filters,
+} from '../model/product-list';
 import { ProductCatalogList } from '../components/ProductCatalogList';
 import { ProductListFilters } from '../components/ProductListFilters';
 
@@ -33,6 +43,11 @@ export function ProductListPage({ api: apiProp }: { api?: CatalogApi }) {
   const [draft, setDraft] = useState(initialFilters);
   const [filters, setFilters] = useState(initialFilters);
   const [cursor, setCursor] = useState<CatalogCursor | undefined>();
+  const [searchOpen, setSearchOpen] = useState(Boolean(initialFilters.search));
+  const [showSalePrice, setShowSalePrice] = useState(true);
+  const [descending, setDescending] = useState(false);
+  const canReadSalePrice =
+    session?.permissions.includes('pricing.sale.read') ?? false;
 
   const categories = useQuery({
     queryKey: privateKey(...catalogKeys.categories(canManage)),
@@ -53,10 +68,14 @@ export function ProductListPage({ api: apiProp }: { api?: CatalogApi }) {
 
   function applyFilters(event: FormEvent) {
     event.preventDefault();
+    updateFilters(draft);
+  }
+
+  function updateFilters(values: Filters) {
     const next = {
-      ...draft,
-      search: draft.search.trim(),
-      includeInactive: canManage && draft.includeInactive,
+      ...values,
+      search: values.search.trim(),
+      includeInactive: canManage && values.includeInactive,
     };
     setCursor(undefined);
     setFilters(next);
@@ -77,65 +96,145 @@ export function ProductListPage({ api: apiProp }: { api?: CatalogApi }) {
   }
 
   const error = query.error;
+  const items = useMemo(
+    () =>
+      query.data?.items.toSorted(
+        (a, b) => a.name.localeCompare(b.name, 'vi') * (descending ? -1 : 1),
+      ),
+    [query.data, descending],
+  );
+  // Quantities come from the loaded page, never from a guessed catalog total.
+  const totalStockText = items ? formatPageStockTotal(items) : null;
   return (
-    <section className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-            Hàng hóa
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Tra cứu sản phẩm, giá bán hiện hành và số lượng tồn.
-          </p>
+    <section className="product-catalog-page">
+      <div className="catalog-top">
+        <div className="catalog-heading">
+          <h1>Hàng hóa</h1>
+          <div className="catalog-actions">
+            <button
+              type="button"
+              className="catalog-icon-button"
+              aria-label={searchOpen ? 'Đóng tìm kiếm' : 'Mở tìm kiếm'}
+              aria-expanded={searchOpen}
+              aria-controls="catalog-search"
+              onClick={() => {
+                if (searchOpen) setDraft({ ...draft, search: filters.search });
+                setSearchOpen(!searchOpen);
+              }}
+            >
+              <MagnifyingGlass size={25} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="catalog-icon-button"
+              aria-label="Đảo thứ tự tên trên trang"
+              title={
+                descending ? 'Tên Z đến A trên trang' : 'Tên A đến Z trên trang'
+              }
+              aria-pressed={descending}
+              onClick={() => setDescending(!descending)}
+            >
+              <ArrowsDownUp size={25} aria-hidden="true" />
+            </button>
+            {canManage ? (
+              <details className="catalog-more">
+                <summary
+                  className="catalog-icon-button"
+                  aria-label="Tùy chọn hàng hóa"
+                >
+                  <DotsThree size={28} weight="bold" aria-hidden="true" />
+                </summary>
+                <div className="catalog-menu">
+                  <Link to="/products/categories">Quản lý nhóm hàng</Link>
+                  <Link to="/products/new">Thêm sản phẩm</Link>
+                </div>
+              </details>
+            ) : null}
+          </div>
         </div>
-        {canManage ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              to="/products/categories"
-              className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+        <ProductListFilters
+          canManage={canManage}
+          canReadSalePrice={canReadSalePrice}
+          categories={categories.data ?? []}
+          draft={draft}
+          searchOpen={searchOpen}
+          showSalePrice={showSalePrice}
+          onShowSalePriceChange={setShowSalePrice}
+          onCategoryChange={(categoryId) => {
+            setDraft({ ...draft, categoryId });
+            updateFilters({ ...filters, categoryId });
+          }}
+          onChange={setDraft}
+          onSubmit={applyFilters}
+        />
+        {filters.search ? (
+          <div className="catalog-active-search">
+            <span>Đang tìm: {filters.search}</span>
+            <button
+              type="button"
+              aria-label="Xóa tìm kiếm đang áp dụng"
+              onClick={() => {
+                setDraft({ ...draft, search: '' });
+                updateFilters({ ...filters, search: '' });
+              }}
             >
-              Quản lý nhóm hàng
-            </Link>
-            <Link
-              to="/products/new"
-              className="inline-flex min-h-11 items-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
-            >
-              Thêm sản phẩm
-            </Link>
+              <X size={16} aria-hidden="true" />
+            </button>
           </div>
         ) : null}
+        <div
+          className="catalog-summary"
+          role="region"
+          aria-label="Tổng tồn trên trang này"
+          aria-live="polite"
+        >
+          <div className="catalog-summary-total">
+            <span>Tổng tồn</span>
+            <strong>
+              {query.isError ? 'Không có dữ liệu' : (totalStockText ?? '…')}
+            </strong>
+          </div>
+          <p>
+            {query.isPending
+              ? 'Đang tải hàng hóa…'
+              : query.isError
+                ? 'Vui lòng thử tải lại'
+                : `${items?.length ?? 0} hàng hóa trên trang này`}
+          </p>
+        </div>
       </div>
 
-      <ProductListFilters
-        canManage={canManage}
-        categories={categories.data ?? []}
-        draft={draft}
-        onChange={setDraft}
-        onSubmit={applyFilters}
-      />
-
       <ProductCatalogList
-        canReadSalePrice={
-          session?.permissions.includes('pricing.sale.read') ?? false
-        }
+        canReadSalePrice={canReadSalePrice && showSalePrice}
         canManage={canManage}
         error={error}
         isError={query.isError}
         isPending={query.isPending}
-        items={query.data?.items}
+        items={items}
         onRetry={() => void query.refetch()}
       />
 
       {query.data?.nextCursor ? (
-        <div className="flex justify-end">
+        <div className="catalog-pagination">
+          <span>Còn hàng hóa ở trang tiếp theo</span>
           <button
             type="button"
             onClick={() => setCursor(query.data?.nextCursor ?? undefined)}
-            className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+            className="catalog-next"
           >
             Trang tiếp
           </button>
         </div>
+      ) : null}
+      {canManage ? (
+        <Link
+          to="/products/new"
+          className="catalog-add"
+          aria-label="Thêm sản phẩm"
+          title="Thêm sản phẩm"
+        >
+          <Plus size={32} aria-hidden="true" />
+        </Link>
       ) : null}
     </section>
   );
