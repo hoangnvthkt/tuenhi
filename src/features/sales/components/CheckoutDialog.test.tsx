@@ -13,7 +13,7 @@ beforeEach(() => {
 });
 
 describe('CheckoutDialog', () => {
-  it('requires a transfer proof before confirming a bank-transfer payment', async () => {
+  it('confirms a bank transfer without proof and accepts an optional attachment', async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
     render(
@@ -27,10 +27,9 @@ describe('CheckoutDialog', () => {
       />,
     );
 
-    expect(
-      screen.getByText('Cần ảnh chứng từ chuyển khoản để xác nhận.'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Xác nhận' }));
+    expect(onConfirm).toHaveBeenCalledWith(undefined);
 
     await user.upload(
       screen.getByLabelText('Tải ảnh chứng từ chuyển khoản'),
@@ -78,7 +77,7 @@ describe('CheckoutDialog', () => {
     expect(onConfirm).toHaveBeenCalledWith(undefined);
   });
 
-  it('closes with Escape and never confirms a transfer without proof', () => {
+  it('confirms a transfer without proof with Ctrl+Enter and closes with Escape', () => {
     const onCancel = vi.fn();
     const onConfirm = vi.fn();
     render(
@@ -95,7 +94,7 @@ describe('CheckoutDialog', () => {
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
     fireEvent.keyDown(window, { key: 'Escape' });
 
-    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onConfirm).toHaveBeenCalledWith(undefined);
     expect(onCancel).toHaveBeenCalledOnce();
   });
 });
@@ -168,7 +167,7 @@ it('clears cash help on payment switches and locks it while saving', () => {
   expect(
     screen.queryByLabelText('Khách đưa (tùy chọn)'),
   ).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeEnabled();
   fireEvent.click(screen.getByRole('button', { name: 'Tiền mặt' }));
   view.rerender(<CheckoutDialog {...props} saving />);
   expect(screen.getByLabelText('Khách đưa (tùy chọn)')).toHaveValue('');

@@ -28,11 +28,11 @@ export function CheckoutDialog({
     };
   }, []);
   const [proofFile, setProofFile] = useState<File | null>(null);
-  const requiresProof = payment === 'BANK_TRANSFER';
+  const isBankTransfer = payment === 'BANK_TRANSFER';
   const [tendered, setTendered] = useState('');
   const cash = calculateCashChange(total, tendered);
   const cashBlocked =
-    !requiresProof &&
+    !isBankTransfer &&
     (cash.status === 'INVALID' || cash.status === 'INSUFFICIENT');
 
   useEffect(() => {
@@ -45,8 +45,7 @@ export function CheckoutDialog({
         event.key === 'Enter' &&
         (event.ctrlKey || event.metaKey) &&
         !saving &&
-        !cashBlocked &&
-        (!requiresProof || proofFile)
+        !cashBlocked
       ) {
         event.preventDefault();
         onConfirm(proofFile ?? undefined);
@@ -54,7 +53,7 @@ export function CheckoutDialog({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onCancel, onConfirm, proofFile, requiresProof, saving, cashBlocked]);
+  }, [onCancel, onConfirm, proofFile, saving, cashBlocked]);
 
   return (
     <dialog
@@ -113,7 +112,7 @@ export function CheckoutDialog({
             </button>
           ))}
         </div>
-        {!requiresProof ? (
+        {!isBankTransfer ? (
           <div className="mt-4 space-y-2">
             <label className="block text-sm font-medium">
               Khách đưa (tùy chọn)
@@ -149,13 +148,13 @@ export function CheckoutDialog({
             </div>
           </div>
         ) : null}
-        {requiresProof ? (
+        {isBankTransfer ? (
           <div className="mt-4 rounded-lg border border-teal-100 bg-teal-50 p-3">
             <p className="text-sm font-semibold text-teal-950">
               Ảnh chứng từ chuyển khoản
             </p>
             <p className="mt-1 text-sm text-teal-900">
-              Bắt buộc cho mọi giao dịch chuyển khoản mới.
+              Tùy chọn. Có thể xác nhận chuyển khoản khi chưa có ảnh.
             </p>
             <label className="mt-3 block text-sm font-medium text-slate-900">
               Tải ảnh chứng từ chuyển khoản
@@ -188,11 +187,7 @@ export function CheckoutDialog({
               <p className="mt-2 text-sm text-teal-950">
                 Đã chọn: {proofFile.name}
               </p>
-            ) : (
-              <p className="mt-2 text-sm font-medium text-red-800">
-                Cần ảnh chứng từ chuyển khoản để xác nhận.
-              </p>
-            )}
+            ) : null}
           </div>
         ) : null}
         <div className="mt-5 flex gap-2">
@@ -207,10 +202,9 @@ export function CheckoutDialog({
           <button
             type="button"
             onClick={() => {
-              if (!saving && !cashBlocked && (!requiresProof || proofFile))
-                onConfirm(proofFile ?? undefined);
+              if (!saving && !cashBlocked) onConfirm(proofFile ?? undefined);
             }}
-            disabled={saving || cashBlocked || (requiresProof && !proofFile)}
+            disabled={saving || cashBlocked}
             className="min-h-11 flex-1 rounded-lg bg-teal-700 font-semibold text-white"
           >
             Xác nhận

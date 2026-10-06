@@ -281,14 +281,6 @@ export function usePosCommands({
       });
       return;
     }
-    if (payment === 'BANK_TRANSFER' && !proofFile && !pendingCompletion) {
-      toast.show({
-        kind: 'error',
-        title: 'Thiếu ảnh chứng từ',
-        message: 'Cần ảnh chứng từ chuyển khoản để xác nhận.',
-      });
-      return;
-    }
     const confirmed = {
       customerId: customerId || null,
       channelId,

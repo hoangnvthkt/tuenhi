@@ -170,11 +170,17 @@ Realtime publication chỉ phát tín hiệu thay đổi cho `products`, `produc
 
 ## Chứng từ chuyển khoản
 
-Mọi giao dịch chuyển khoản mới — thanh toán hóa đơn và hoàn tiền trả hàng — bắt
-buộc một ảnh JPEG, PNG hoặc WebP không quá 5 MiB. Bucket `payment-proofs` là
-private; client upload object bất biến trước command, server kiểm tra quyền sở
-hữu/đường dẫn rồi gắn metadata chỉ khi command thành công. Ảnh chỉ mở qua signed
-URL ngắn hạn. Giao dịch cũ không bị hồi tố và có thể không có chứng từ ảnh.
+Ảnh chứng từ là tùy chọn cho thanh toán hóa đơn và hoàn tiền trả hàng bằng
+chuyển khoản; có thể xác nhận khi chưa có ảnh. Nếu đính kèm, ảnh phải là JPEG,
+PNG hoặc WebP không quá 5 MiB. Bucket `payment-proofs` là private; client upload
+object bất biến trước command, server kiểm tra quyền sở hữu/đường dẫn rồi gắn
+metadata chỉ khi command thành công. Ảnh chỉ mở qua signed URL ngắn hạn; gửi
+lại yêu cầu không xóa hay thay ảnh đã gắn.
+
+Áp dụng migration `20261006105559_optional_transfer_proofs.sql` trước khi phát
+hành frontend tương ứng. Kiểm thử SQL dùng database cô lập qua Unix socket:
+`supabase/tests/isolated/optional_transfer_proofs.sql`; không chạy fixture trên
+Cloud production.
 
 ## Import Excel và thời hạn lưu
 

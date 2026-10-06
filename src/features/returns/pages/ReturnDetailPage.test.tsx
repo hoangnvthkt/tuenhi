@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
@@ -18,6 +19,11 @@ const returnsApi = vi.hoisted(() => ({
   cancel: vi.fn(),
   parseCompleteResponse: vi.fn(),
 }));
+const financialMocks = vi.hoisted(() => ({
+  run: vi.fn(),
+  upload: vi.fn(),
+  remove: vi.fn(),
+}));
 const salesApi = vi.hoisted(() => ({ detail: vi.fn() }));
 
 vi.mock('../api/returns-api', () => ({ createReturnsApi: () => returnsApi }));
@@ -35,10 +41,13 @@ vi.mock('@/shared/hooks/use-online-status', () => ({
   useOnlineStatus: () => true,
 }));
 vi.mock('@/shared/hooks/use-financial-command', () => ({
-  useFinancialCommand: () => vi.fn(),
+  useFinancialCommand: () => financialMocks.run,
 }));
 vi.mock('@/features/payments', () => ({
-  createPaymentProofApi: () => ({ upload: vi.fn(), remove: vi.fn() }),
+  createPaymentProofApi: () => ({
+    upload: financialMocks.upload,
+    remove: financialMocks.remove,
+  }),
   PaymentProofLink: () => null,
 }));
 
@@ -94,6 +103,10 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks();
+  financialMocks.run.mockImplementation(async ({ invoke }) =>
+    invoke('30000000-0000-4000-8000-000000000001'),
+  );
   authState.permissions = [];
   returnsApi.detail.mockResolvedValue(document);
   salesApi.detail.mockResolvedValue({ customerId, lines: [] });
@@ -127,4 +140,48 @@ describe('ReturnDetailPage relationship links', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('private raw error')).not.toBeInTheDocument();
   });
+});
+
+describe('optional bank-transfer refund proofs', () => {
+  it.each([false, true])(
+    'completes a refund with an optional attachment: %s',
+    async (attachProof) => {
+      const user = userEvent.setup();
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      returnsApi.detail.mockResolvedValue({
+        ...document,
+        status: 'REQUESTED',
+        canComplete: true,
+        completedAt: null,
+      });
+      financialMocks.upload.mockResolvedValue({
+        objectPath: `returns/${returnId}/proof.jpg`,
+      });
+      renderPage();
+      await user.selectOptions(
+        await screen.findByLabelText('Phương thức hoàn tiền'),
+        'BANK_TRANSFER',
+      );
+      if (attachProof) {
+        await user.upload(
+          screen.getByLabelText('Tải ảnh chứng từ hoàn tiền'),
+          new File(['proof'], 'proof.jpg', { type: 'image/jpeg' }),
+        );
+      }
+      const confirm = screen.getByRole('button', { name: 'Hoàn tất trả hàng' });
+      expect(confirm).toBeEnabled();
+      await user.click(confirm);
+      expect(returnsApi.complete).toHaveBeenCalledExactlyOnceWith({
+        returnId,
+        expectedVersion: document.version,
+        lines: [{ saleReturnLineId: lineId, acceptedQty: '1' }],
+        refundMethod: 'BANK_TRANSFER',
+        idempotencyKey: '30000000-0000-4000-8000-000000000001',
+        transferProofPath: attachProof
+          ? `returns/${returnId}/proof.jpg`
+          : undefined,
+      });
+      expect(financialMocks.upload).toHaveBeenCalledTimes(attachProof ? 1 : 0);
+    },
+  );
 });

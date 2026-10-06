@@ -112,14 +112,6 @@ export function ReturnDetailPage() {
       });
       return;
     }
-    if (refundMethod === 'BANK_TRANSFER' && !proofFile) {
-      toast.show({
-        kind: 'error',
-        title: 'Thiếu ảnh chứng từ',
-        message: 'Cần ảnh chứng từ chuyển khoản để xác nhận.',
-      });
-      return;
-    }
     if (
       !window.confirm(
         'Xác nhận hoàn tiền và nhập lại tồn kho cho số lượng đã kiểm nhận?',
@@ -321,7 +313,7 @@ export function ReturnDetailPage() {
                     Ảnh chứng từ hoàn tiền
                   </p>
                   <p className="mt-1 text-sm text-teal-900">
-                    Bắt buộc cho mọi giao dịch chuyển khoản mới.
+                    Tùy chọn. Có thể xác nhận chuyển khoản khi chưa có ảnh.
                   </p>
                   <label className="mt-3 block text-sm font-medium text-slate-900">
                     Tải ảnh chứng từ hoàn tiền
@@ -352,20 +344,12 @@ export function ReturnDetailPage() {
                     <p className="mt-2 text-sm text-teal-950">
                       Đã chọn: {proofFile.name}
                     </p>
-                  ) : (
-                    <p className="mt-2 text-sm font-medium text-red-800">
-                      Cần ảnh chứng từ chuyển khoản để xác nhận.
-                    </p>
-                  )}
+                  ) : null}
                 </div>
               ) : null}
               <button
                 type="button"
-                disabled={
-                  !online ||
-                  busy ||
-                  (refundMethod === 'BANK_TRANSFER' && !proofFile)
-                }
+                disabled={!online || busy}
                 onClick={() => void complete()}
                 className="min-h-11 rounded-lg bg-teal-700 px-4 font-semibold text-white disabled:opacity-50"
               >

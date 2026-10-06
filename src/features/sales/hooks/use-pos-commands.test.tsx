@@ -141,6 +141,69 @@ describe('usePosCommands', () => {
     expect(mocks.upload).not.toHaveBeenCalled();
   });
 
+  it('completes a bank transfer without uploading a proof', async () => {
+    const savedDraft = { ...draft };
+    const saveDraft = vi.fn().mockResolvedValue({
+      sale: savedDraft,
+      priceRefreshed: false,
+    });
+    const complete = vi.fn().mockResolvedValue({
+      saleId,
+      saleNumber: 'HD000002',
+      status: 'COMPLETED',
+      version: 3,
+    });
+    mocks.runFinancialCommand.mockImplementation(
+      async ({ invoke }: { invoke: (key: string) => Promise<unknown> }) => {
+        return invoke('30000000-0000-4000-8000-000000000002');
+      },
+    );
+
+    const { result } = renderHook(
+      () =>
+        usePosCommands({
+          api: { saveDraft, complete } as unknown as SalesApi,
+          online: true,
+          userId,
+          saleId,
+          draft,
+          items: [
+            {
+              productId: '50000000-0000-4000-8000-000000000001',
+              productName: 'Sản phẩm thử',
+              sku: 'SP001',
+              unitName: 'cái',
+              quantity: '1',
+              unitSalePrice: '100000',
+              lineDiscountAmount: '0',
+              lineOrder: 0,
+              onHandQty: '10',
+            },
+          ],
+          customerId: '',
+          channelId: draft.salesChannelId,
+          orderDiscount: '0',
+          note: '',
+          canDiscount: true,
+          payment: 'BANK_TRANSFER',
+          setDraft: vi.fn(),
+          setItems: vi.fn(),
+          setPayment: vi.fn(),
+        }),
+      { wrapper },
+    );
+    await act(() => result.current.pay());
+
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(complete).toHaveBeenCalledExactlyOnceWith(
+      saleId,
+      draft.version,
+      'BANK_TRANSFER',
+      '30000000-0000-4000-8000-000000000002',
+      undefined,
+    );
+  });
+
   it('uploads a bank-transfer proof once across same-key invocations', async () => {
     const savedDraft = { ...draft };
     const saveDraft = vi.fn().mockResolvedValue({
