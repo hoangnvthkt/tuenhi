@@ -2,6 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
 import './styles/index.css';
+import { installAssetRecovery } from './app/bootstrap/asset-recovery';
+
+installAssetRecovery();
 
 const rootElement = document.getElementById('root');
 
