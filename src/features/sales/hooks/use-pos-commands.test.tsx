@@ -93,6 +93,7 @@ describe('usePosCommands', () => {
       .mockResolvedValue({ sale: savedDraft, priceRefreshed: true });
     const draftPrint = vi.fn().mockResolvedValue(document);
     const complete = vi.fn();
+    const setItems = vi.fn();
     const { result } = renderHook(
       () =>
         usePosCommands({
@@ -112,6 +113,7 @@ describe('usePosCommands', () => {
               lineDiscountAmount: '3000',
               lineOrder: 0,
               onHandQty: '0',
+              primaryImagePath: 'products/milk.webp',
             },
           ],
           customerId: '',
@@ -121,7 +123,7 @@ describe('usePosCommands', () => {
           canDiscount: true,
           payment: null,
           setDraft: vi.fn(),
-          setItems: vi.fn(),
+          setItems,
           setPayment: vi.fn(),
         }),
       { wrapper },
@@ -136,6 +138,9 @@ describe('usePosCommands', () => {
     );
     expect(draftPrint).toHaveBeenCalledWith(saleId);
     expect(result.current.provisionalDocument).toEqual(document);
+    expect(setItems).toHaveBeenCalledWith([
+      expect.objectContaining({ primaryImagePath: 'products/milk.webp' }),
+    ]);
     expect(complete).not.toHaveBeenCalled();
     expect(mocks.runFinancialCommand).not.toHaveBeenCalled();
     expect(mocks.upload).not.toHaveBeenCalled();

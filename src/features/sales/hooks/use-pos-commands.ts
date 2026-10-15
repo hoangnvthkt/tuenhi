@@ -196,6 +196,9 @@ export function usePosCommands({
       setItems(
         result.sale.lines.map((line) => ({
           ...line,
+          primaryImagePath: items.find(
+            (item) => item.productId === line.productId,
+          )?.primaryImagePath,
           onHandQty:
             items.find((item) => item.productId === line.productId)
               ?.onHandQty ?? '0',

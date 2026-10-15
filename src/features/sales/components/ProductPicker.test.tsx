@@ -67,6 +67,21 @@ function renderPicker({
 }
 
 describe('ProductPicker', () => {
+  it.each(['', '   '])(
+    'keeps the product list closed for blank search %j even on focus',
+    async (search) => {
+      renderPicker({ search });
+      const input = screen.getByRole('combobox', { name: 'Tìm sản phẩm' });
+      await userEvent.click(input);
+      expect(input).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
+    },
+  );
+  it('hides old results while a different search is resolving', () => {
+    renderPicker({ search: 'mới', resolvedSearch: 'áo' });
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
+  });
+
   it('moves the highlighted result with arrow keys and adds it with Enter', async () => {
     const user = userEvent.setup();
     const { onAdd, onSearchChange } = renderPicker();
@@ -160,4 +175,36 @@ describe('ProductPicker', () => {
 
     expect(onSearchChange).toHaveBeenCalledWith('');
   });
+});
+
+it('does not add an exact lookup that finishes after the cart is locked', async () => {
+  let resolve!: (items: ProductCatalogItem[]) => void;
+  const lookup = vi.fn(
+    () =>
+      new Promise<ProductCatalogItem[]>((done) => {
+        resolve = done;
+      }),
+  );
+  const onAdd = vi.fn();
+  const picker = (
+    <ProductPicker
+      search="AO-001"
+      resolvedSearch=""
+      products={[]}
+      isLoading
+      onSearchChange={vi.fn()}
+      onExactLookup={lookup}
+      onAdd={onAdd}
+    />
+  );
+  const view = render(<fieldset>{picker}</fieldset>);
+  await userEvent.keyboard('{Tab}');
+  const input = screen.getByRole('combobox');
+  input.focus();
+  await userEvent.keyboard('{Enter}');
+  view.rerender(<fieldset disabled>{picker}</fieldset>);
+  await import('@testing-library/react').then(({ act }) =>
+    act(async () => resolve(products)),
+  );
+  expect(onAdd).not.toHaveBeenCalled();
 });

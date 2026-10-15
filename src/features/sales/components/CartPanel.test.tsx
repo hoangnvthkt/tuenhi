@@ -205,3 +205,20 @@ it('treats line discount as the whole row amount, separately from order discount
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(screen.getAllByText('108.500 ₫').length).toBeGreaterThan(0);
 });
+
+it('changes quantity with plus/minus and keeps one as the minimum', async () => {
+  render(<DiscountCart />);
+  const user = userEvent.setup();
+  const quantity = screen.getByLabelText('Số lượng');
+  const minus = screen.getByRole('button', {
+    name: 'Giảm số lượng 12B Linh Chi',
+  });
+  expect(minus).toBeDisabled();
+  await user.click(
+    screen.getByRole('button', { name: 'Tăng số lượng 12B Linh Chi' }),
+  );
+  expect(quantity).toHaveValue('2');
+  await user.click(minus);
+  expect(quantity).toHaveValue('1');
+  expect(minus).toBeDisabled();
+});

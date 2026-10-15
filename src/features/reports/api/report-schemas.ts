@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { INTEGER_FINAL } from '@/shared/lib/numeric/canonical-number';
+import {
+  INTEGER_FINAL,
+  SIGNED_INTEGER_FINAL,
+} from '@/shared/lib/numeric/canonical-number';
 
 const decimal = z.string();
 const quantity = z.string().regex(INTEGER_FINAL);
@@ -51,7 +54,7 @@ export const operationalDashboardSchema = z.object({
     activeProductCount: z.number().int(),
     lowStockCount: z.number().int(),
     outOfStockCount: z.number().int(),
-    totalOnHandQty: quantity,
+    totalOnHandQty: z.string().regex(SIGNED_INTEGER_FINAL),
   }),
   pending: z.object({
     purchaseReceipts: z.number().int(),

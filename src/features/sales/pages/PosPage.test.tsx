@@ -49,7 +49,8 @@ vi.mock('@/features/auth', async (importOriginal) => ({
   }),
 }));
 
-vi.mock('@/features/catalog', () => ({
+vi.mock('@/features/catalog/api/catalog-api', async (original) => ({
+  ...(await original<typeof import('@/features/catalog')>()),
   createCatalogApi: () => ({
     list: mocks.catalogList,
     detail: mocks.catalogDetail,
@@ -122,6 +123,28 @@ describe('PosPage', () => {
     vi.clearAllMocks();
   });
 
+  it('does not fetch or display the catalog until a nonblank search is typed', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const search = await screen.findByRole('combobox', {
+      name: 'Tìm sản phẩm',
+    });
+    await user.click(search);
+    await new Promise((resolve) => window.setTimeout(resolve, 300));
+    expect(mocks.catalogList).not.toHaveBeenCalled();
+    await user.type(search, 'sữa');
+    await waitFor(() =>
+      expect(mocks.catalogList).toHaveBeenCalledWith({
+        search: 'sữa',
+        limit: 30,
+      }),
+    );
+    await user.clear(search);
+    expect(
+      screen.queryByRole('listbox', { name: 'Kết quả tìm sản phẩm' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('allows provisional printing with an in-stock quantity of zero', async () => {
     localStorage.setItem(
       'tuenhi:pos:cart:10000000-0000-4000-8000-000000000099',
@@ -147,6 +170,14 @@ describe('PosPage', () => {
     );
     renderPage();
     const print = await screen.findByRole('button', { name: 'In tạm tính' });
+    const quantity = screen.getByLabelText('Số lượng');
+    await userEvent.clear(quantity);
+    expect(quantity).toBeEnabled();
+    await userEvent.type(quantity, '3');
+    expect(quantity).toHaveValue('3');
+    expect(
+      screen.queryByText('Giỏ hàng đang được chỉnh sửa ở tab khác.'),
+    ).not.toBeInTheDocument();
     expect(print).toBeEnabled();
     await userEvent.click(print);
     expect(mocks.preparePrint).toHaveBeenCalledOnce();
@@ -260,8 +291,7 @@ describe('PosPage', () => {
   it('debounces product lookup instead of querying on every keystroke', async () => {
     renderPage();
     await screen.findByRole('combobox', { name: 'Tìm sản phẩm' });
-    await waitFor(() => expect(mocks.catalogList).toHaveBeenCalled());
-    mocks.catalogList.mockClear();
+    expect(mocks.catalogList).not.toHaveBeenCalled();
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Tìm sản phẩm' }), {
       target: { value: 'áo' },
@@ -472,6 +502,7 @@ describe('PosPage', () => {
     );
     const targetId = '30000000-0000-4000-8000-000000000005';
     renderPage(`/pos?customerId=${targetId}`);
+    await user.click(await screen.findByRole('button', { name: 'Khách lẻ' }));
     const select = await screen.findByLabelText('Khách hàng');
     await user.click(select);
     await user.click(

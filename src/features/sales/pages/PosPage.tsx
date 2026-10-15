@@ -1,9 +1,10 @@
+import { X, Files } from '@phosphor-icons/react';
 import { formatPosMoney } from '../model/format-money';
 /* eslint-disable react-hooks/set-state-in-effect */
 import { usePrivateQueryKey } from '@/features/auth';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { PosDraftStatus } from '../components/PosDraftStatus';
 import { isDraftDirty } from '../model/draft-save-state';
 import { useQuery } from '@tanstack/react-query';
@@ -62,6 +63,7 @@ function getPosTabId() {
 
 export function PosPage() {
   const privateKey = usePrivateQueryKey();
+  const navigate = useNavigate();
   const { saleId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const online = useOnlineStatus();
@@ -221,7 +223,9 @@ export function PosPage() {
   }, [search]);
   const catalog = useQuery({
     queryKey: privateKey(...['pos-products', debouncedSearch]),
-    queryFn: () => catalogApi.list({ search: debouncedSearch, limit: 30 }),
+    queryFn: () =>
+      catalogApi.list({ search: debouncedSearch.trim(), limit: 30 }),
+    enabled: Boolean(search.trim()) && Boolean(debouncedSearch.trim()),
   });
   const channels = useQuery({
     queryKey: privateKey(...['pos-channels']),
@@ -376,7 +380,8 @@ export function PosPage() {
     });
     setLocalSaved(saved);
     if (saved) revisionRef.current = nextRevision;
-    else setCanEdit(false);
+    else if (!ownsPosEditorLease({ userId, identity, tabId, now: new Date() }))
+      setCanEdit(false);
   }, [
     canEdit,
     channelId,
@@ -426,6 +431,7 @@ export function PosPage() {
     unitName: string;
     currentSalePrice: string | null;
     onHandQty: string;
+    primaryImagePath?: string | null;
   }) => {
     const salePrice = product.currentSalePrice;
     if (!salePrice) return;
@@ -454,6 +460,7 @@ export function PosPage() {
           lineDiscountAmount: '0',
           lineOrder: current.length,
           onHandQty: product.onHandQty,
+          primaryImagePath: product.primaryImagePath,
         },
       ];
     });
@@ -584,22 +591,22 @@ export function PosPage() {
     note,
   });
   return (
-    <main
-      inert={Boolean(provisionalDocument)}
-      className="mx-auto max-w-7xl p-4 pb-28 sm:p-6 sm:pb-28 xl:pb-6"
-    >
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
+    <main inert={Boolean(provisionalDocument)} className="pos-page">
+      <div className="pos-titlebar">
+        <Link to="/sales" aria-label="Đóng bán hàng" className="pos-close">
+          <X size={23} />
+        </Link>
+        <div className="flex-1">
           <h1 className="text-2xl font-semibold text-slate-950">Bán hàng</h1>
-          <p className="text-sm text-slate-600">
-            Tìm hàng, lập giỏ và thanh toán.
-          </p>
+          <p className="sr-only">Tìm hàng, lập giỏ và thanh toán.</p>
         </div>
         <Link
           to="/sales?status=DRAFT"
-          className="min-h-11 rounded-lg border border-slate-300 px-3 py-3 text-sm font-medium"
+          aria-label="Đơn nháp"
+          className="pos-close"
         >
-          Đơn nháp
+          <Files size={24} aria-hidden="true" />
+          <span className="sr-only">Đơn nháp</span>
         </Link>
         {draft ? (
           <button
@@ -719,9 +726,9 @@ export function PosPage() {
         disabled={
           !workspaceReady || !canEdit || saving || !!payment || checkoutPending
         }
-        className="grid min-w-0 gap-5 disabled:opacity-75 lg:grid-cols-[1fr_420px]"
+        className="pos-workspace min-w-0 disabled:opacity-75"
       >
-        <div className="space-y-3">
+        <div className="pos-search-area">
           <PrefilledProductIntent
             product={focusedProduct}
             warning={focusWarning}
@@ -733,10 +740,22 @@ export function PosPage() {
             }}
           />
           <ProductPicker
+            onCreate={
+              session?.permissions.includes('catalog.basic.manage')
+                ? () => navigate('/products/new')
+                : undefined
+            }
             search={search}
             resolvedSearch={debouncedSearch}
-            products={catalog.data?.items ?? []}
-            isLoading={catalog.isLoading}
+            products={
+              search.trim() === debouncedSearch.trim()
+                ? (catalog.data?.items ?? [])
+                : []
+            }
+            isLoading={
+              Boolean(search.trim()) &&
+              (catalog.isFetching || search.trim() !== debouncedSearch.trim())
+            }
             onSearchChange={(value) => {
               if (focusedProduct && value !== focusedProduct.sku) {
                 clearFocusProduct();
@@ -751,6 +770,18 @@ export function PosPage() {
               if (focusedProduct?.id === product.id) clearFocusProduct();
             }}
           />
+          {search.trim() && catalog.isError ? (
+            <p role="alert" className="px-4 py-2 text-sm text-red-700">
+              Không thể tìm hàng.{' '}
+              <button
+                type="button"
+                className="underline"
+                onClick={() => void catalog.refetch()}
+              >
+                Thử lại
+              </button>
+            </p>
+          ) : null}
         </div>
         <CartPanel
           items={items}

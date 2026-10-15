@@ -1,10 +1,15 @@
 import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { createCatalogApi } from '../api/catalog-api';
 import {
   createProductImageApi,
   type ProductImageApi,
 } from '../api/product-image-api';
+
+async function loadProductPrimaryImagePath(productId: string) {
+  return (await createCatalogApi().detail(productId)).primaryImagePath;
+}
 
 function MissingImage({ className }: { className: string }) {
   return (
@@ -22,26 +27,38 @@ export function ProductImageThumbnail({
   alt,
   className = '',
   api: apiProp,
+  productId,
+  loadPrimaryImagePath = loadProductPrimaryImagePath,
 }: {
-  objectPath: string | null;
+  objectPath: string | null | undefined;
   alt: string;
   className?: string;
   api?: ProductImageApi;
+  productId?: string;
+  loadPrimaryImagePath?: (productId: string) => Promise<string | null>;
 }) {
   const privateKey = usePrivateQueryKey();
   const [api] = useState(() => apiProp ?? createProductImageApi());
+  const needsMetadata = objectPath === undefined && Boolean(productId);
+  const metadata = useQuery({
+    queryKey: privateKey('catalog', 'product-primary-image-path', productId),
+    queryFn: () => loadPrimaryImagePath(productId!),
+    enabled: needsMetadata,
+    staleTime: 8 * 60 * 1000,
+  });
+  const resolvedPath = objectPath === undefined ? metadata.data : objectPath;
   const query = useQuery({
-    queryKey: privateKey(...['catalog', 'product-image-url', objectPath]),
-    queryFn: () => api.createSignedUrl(objectPath!),
-    enabled: Boolean(objectPath),
+    queryKey: privateKey(...['catalog', 'product-image-url', resolvedPath]),
+    queryFn: () => api.createSignedUrl(resolvedPath!),
+    enabled: Boolean(resolvedPath),
     staleTime: 8 * 60 * 1000,
   });
   const baseClass = `aspect-square rounded-lg ${className}`;
 
-  if (!objectPath) {
-    return <MissingImage className={baseClass} />;
-  }
-  if (query.isPending) {
+  if (
+    (needsMetadata && metadata.isPending) ||
+    (resolvedPath && query.isPending)
+  ) {
     return (
       <div
         aria-label="Đang tải ảnh sản phẩm"
@@ -49,7 +66,7 @@ export function ProductImageThumbnail({
       />
     );
   }
-  if (query.isError || !query.data) {
+  if (!resolvedPath || query.isError || !query.data) {
     return <MissingImage className={baseClass} />;
   }
   return (

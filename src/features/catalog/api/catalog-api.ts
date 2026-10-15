@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { getBusinessErrorMessage } from '@/shared/api/command-error';
-import { INTEGER_FINAL } from '@/shared/lib/numeric/canonical-number';
+import {
+  INTEGER_FINAL,
+  SIGNED_INTEGER_FINAL,
+} from '@/shared/lib/numeric/canonical-number';
 import { getSupabaseClient } from '@/shared/supabase/client';
 import type {
   CatalogCursor,
@@ -49,7 +52,7 @@ const catalogItemSchema = z.object({
   primaryImagePath: z.string().max(500).nullable(),
   currentSalePrice: z.string().nullable(),
   defaultCost: z.string().nullable().optional(),
-  onHandQty: z.string().regex(INTEGER_FINAL),
+  onHandQty: z.string().regex(SIGNED_INTEGER_FINAL),
 });
 
 const cursorSchema = z.object({ name: z.string(), id: z.uuid() });

@@ -13,7 +13,7 @@ const stockCountLineSchema = z.object({
   productName: z.string(),
   sku: z.string(),
   unitName: z.string(),
-  systemQtySnapshot: z.string().regex(INTEGER_FINAL),
+  systemQtySnapshot: z.string().regex(SIGNED_INTEGER_FINAL),
   inventoryVersionSnapshot: z.number().int().nonnegative(),
   countedQty: z.string().regex(INTEGER_FINAL).nullable(),
   differenceQty: z.string().regex(SIGNED_INTEGER_FINAL).nullable(),

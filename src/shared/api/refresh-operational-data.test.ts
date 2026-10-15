@@ -26,6 +26,25 @@ function observeQuery(
 }
 
 describe('refreshOperationalData', () => {
+  it('refreshes customer debt warnings after a financial command resolves', async () => {
+    const client = new QueryClient();
+    clients.push(client);
+    let settled = false;
+    const observer = new QueryObserver(client, {
+      queryKey: ['notifications', 'mine', { accountId: 'owner' }, false],
+      queryFn: async () => ({ unreadCount: settled ? 0 : 1 }),
+      staleTime: Infinity,
+      retry: false,
+    });
+    const unsubscribe = observer.subscribe(() => undefined);
+    await observer.refetch();
+    expect(observer.getCurrentResult().data?.unreadCount).toBe(1);
+    settled = true;
+    await refreshOperationalData(client);
+    expect(observer.getCurrentResult().data?.unreadCount).toBe(0);
+    unsubscribe();
+  });
+
   it('refetches active operational data without refetching unrelated active queries', async () => {
     const client = new QueryClient();
     clients.push(client);

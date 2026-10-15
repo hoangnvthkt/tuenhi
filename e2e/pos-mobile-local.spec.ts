@@ -7,7 +7,7 @@ test.beforeEach(async ({ context, page }) => {
   );
   await page.goto('/e2e/fixtures/pos-convenience.html');
 });
-test('20-line cart keeps checkout visible above navigation and modal contains keyboard focus', async ({
+test('20-line cart keeps checkout visible at the bottom and modal contains keyboard focus', async ({
   page,
 }, testInfo) => {
   const pay = page.getByRole('button', { name: 'Thanh toán', exact: true });
@@ -17,7 +17,8 @@ test('20-line cart keeps checkout visible above navigation and modal contains ke
     fullPage: false,
   });
   const box = await pay.boundingBox();
-  expect(box!.y + box!.height).toBeLessThan(page.viewportSize()!.height - 60);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+  await expect(pay).toBeInViewport();
   expect(box!.y).toBeGreaterThan(0);
   expect(
     await page.evaluate(
@@ -54,6 +55,7 @@ test('20-line cart keeps checkout visible above navigation and modal contains ke
 test('valid cash discounts do not show a numeric range error after blur', async ({
   page,
 }) => {
+  await page.getByRole('button', { name: 'Bảng giá chung' }).click();
   const lineDiscount = page.getByLabel('Giảm dòng', { exact: true }).first();
   await lineDiscount.fill('1000');
   await lineDiscount.press('Tab');
@@ -101,5 +103,40 @@ test('KH01 mixed settlement, debt collection and reasoned adjustment fit a mobil
   await page.screenshot({
     path: testInfo.outputPath('customer-debt.png'),
     fullPage: true,
+  });
+});
+
+test('reference sale layout only shows product suggestions after typing', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/e2e/fixtures/pos-convenience.html?reference');
+  const search = page.getByRole('combobox', { name: 'Tìm sản phẩm' });
+  await search.click();
+  await expect(page.getByRole('option')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Lưu tạm' })).toBeInViewport();
+  await expect(
+    page.getByRole('button', { name: 'Thanh toán', exact: true }),
+  ).toBeInViewport();
+  await search.fill('20B');
+  await expect(page.getByRole('option')).toHaveCount(1);
+  await search.clear();
+  await expect(page.getByRole('option')).toHaveCount(0);
+  await search.blur();
+  await page
+    .getByRole('button', { name: 'Tăng số lượng 20b vàng nâu' })
+    .click();
+  await expect(page.getByLabel('Số lượng', { exact: true })).toHaveValue('2');
+  await page
+    .getByRole('button', { name: 'Giảm số lượng 20b vàng nâu' })
+    .click();
+  await expect(page.getByLabel('Số lượng', { exact: true })).toHaveValue('1');
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath('sale-reference.png'),
+    fullPage: false,
   });
 });

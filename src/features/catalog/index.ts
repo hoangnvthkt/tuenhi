@@ -18,3 +18,5 @@ export type {
 } from './model/catalog-types';
 
 export { ProductSelect } from './components/ProductSelect';
+
+export { ProductImageThumbnail } from './components/ProductImageThumbnail';

@@ -142,6 +142,15 @@ export function NotificationCenter({
     });
   }, [api, queryClient, notificationFamilyKey, userId]);
 
+  useEffect(() => {
+    if (!userId) return;
+    // Age-based reminders must refresh even when no financial row changes.
+    const interval = window.setInterval(() => {
+      void queryClient.invalidateQueries({ queryKey: notificationFamilyKey });
+    }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [queryClient, notificationFamilyKey, userId]);
+
   const markRead = useMutation({
     mutationFn: (id: string) => api.markRead(id),
     onSuccess: () => {

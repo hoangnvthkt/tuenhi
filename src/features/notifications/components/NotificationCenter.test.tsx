@@ -74,6 +74,45 @@ function renderCenter(api: NotificationApi) {
 }
 
 describe('NotificationCenter', () => {
+  it('refreshes aging debt reminders while the application stays open and stops after unmount', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    try {
+      let overdue = false;
+      const api = createApi({
+        list: vi.fn(async () =>
+          overdue
+            ? unreadFeed
+            : { items: [], unreadCount: 0, nextCursor: null },
+        ),
+      });
+      const client = new QueryClient({
+        defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+      });
+      const { unmount } = render(
+        <QueryClientProvider client={client}>
+          <SessionContextValue.Provider value={authValue('owner')}>
+            <NotificationCenter api={api} />
+          </SessionContextValue.Provider>
+        </QueryClientProvider>,
+      );
+      await waitFor(() => expect(api.list).toHaveBeenCalledOnce());
+      expect(
+        screen.queryByLabelText('1 thông báo chưa đọc'),
+      ).not.toBeInTheDocument();
+      overdue = true;
+      await act(async () => vi.advanceTimersByTime(60_000));
+      expect(
+        await screen.findByLabelText('1 thông báo chưa đọc'),
+      ).toBeInTheDocument();
+      unmount();
+      const count = vi.mocked(api.list).mock.calls.length;
+      await act(async () => vi.advanceTimersByTime(120_000));
+      expect(api.list).toHaveBeenCalledTimes(count);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('shows the unread badge and opens an accessible notification dialog', async () => {
     const user = userEvent.setup();
     renderCenter(createApi());

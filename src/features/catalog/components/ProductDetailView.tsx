@@ -1,5 +1,8 @@
 import { Link } from 'react-router';
-import { formatViNumber } from '@/shared/lib/numeric/canonical-number';
+import {
+  formatViNumber,
+  formatViDecimal,
+} from '@/shared/lib/numeric/canonical-number';
 import type { PriceHistoryItem } from '../api/catalog-api';
 import type { ProductDetail } from '../model/catalog-types';
 import { ProductImageManager } from './ProductImageManager';
@@ -146,7 +149,7 @@ export function ProductDetailView({
               Tồn hiện tại
             </p>
             <p className="mt-2 text-xl font-bold tabular-nums text-slate-950">
-              {formatViNumber(detail.onHandQty)} {detail.unitName}
+              {formatViDecimal(detail.onHandQty, 0)} {detail.unitName}
             </p>
           </div>
         </aside>

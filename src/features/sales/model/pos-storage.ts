@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   INTEGER_FINAL,
+  SIGNED_INTEGER_FINAL,
   MONEY_EDITING,
   MONEY_FINAL,
 } from '@/shared/lib/numeric/canonical-number';
@@ -24,6 +25,7 @@ const cartIdentitySchema = z.discriminatedUnion('kind', [
 export type PosCartIdentity = z.infer<typeof cartIdentitySchema>;
 
 const cartItemSchema = z.object({
+  id: z.uuid().optional(),
   productId: z.uuid(),
   productName: z.string().min(1).max(500),
   sku: z.string().min(1).max(100),
@@ -32,7 +34,8 @@ const cartItemSchema = z.object({
   unitSalePrice: z.string().regex(MONEY_FINAL).max(24),
   lineDiscountAmount: z.string().regex(MONEY_EDITING).max(24),
   lineOrder: z.number().int().nonnegative(),
-  onHandQty: z.string().regex(INTEGER_FINAL).max(18),
+  onHandQty: z.string().regex(SIGNED_INTEGER_FINAL).max(19),
+  primaryImagePath: z.string().max(500).nullable().optional(),
 });
 
 const emptyOrUuid = z.union([z.literal(''), z.uuid()]);

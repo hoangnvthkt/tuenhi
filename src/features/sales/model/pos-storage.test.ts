@@ -28,6 +28,11 @@ const validLine = {
 };
 
 describe('sanitizePersistedPosCartItems', () => {
+  it('restores a sale line whose inventory is negative', () => {
+    const line = { ...validLine, onHandQty: '-3' };
+    expect(sanitizePersistedPosCartItems([line])).toEqual([line]);
+  });
+
   it('keeps canonical integer quantities and drops old fractional quantities', () => {
     expect(
       sanitizePersistedPosCartItems([

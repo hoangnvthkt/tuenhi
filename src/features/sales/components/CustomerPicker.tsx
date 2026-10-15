@@ -1,4 +1,5 @@
-import { useContext, useRef, useState } from 'react';
+import { useContext, useId, useRef, useState } from 'react';
+import { CaretRight, User } from '@phosphor-icons/react';
 import { SessionContextValue } from '@/features/auth';
 import { QuickCustomerDialog } from './QuickCustomerDialog';
 import { useQuery } from '@tanstack/react-query';
@@ -16,17 +17,22 @@ export function CustomerPicker({
   disabled,
   onChange,
   selectedSnapshot,
+  compact = false,
 }: {
   value: string | null;
   disabled: boolean;
   onChange: (id: string | null) => void;
   selectedSnapshot?: CustomerItem;
+  compact?: boolean;
 }) {
   const privateKey = usePrivateQueryKey();
   const auth = useContext(SessionContextValue);
   const canCreate =
     auth?.session?.permissions.includes('customer.manage') ?? false;
   const [creating, setCreating] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const summaryButton = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
   const addButton = useRef<HTMLButtonElement>(null);
   const [api] = useState(createDirectoryApi);
   const [explorer] = useState(createCustomerExplorerApi);
@@ -42,13 +48,14 @@ export function CustomerPicker({
     queryFn: () => explorer.customerDetail({ customerId: value! }),
     enabled: !!value && !snapshot,
   });
-  return (
+  const selected = snapshot ?? detail.data;
+  const picker = (
     <>
       <SearchSelect<CustomerItem, DirectoryCursor>
         label="Khách hàng"
         value={value}
         disabled={disabled}
-        selected={snapshot ?? detail.data}
+        selected={selected}
         queryKey={privateKey('pos-customers')}
         load={(search, cursor) =>
           api.listCustomers({ search, cursor, limit: 30 })
@@ -60,6 +67,10 @@ export function CustomerPicker({
         onChange={(item) => {
           setChosen(item);
           onChange(item?.id ?? null);
+          if (compact) {
+            setExpanded(false);
+            requestAnimationFrame(() => summaryButton.current?.focus());
+          }
         }}
       />
       {canCreate ? (
@@ -85,8 +96,11 @@ export function CustomerPicker({
             setChosen(item);
             onChange(item.id);
             setCreating(false);
+            if (compact) setExpanded(false);
             requestAnimationFrame(() =>
-              document.getElementById('pos-product-search')?.focus(),
+              compact
+                ? summaryButton.current?.focus()
+                : document.getElementById('pos-product-search')?.focus(),
             );
           }}
         />
@@ -99,6 +113,29 @@ export function CustomerPicker({
           </button>
         </p>
       ) : null}
+    </>
+  );
+  if (!compact) return picker;
+  return (
+    <>
+      <button
+        ref={summaryButton}
+        type="button"
+        className="pos-context-row"
+        disabled={disabled || creating}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        onClick={() => setExpanded((current) => !current)}
+      >
+        <User size={19} aria-hidden="true" />
+        <span>
+          {selected?.name ?? (value ? 'Đang tải khách hàng…' : 'Khách lẻ')}
+        </span>
+        <CaretRight size={20} aria-hidden="true" />
+      </button>
+      <div id={panelId} className="pos-customer-picker" hidden={!expanded}>
+        {picker}
+      </div>
     </>
   );
 }

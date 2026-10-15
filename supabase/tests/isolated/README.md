@@ -25,7 +25,7 @@ pnpm test:feedback:isolated
 
 Coverage:
 
-- Scoped provisional printing, insufficient stock, official-state rejection,
+- Scoped provisional printing with zero stock, official-state rejection,
   and no stock/payment/numbering mutations.
 - Inventory viewer permissions, stale overrides, price redaction, role change
   cleanup, creation and password gate; existing roles retain prior behavior.
@@ -38,3 +38,21 @@ Coverage:
 For an approved Cloud release, use only the sibling read-only assertion files
 through `pnpm cloud:verify:feedback`; these fixtures are not part of that command.
 Stop and discard the disposable cluster when finished.
+
+## Negative inventory and deferred costs
+
+After applying migrations through `20261015103004_negative_inventory_deferred_costing.sql`,
+clone the pristine schema into `pos_negative_stock`. Run `negative_inventory.sql`
+using `psql -X -v ON_ERROR_STOP=1`, then run `negative_inventory_concurrency.mjs`
+with the same Unix-socket environment variables (default port `55441`).
+The SQL fixture rolls back; the concurrency runner requires empty Auth tables,
+commits synthetic fixtures and removes them in `finally`. Do not run it in parallel
+with another test against that database.
+
+Coverage includes sales below zero, FIFO partial/full cost correction, cost and
+rounding conservation, returns/cancellations before and after replenishment,
+signed stock-count snapshots, explicit decimal cost estimates, catalog/dashboard
+out-of-stock filters, and concurrent sale/restock/return/cancel commands.
+`checkout_confirmation_guards.sql` now verifies that zero-stock checkout succeeds
+while price/version guards still reject stale drafts. See
+[the accounting policy and local verification runbook](../../../docs/runbooks/negative-inventory.md).

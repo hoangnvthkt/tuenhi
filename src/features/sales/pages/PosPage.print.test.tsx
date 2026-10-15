@@ -29,8 +29,12 @@ vi.mock('@/features/auth', async (importOriginal) => ({
 vi.mock('@/shared/hooks/use-online-status', () => ({
   useOnlineStatus: () => true,
 }));
-vi.mock('@/features/catalog', () => ({
-  createCatalogApi: () => ({ list: async () => ({ items: [] }) }),
+vi.mock('@/features/catalog/api/catalog-api', async (original) => ({
+  ...(await original<typeof import('@/features/catalog')>()),
+  createCatalogApi: () => ({
+    list: async () => ({ items: [] }),
+    detail: async () => ({ primaryImagePath: null }),
+  }),
 }));
 vi.mock('@/features/directories', () => ({
   createDirectoryApi: () => ({ listCustomers: mocks.listCustomers }),

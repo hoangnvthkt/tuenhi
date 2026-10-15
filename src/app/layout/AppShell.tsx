@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Link, NavLink, Outlet } from 'react-router';
+import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useSession } from '@/features/auth';
 import { NotificationCenter } from '@/features/notifications';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
@@ -80,10 +80,14 @@ function NavigationLinks({
 
 export function AppShell() {
   const isOnline = useOnlineStatus();
+  const { pathname } = useLocation();
+  const isPos = pathname === '/pos' || /^\/pos\/[^/]+$/.test(pathname);
   const { session, signOut } = useSession();
 
   return (
-    <div className="app-shell min-h-screen text-slate-900">
+    <div
+      className={`app-shell min-h-screen text-slate-900 ${isPos ? 'pos-active' : ''}`}
+    >
       <Suspense fallback={null}>
         <CatalogRealtimeBridge isOnline={isOnline} />
       </Suspense>

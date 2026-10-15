@@ -3,6 +3,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { renderWithQueryClient } from '@/shared/testing/render-with-query-client';
 import { CustomerPicker } from './CustomerPicker';
+import { useState } from 'react';
 const mocks = vi.hoisted(() => ({
   listCustomers: vi.fn(),
   customerDetail: vi.fn(),
@@ -26,6 +27,99 @@ const customer = (id: string, name: string) => ({
   version: 1,
 });
 beforeEach(() => vi.clearAllMocks());
+
+function CompactPicker({
+  initialValue = null,
+}: {
+  initialValue?: string | null;
+}) {
+  const [value, setValue] = useState(initialValue);
+  return (
+    <CustomerPicker
+      compact
+      value={value}
+      disabled={false}
+      onChange={setValue}
+    />
+  );
+}
+
+it('loads a remote selected customer name in the collapsed summary', async () => {
+  mocks.customerDetail.mockResolvedValue(
+    customer('remote', 'Khách ngoài trang đầu'),
+  );
+  renderWithQueryClient(<CompactPicker initialValue="remote" />);
+
+  expect(
+    await screen.findByRole('button', { name: 'Khách ngoài trang đầu' }),
+  ).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+});
+
+it('keeps a searched customer name visible after compact selection collapses', async () => {
+  mocks.listCustomers.mockImplementation(async ({ search }) => ({
+    items: search ? [customer('101', 'Khách 101')] : [],
+    nextCursor: null,
+  }));
+  renderWithQueryClient(<CompactPicker />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Khách lẻ' }));
+  fireEvent.change(screen.getByRole('combobox'), {
+    target: { value: 'Khách 101' },
+  });
+  fireEvent.click(await screen.findByRole('option', { name: 'Khách 101' }));
+
+  expect(screen.getByRole('button', { name: 'Khách 101' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+});
+
+it('keeps a quick-created customer name visible in the collapsed summary', async () => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  const auth: SessionValue = {
+    status: 'authenticated',
+    errorMessage: null,
+    refresh: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+    changePassword: vi.fn(),
+    session: {
+      userId: 'owner',
+      permissions: ['customer.manage'],
+      email: 'owner@example.test',
+      displayName: 'Owner',
+      roleTemplate: 'OWNER',
+      isActive: true,
+      mustChangePassword: false,
+    },
+  };
+  mocks.listCustomers.mockResolvedValue({ items: [], nextCursor: null });
+  mocks.saveCustomer.mockResolvedValue({ customerId: 'new-id', version: 1 });
+  renderWithQueryClient(
+    <SessionContextValue.Provider value={auth}>
+      <CompactPicker />
+    </SessionContextValue.Provider>,
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Khách lẻ' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Thêm khách' }));
+  fireEvent.change(screen.getByLabelText('Tên khách hàng'), {
+    target: { value: 'Mai' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu và chọn' }));
+
+  expect(await screen.findByRole('button', { name: 'Mai' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+});
+
 it('searches server data beyond the first page and retains the independently loaded selection', async () => {
   mocks.customerDetail.mockResolvedValue(customer('old', 'Khách đã chọn'));
   mocks.listCustomers.mockImplementation(async ({ search, cursor }) => ({

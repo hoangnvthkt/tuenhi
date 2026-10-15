@@ -27,10 +27,13 @@ begin
  if exists(select 1 from api.payments) or exists(select 1 from api.stock_movements) or exists(select 1 from app_private.sales_financial_events) then raise exception 'Rejected checkout changed ledger'; end if;
  update app_private.product_sale_prices set sale_price=10 where product_id='30000000-0000-4000-8000-000000000001';
  update api.inventory_balances set on_hand_qty=0;
+ update app_private.inventory_cost_balances set inventory_value=0,avg_unit_cost=0;
  result:=api.get_sale_draft_print(sid);
  if result->>'ok' is distinct from 'true' then raise exception 'Zero stock print: %',result; end if;
  result:=api.complete_sale(sid,ver,'CASH',gen_random_uuid(),null);
- if result#>>'{error,code}' is distinct from 'INSUFFICIENT_STOCK' then raise exception 'Stock guard: %',result; end if;
- raise notice 'PASS checkout version, price, stock guards and zero-stock provisional print';
+ if result->>'ok' is distinct from 'true' then raise exception 'Zero-stock checkout: %',result; end if;
+ if (select on_hand_qty from api.inventory_balances where product_id='30000000-0000-4000-8000-000000000001')<>-5 then raise exception 'Zero-stock checkout did not create signed balance'; end if;
+ if (select sum(cogs_total_snapshot) from app_private.sale_line_costs)<>0 or (select sum(remaining_qty) from app_private.sale_inventory_shortages)<>5 then raise exception 'Zero-stock checkout did not defer unknown cost'; end if;
+ raise notice 'PASS checkout version and price guards, zero-stock provisional print and negative-stock checkout';
 end $$;
 rollback;
