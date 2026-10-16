@@ -2,6 +2,7 @@ import { usePrivateQueryKey } from '@/features/auth';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
+  createSaleSettlementsApi,
   createOwnerReportsApi,
   createRevenueReportsApi,
   type ReportPeriod,
@@ -26,6 +27,7 @@ export function useDashboardData({
 }) {
   const privateKey = usePrivateQueryKey();
   const [revenueApi] = useState(createRevenueReportsApi);
+  const [settlementApi] = useState(createSaleSettlementsApi);
   const [ownerApi] = useState(createOwnerReportsApi);
   const refreshOptions = {
     refetchInterval: () =>
@@ -46,6 +48,12 @@ export function useDashboardData({
     enabled: canAll || canOwn,
     ...refreshOptions,
   });
+  const settlements = useQuery({
+    queryKey: privateKey('dashboard-settlements', from, to, canAll),
+    queryFn: () => settlementApi.report(from, to, canAll ? 'ALL' : 'OWN'),
+    enabled: canAll || canOwn,
+    ...refreshOptions,
+  });
   const owner = useQuery({
     queryKey: privateKey(...['dashboard-owner', period, from, to]),
     queryFn: () => ownerApi.owner(from, to),
@@ -55,8 +63,11 @@ export function useDashboardData({
   });
   const refresh = () => {
     void operational.refetch();
-    if (canAll || canOwn) void revenue.refetch();
+    if (canAll || canOwn) {
+      void revenue.refetch();
+      void settlements.refetch();
+    }
     if (canProfit) void owner.refetch();
   };
-  return { operational, revenue, owner, refresh };
+  return { operational, revenue, owner, settlements, refresh };
 }

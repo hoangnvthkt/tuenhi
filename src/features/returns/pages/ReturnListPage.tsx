@@ -1,7 +1,7 @@
 import { useCursorList } from '@/shared/hooks/use-cursor-list';
 import { ListPagination } from '@/shared/ui/feedback/ListPagination';
 import { usePrivateQueryKey } from '@/features/auth';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useState } from 'react';
 import { createReturnsApi } from '../api/returns-api';
 
@@ -23,7 +23,10 @@ export function ReturnListPage() {
   const privateKey = usePrivateQueryKey();
   const [api] = useState(createReturnsApi);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
+  const [params, setParams] = useSearchParams();
+  const status = params.get('status') ?? '';
+  const setStatus = (value: string) =>
+    setParams(value ? { status: value } : {});
   const query = useCursorList({
     queryKey: privateKey(...['sale-returns', search, status]),
     load: (cursor: { updatedAt: string; id: string } | undefined) =>

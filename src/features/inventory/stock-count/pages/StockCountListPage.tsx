@@ -1,7 +1,7 @@
 import { useCursorList } from '@/shared/hooks/use-cursor-list';
 import { ListPagination } from '@/shared/ui/feedback/ListPagination';
 import { usePrivateQueryKey } from '@/features/auth';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useState } from 'react';
 import { createStockCountApi } from '../api/stock-count-api';
 import { statusLabel } from '../../model/inventory-ui';
@@ -9,7 +9,10 @@ import { statusLabel } from '../../model/inventory-ui';
 export function StockCountListPage() {
   const privateKey = usePrivateQueryKey();
   const [api] = useState(createStockCountApi);
-  const [status, setStatus] = useState('');
+  const [params, setParams] = useSearchParams();
+  const status = params.get('status') ?? '';
+  const setStatus = (value: string) =>
+    setParams(value ? { status: value } : {});
   const query = useCursorList({
     queryKey: privateKey(...['stock-counts', status]),
     load: (cursor: { updatedAt: string; id: string } | undefined) =>

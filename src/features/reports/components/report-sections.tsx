@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import type { ProfitPage } from '../api/reports-api';
 import { eventLabel, formatReportMoney } from '../model/report-ui';
 
@@ -63,7 +64,10 @@ export function ReportBreakdown({
 
 export function ProfitEventTable({ items }: { items: ProfitPage['items'] }) {
   return (
-    <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+    <section
+      id="profit"
+      className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm"
+    >
       <h2 className="p-4 text-base font-bold text-slate-950">
         Sự kiện tài chính
       </h2>
@@ -89,7 +93,18 @@ export function ProfitEventTable({ items }: { items: ProfitPage['items'] }) {
                 }).format(new Date(item.occurredAt))}
               </td>
               <td className="p-3">{eventLabel(item.eventType)}</td>
-              <td className="p-3">{item.returnNumber ?? item.saleNumber}</td>
+              <td className="p-3">
+                <Link
+                  className="font-semibold text-teal-800 underline"
+                  to={
+                    item.returnId
+                      ? `/returns/${item.returnId}`
+                      : `/sales/${item.saleId}`
+                  }
+                >
+                  {item.returnNumber ?? item.saleNumber}
+                </Link>
+              </td>
               <td className="p-3 text-right tabular-nums">
                 {formatReportMoney(item.netRevenue)}
               </td>

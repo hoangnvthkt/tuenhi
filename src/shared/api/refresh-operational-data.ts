@@ -30,6 +30,8 @@ const operationalQueryRoots = new Set([
   'inventory-valuation',
   'operational-dashboard',
   'dashboard-revenue',
+  'dashboard-settlements',
+  'sale-settlements',
   'dashboard-owner',
   'reports',
   'owner-dashboard',

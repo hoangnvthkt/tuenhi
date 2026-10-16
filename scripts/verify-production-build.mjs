@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url';
 const limits = {
   initialJavaScriptGzipBytes: 220 * 1024,
   initialCssGzipBytes: 12 * 1024,
-  // Customer debt flows and mixed-payment change add small lazy payloads.
-  // Keep startup budgets fixed; allow 34 KiB of growth in total deploy assets.
-  totalAssetBytes: 4 * 1024 * 1024 + 34 * 1024,
+  // Customer debt, mixed payments and settlement drilldowns add lazy payloads.
+  // Keep startup budgets fixed; allow 42 KiB of growth in total deploy assets.
+  totalAssetBytes: 4 * 1024 * 1024 + 42 * 1024,
 };
 
 async function walk(directory) {

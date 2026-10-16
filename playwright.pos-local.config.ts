@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
-  testMatch: 'pos-mobile-local.spec.ts',
+  testMatch: ['pos-mobile-local.spec.ts', 'dashboard-local.spec.ts'],
   fullyParallel: true,
   use: { baseURL: 'http://127.0.0.1:5179', trace: 'retain-on-failure' },
   projects: [

@@ -5,6 +5,7 @@ import { MemoryRouter, useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { SessionContextValue } from '@/features/auth';
 import {
+  createSaleSettlementsApi,
   createOwnerReportsApi,
   createRevenueReportsApi,
 } from '@/features/reports';
@@ -12,6 +13,7 @@ import { DashboardPage } from './DashboardPage';
 
 vi.mock('@/features/reports', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/reports')>()),
+  createSaleSettlementsApi: vi.fn(),
   createOwnerReportsApi: vi.fn(),
   createRevenueReportsApi: vi.fn(),
 }));
@@ -69,6 +71,19 @@ function renderPage(
     'report.cost_profit.read',
   ],
 ) {
+  const settlements = vi.fn().mockResolvedValue({
+    version: 1,
+    range: { from: '2026-10-16', to: '2026-10-16' },
+    scope: 'ALL',
+    summary: {
+      cashAmount: '45000',
+      bankTransferAmount: '10000',
+      outstandingAmount: '20000',
+    },
+    items: [],
+    nextCursor: null,
+  });
+  vi.mocked(createSaleSettlementsApi).mockReturnValue({ report: settlements });
   const api = {
     operational: vi.fn().mockResolvedValue(operational),
     mySummary: vi.fn().mockResolvedValue(revenue),
@@ -201,4 +216,56 @@ it('does not request or offer revenue reports without revenue permission, includ
   await userEvent.click(screen.getByRole('button', { name: 'Làm mới' }));
   expect(api.mySummary).not.toHaveBeenCalled();
   expect(api.revenue).not.toHaveBeenCalled();
+});
+
+it('shows exact cash, transfer and remaining debt and preserves range in drilldown links', async () => {
+  renderPage();
+  const cash = await screen.findByRole('article', { name: 'Tiền mặt' });
+  expect(cash).toHaveTextContent('45.000 ₫');
+  expect(
+    screen.getByRole('article', { name: 'Chuyển khoản' }),
+  ).toHaveTextContent('10.000 ₫');
+  expect(screen.getByRole('article', { name: 'Nợ còn lại' })).toHaveTextContent(
+    '20.000 ₫',
+  );
+  for (const [label, method] of [
+    ['Tiền mặt', 'CASH'],
+    ['Chuyển khoản', 'BANK_TRANSFER'],
+    ['Nợ còn lại', 'DEBT'],
+  ]) {
+    const href = screen
+      .getByRole('link', { name: label })
+      .getAttribute('href')!;
+    const url = new URL(href, 'https://local.invalid');
+    expect(url.pathname).toBe('/reports/settlements');
+    expect(url.searchParams.get('method')).toBe(method);
+    expect(url.searchParams.get('period')).toBe('today');
+    expect(url.searchParams.get('scope')).toBe('ALL');
+    expect(url.searchParams.get('from')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  }
+});
+
+it('links stock and pending document metrics to filtered source lists', async () => {
+  renderPage();
+  await screen.findByRole('article', { name: 'Sản phẩm hoạt động' });
+  expect(screen.getByRole('link', { name: 'Sắp hết hàng' })).toHaveAttribute(
+    'href',
+    '/products?stock=LOW_STOCK',
+  );
+  expect(screen.getByRole('link', { name: 'Hết hàng' })).toHaveAttribute(
+    'href',
+    '/products?stock=OUT_OF_STOCK',
+  );
+  expect(
+    screen.getByRole('link', { name: 'Phiếu nhập chờ xử lý' }),
+  ).toHaveAttribute('href', '/more/purchases?status=AWAITING_COST');
+  expect(
+    screen.getByRole('link', { name: 'Kiểm kho chờ xử lý' }),
+  ).toHaveAttribute('href', '/stock-counts?status=COUNTED');
+  expect(
+    screen.getByRole('link', { name: 'Trả hàng chờ xử lý' }),
+  ).toHaveAttribute('href', '/returns?status=REQUESTED');
+  expect(
+    screen.getByRole('link', { name: 'Giá trị tồn hiện tại' }),
+  ).toHaveAttribute('href', '/more/inventory/valuation');
 });

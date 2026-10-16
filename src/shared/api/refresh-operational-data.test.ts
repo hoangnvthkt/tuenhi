@@ -87,3 +87,26 @@ describe('refreshOperationalData', () => {
     staff.unsubscribe();
   });
 });
+
+it.each(['dashboard-settlements', 'sale-settlements'])(
+  'refreshes current payment/debt figures in %s after a financial command',
+  async (root) => {
+    const client = new QueryClient();
+    clients.push(client);
+    let debt = '20000';
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps -- Model changing server state under a stable cache key.
+    const observer = new QueryObserver(client, {
+      queryKey: [root, '2026-10-16'],
+      queryFn: async () => ({ outstandingAmount: debt }),
+      staleTime: Infinity,
+      retry: false,
+    });
+    const unsubscribe = observer.subscribe(() => undefined);
+    await observer.refetch();
+    expect(observer.getCurrentResult().data?.outstandingAmount).toBe('20000');
+    debt = '0';
+    await refreshOperationalData(client);
+    expect(observer.getCurrentResult().data?.outstandingAmount).toBe('0');
+    unsubscribe();
+  },
+);

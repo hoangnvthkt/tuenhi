@@ -2,7 +2,7 @@ import { usePrivateQueryKey } from '@/features/auth';
 import { useCursorList } from '@/shared/hooks/use-cursor-list';
 import { ListPagination } from '@/shared/ui/feedback/ListPagination';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useSession } from '@/features/auth';
 import { createPurchaseApi } from '../api/purchase-api';
 import { formatNumber, statusLabel } from '../../model/inventory-ui';
@@ -10,11 +10,13 @@ import { formatNumber, statusLabel } from '../../model/inventory-ui';
 export function PurchaseListPage() {
   const [api] = useState(createPurchaseApi);
   const { session } = useSession();
+  const [params, setParams] = useSearchParams();
+  const status = params.get('status') ?? '';
   const privateKey = usePrivateQueryKey();
   const query = useCursorList({
-    queryKey: privateKey('purchase-receipts'),
+    queryKey: privateKey('purchase-receipts', status),
     load: (cursor: { updatedAt: string; id: string } | undefined) =>
-      api.list(undefined, cursor),
+      api.list(status || undefined, cursor),
     id: (item) => item.id,
   });
   const items = query.items;
@@ -38,6 +40,26 @@ export function PurchaseListPage() {
           </Link>
         ) : null}
       </div>
+      <label className="block text-sm font-medium">
+        Trạng thái phiếu nhập
+        <select
+          aria-label="Trạng thái phiếu nhập"
+          value={status}
+          onChange={(event) =>
+            setParams(event.target.value ? { status: event.target.value } : {})
+          }
+          className="ml-2 min-h-11 rounded-lg border border-slate-300 px-3"
+        >
+          <option value="">Tất cả trạng thái</option>
+          {['DRAFT', 'AWAITING_COST', 'POSTED', 'REVERSED', 'CANCELLED'].map(
+            (value) => (
+              <option key={value} value={value}>
+                {statusLabel[value]}
+              </option>
+            ),
+          )}
+        </select>
+      </label>
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         {query.isSuccess && items.length === 0 ? (
           <p className="p-5 text-sm text-slate-600">Chưa có phiếu nhập nào.</p>

@@ -13,6 +13,11 @@ const ReportPage = lazy(() =>
     default: module.ReportPage,
   })),
 );
+const SettlementReportPage = lazy(() =>
+  import('@/features/reports').then((module) => ({
+    default: module.SettlementReportPage,
+  })),
+);
 const InventoryValuationPage = lazy(() =>
   import('@/features/inventory').then((module) => ({
     default: module.InventoryValuationPage,
@@ -39,7 +44,10 @@ export const reportRoutes: RouteObject[] = [
         permission={['report.own_revenue.read', 'report.all_revenue.read']}
       />
     ),
-    children: [{ path: 'reports', element: <ReportPage /> }],
+    children: [
+      { path: 'reports', element: <ReportPage /> },
+      { path: 'reports/settlements', element: <SettlementReportPage /> },
+    ],
   },
   {
     element: <RequireSession permission="report.cost_profit.read" />,

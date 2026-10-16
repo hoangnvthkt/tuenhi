@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router';
 import { useSession } from '@/features/auth';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import {
@@ -53,6 +53,18 @@ export function ReportPage() {
     canProfit,
     online,
   });
+  const location = useLocation();
+  const scrolledLocation = useRef('');
+  useEffect(() => {
+    if (!['#returns', '#profit'].includes(location.hash)) return;
+    const key = location.key + location.hash;
+    if (scrolledLocation.current === key) return;
+    const section = document.getElementById(location.hash.slice(1));
+    if (section) {
+      section.scrollIntoView?.({ block: 'start' });
+      scrolledLocation.current = key;
+    }
+  }, [location.key, location.hash, report.data, owner.data, profit.data]);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const setPeriod = (next: ReportPeriod) => {
@@ -178,7 +190,7 @@ export function ReportPage() {
               }
             />
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div id="returns" className="grid gap-3 sm:grid-cols-3">
             <ReportMetric
               label="Giảm dòng"
               value={formatReportMoney(report.data.summary.lineDiscounts)}

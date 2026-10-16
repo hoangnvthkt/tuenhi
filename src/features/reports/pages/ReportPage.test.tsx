@@ -33,6 +33,8 @@ it('stops at the last profit page without duplicating events or changing summary
     occurredAt: '2026-10-01T00:00:00Z',
     eventType: 'SALE_COMPLETED',
     saleNumber: `HD${n}`,
+    saleId: '10000000-0000-4000-8000-000000000001',
+    returnId: null,
     returnNumber: null,
     netRevenue: '10',
     netCogs: '5',
@@ -54,6 +56,10 @@ it('stops at the last profit page without duplicating events or changing summary
     await screen.findByRole('button', { name: 'Tải thêm sự kiện' }),
   );
   await screen.findByText('HD51');
+  expect(screen.getByRole('link', { name: 'HD51' })).toHaveAttribute(
+    'href',
+    '/sales/10000000-0000-4000-8000-000000000001',
+  );
   expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(
     52,
   );
@@ -62,4 +68,34 @@ it('stops at the last profit page without duplicating events or changing summary
   ).not.toBeInTheDocument();
   expect(mocks.profit).toHaveBeenCalledTimes(2);
   expect(mocks.owner).toHaveBeenCalledOnce();
+});
+
+it('reveals the linked profit section after its asynchronous data arrives', async () => {
+  mocks.revenue.mockResolvedValue(null);
+  mocks.owner.mockResolvedValue({
+    netCogs: '0',
+    grossProfit: '0',
+    grossMarginPct: null,
+    inventoryValue: '0',
+  });
+  mocks.profit
+    .mockReset()
+    .mockResolvedValue({ version: 1, items: [], nextCursor: null });
+  const scroll = vi.fn();
+  HTMLElement.prototype.scrollIntoView = scroll;
+  renderWithQueryClient(
+    <MemoryRouter
+      initialEntries={[
+        '/reports?period=today&from=2026-10-16&to=2026-10-16#profit',
+      ]}
+    >
+      <ReportPage />
+    </MemoryRouter>,
+  );
+  await screen.findByRole('heading', { name: 'Sự kiện tài chính' });
+  expect(
+    scroll.mock.contexts.some(
+      (target) => target instanceof HTMLElement && target.id === 'profit',
+    ),
+  ).toBe(true);
 });

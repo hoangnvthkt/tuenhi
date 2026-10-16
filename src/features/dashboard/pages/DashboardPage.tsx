@@ -10,21 +10,37 @@ import { useDashboardData } from '../hooks/use-dashboard-data';
 import { formatReportMoney, formatReportNumber } from '@/features/reports';
 import { ChartBar } from '@phosphor-icons/react';
 
-function Card({ label, value }: { label: string; value: string }) {
+function Card({
+  label,
+  value,
+  to,
+}: {
+  label: string;
+  value: string;
+  to: string;
+}) {
   return (
     <article
       aria-label={label}
-      className="metric-card min-w-0 rounded-2xl border bg-white p-4 shadow-sm"
+      className="metric-card min-w-0 rounded-2xl border bg-white shadow-sm"
     >
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <p className="text-sm font-medium leading-6 text-slate-600">{label}</p>
-        <span className="metric-icon">
-          <ChartBar size={20} aria-hidden="true" />
-        </span>
-      </div>
-      <p className="metric-value text-xl font-bold tabular-nums text-slate-950">
-        {value}
-      </p>
+      <Link
+        to={to}
+        aria-label={label}
+        className="block h-full rounded-2xl p-4 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-700"
+      >
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <p className="text-sm font-medium leading-6 text-slate-600">
+            {label}
+          </p>
+          <span className="metric-icon">
+            <ChartBar size={20} aria-hidden="true" />
+          </span>
+        </div>
+        <p className="metric-value text-xl font-bold tabular-nums text-slate-950">
+          {value}
+        </p>
+      </Link>
     </article>
   );
 }
@@ -51,15 +67,25 @@ export function DashboardPage() {
   const canRevenue = canAll || canOwn;
   const canProfit =
     session?.permissions.includes('report.cost_profit.read') ?? false;
-  const { operational, revenue, owner, refresh } = useDashboardData({
+  const { operational, revenue, owner, settlements, refresh } =
+    useDashboardData({
+      period,
+      from,
+      to,
+      canAll,
+      canOwn,
+      canProfit,
+      online,
+    });
+  const reportParams = new URLSearchParams({
     period,
     from,
     to,
-    canAll,
-    canOwn,
-    canProfit,
-    online,
+    scope: canAll ? 'ALL' : 'OWN',
   });
+  const reportLink = `/reports?${reportParams}`;
+  const settlementLink = (method: string) =>
+    `/reports/settlements?${reportParams}&method=${method}`;
   const setPeriod = (next: ReportPeriod) => {
     const range = presetReportRange(next === 'custom' ? 'month' : next);
     setParams({ period: next, from: range.from, to: range.to });
@@ -67,13 +93,16 @@ export function DashboardPage() {
   const lastUpdatedAt = Math.max(
     operational.dataUpdatedAt,
     revenue.dataUpdatedAt,
+    settlements.dataUpdatedAt,
     canProfit ? owner.dataUpdatedAt : 0,
   );
   const isLoading =
     operational.isLoading ||
     revenue.isLoading ||
+    settlements.isLoading ||
     (canProfit && owner.isLoading);
-  const error = operational.error ?? revenue.error ?? owner.error;
+  const error =
+    operational.error ?? revenue.error ?? settlements.error ?? owner.error;
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -106,7 +135,7 @@ export function DashboardPage() {
           </button>
           {canRevenue ? (
             <Link
-              to="/reports"
+              to={reportLink}
               className="min-h-11 rounded-lg bg-teal-700 px-4 py-3 text-sm font-semibold text-white"
             >
               Xem báo cáo
@@ -178,6 +207,7 @@ export function DashboardPage() {
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Card
+              to="/products"
               label="Sản phẩm hoạt động"
               value={formatReportNumber(
                 String(operational.data.catalog.activeProductCount),
@@ -185,6 +215,7 @@ export function DashboardPage() {
               )}
             />
             <Card
+              to="/products?stock=LOW_STOCK"
               label="Sắp hết hàng"
               value={formatReportNumber(
                 String(operational.data.catalog.lowStockCount),
@@ -192,6 +223,7 @@ export function DashboardPage() {
               )}
             />
             <Card
+              to="/products?stock=OUT_OF_STOCK"
               label="Hết hàng"
               value={formatReportNumber(
                 String(operational.data.catalog.outOfStockCount),
@@ -199,6 +231,7 @@ export function DashboardPage() {
               )}
             />
             <Card
+              to="/products"
               label="Tổng tồn tham khảo"
               value={formatReportNumber(
                 operational.data.catalog.totalOnHandQty,
@@ -207,6 +240,7 @@ export function DashboardPage() {
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <Card
+              to="/more/purchases?status=AWAITING_COST"
               label="Phiếu nhập chờ xử lý"
               value={formatReportNumber(
                 String(operational.data.pending.purchaseReceipts),
@@ -214,6 +248,7 @@ export function DashboardPage() {
               )}
             />
             <Card
+              to="/stock-counts?status=COUNTED"
               label="Kiểm kho chờ xử lý"
               value={formatReportNumber(
                 String(operational.data.pending.stockCounts),
@@ -221,6 +256,7 @@ export function DashboardPage() {
               )}
             />
             <Card
+              to="/returns?status=REQUESTED"
               label="Trả hàng chờ xử lý"
               value={formatReportNumber(
                 String(operational.data.pending.saleReturns),
@@ -235,10 +271,11 @@ export function DashboardPage() {
       {canRevenue && revenue.data ? (
         <>
           <h2 className="pt-2 text-xl font-bold text-slate-950">
-            Doanh thu trong kỳ
+            {period === 'today' ? 'Doanh thu trong ngày' : 'Doanh thu trong kỳ'}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Card
+              to={settlementLink('ALL')}
               label={canAll ? 'Đơn toàn cửa hàng' : 'Đơn của tôi'}
               value={formatReportNumber(
                 String(revenue.data.summary.completedOrderCount),
@@ -246,31 +283,66 @@ export function DashboardPage() {
               )}
             />
             <Card
+              to={reportLink}
               label="Doanh thu gộp"
               value={formatReportMoney(revenue.data.summary.grossSales)}
             />
             <Card
+              to={`${reportLink}#returns`}
               label="Trả hàng"
               value={formatReportMoney(revenue.data.summary.salesReturns)}
             />
             <Card
+              to={reportLink}
               label="Doanh thu thuần"
               value={formatReportMoney(revenue.data.summary.netRevenue)}
             />
           </div>
         </>
       ) : null}
+      {canRevenue && settlements.data ? (
+        <section aria-label="Thanh toán các đơn trong kỳ" className="space-y-2">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card
+              label="Tiền mặt"
+              value={formatReportMoney(settlements.data.summary.cashAmount)}
+              to={settlementLink('CASH')}
+            />
+            <Card
+              label="Chuyển khoản"
+              value={formatReportMoney(
+                settlements.data.summary.bankTransferAmount,
+              )}
+              to={settlementLink('BANK_TRANSFER')}
+            />
+            <Card
+              label="Nợ còn lại"
+              value={formatReportMoney(
+                settlements.data.summary.outstandingAmount,
+              )}
+              to={settlementLink('DEBT')}
+            />
+          </div>
+          <p className="text-xs text-slate-500">
+            Theo các đơn bán trong khoảng ngày đã chọn, cập nhật tiền khách đã
+            trả và trừ tiền hoàn. Bấm vào từng ô để xem chi tiết.
+          </p>
+        </section>
+      ) : null}
       {owner.data ? (
         <div className="grid gap-3 sm:grid-cols-3">
           <Card
+            to={`${reportLink}#profit`}
             label="Giá vốn thuần"
             value={formatReportMoney(owner.data.netCogs)}
           />
           <Card
+            to={`${reportLink}#profit`}
             label="Lợi nhuận gộp"
             value={formatReportMoney(owner.data.grossProfit)}
           />
           <Card
+            to="/more/inventory/valuation"
             label="Giá trị tồn hiện tại"
             value={formatReportMoney(owner.data.inventoryValue)}
           />

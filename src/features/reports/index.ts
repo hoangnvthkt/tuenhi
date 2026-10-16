@@ -23,3 +23,6 @@ export {
   paymentLabel,
 } from './model/report-ui';
 export { ReportPage } from './pages/ReportPage';
+
+export { createSaleSettlementsApi } from './api/settlements-api';
+export { SettlementReportPage } from './pages/SettlementReportPage';
