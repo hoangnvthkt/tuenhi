@@ -12,6 +12,7 @@
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true,
     "noFallthroughCasesInSwitch": true,
+    "allowImportingTsExtensions": true,
     "noEmit": true
   },
   "include": ["src"]

@@ -79,3 +79,17 @@ describe('staff Edge Function validation', () => {
     );
   });
 });
+
+it('accepts a password-free resume with immutable server-owned creation fields', () => {
+  const resume = {
+    pendingUserId: '00000000-0000-4000-8000-000000000112',
+    idempotencyKey: validCreate.idempotencyKey,
+  };
+  expect(parseCreateEmployeeInput(resume)).toEqual({ ok: true, value: resume });
+  expect(
+    parseCreateEmployeeInput({ ...resume, roleTemplate: 'BUSINESS' }).ok,
+  ).toBe(false);
+  expect(
+    parseCreateEmployeeInput({ idempotencyKey: validCreate.idempotencyKey }).ok,
+  ).toBe(false);
+});

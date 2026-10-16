@@ -1,9 +1,20 @@
-import { usePrivateQueryKey } from '@/features/auth';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { createStaffApi, type StaffApi } from '../api/staff-api';
+import { SessionContextValue, usePrivateQueryKey } from '@/features/auth';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useContext, useRef, useState } from 'react';
+import {
+  createStaffApi,
+  StaffRecoveryError,
+  type StaffApi,
+  type StaffFormValues,
+} from '../api/staff-api';
 import { StaffActions } from '../components/StaffActions';
 import { StaffForm } from '../components/StaffForm';
+
+import {
+  readStaffCreation,
+  writeStaffCreation,
+  type StaffCreationMarker,
+} from '../model/staff-recovery';
 
 const staffQueryKey = ['staff'] as const;
 const staffAccessCapabilityQueryKey = ['staff', 'access-capability'] as const;
@@ -14,7 +25,19 @@ const roleLabels = {
   WAREHOUSE_VIEWER: 'Kho — chỉ xem',
 } as const;
 
-export function StaffPage({ api: apiProp }: { api?: StaffApi }) {
+export function StaffPage({ api }: { api?: StaffApi }) {
+  const auth = useContext(SessionContextValue);
+  const actorId = auth?.session?.userId ?? 'no-session';
+  return <StaffPageContent key={actorId} api={api} actorId={actorId} />;
+}
+
+function StaffPageContent({
+  api: apiProp,
+  actorId,
+}: {
+  api?: StaffApi;
+  actorId: string;
+}) {
   const privateKey = usePrivateQueryKey();
   const [api] = useState(() => apiProp ?? createStaffApi());
   const [showCreate, setShowCreate] = useState(false);
@@ -28,17 +51,111 @@ export function StaffPage({ api: apiProp }: { api?: StaffApi }) {
     queryKey: privateKey(...staffAccessCapabilityQueryKey),
     queryFn: () => api.getAccessCapability(),
   });
-  const createStaff = useMutation({
-    mutationFn: api.create,
-    onSuccess: () => {
-      setStatusMessage('Đã tạo tài khoản nhân viên.');
-      setShowCreate(false);
-      void queryClient.invalidateQueries({ queryKey: staffQueryKey });
-    },
+  const [initialRecovery] = useState(() => {
+    try {
+      return { marker: readStaffCreation(actorId), error: null };
+    } catch (error) {
+      return {
+        marker: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Không thể đọc yêu cầu đang chờ.',
+      };
+    }
   });
+  const [recovery, setRecovery] = useState(initialRecovery.marker);
+  const [recoveryError, setRecoveryError] = useState<string | null>(
+    initialRecovery.error,
+  );
+  const [working, setWorking] = useState(false);
+  const busy = useRef(false);
+  const operation = useRef<StaffCreationMarker | null>(initialRecovery.marker);
 
-  const refresh = () => {
-    setStatusMessage('Đã cập nhật tài khoản nhân viên.');
+  function store(marker: StaffCreationMarker | null) {
+    writeStaffCreation(actorId, marker);
+    operation.current = marker;
+    setRecovery(marker);
+  }
+  function completed() {
+    store(null);
+    setRecoveryError(null);
+    setStatusMessage('Đã tạo tài khoản nhân viên.');
+    setShowCreate(false);
+    void queryClient.invalidateQueries({ queryKey: staffQueryKey });
+  }
+  async function create(values?: StaffFormValues) {
+    if (busy.current || initialRecovery.error) return;
+    busy.current = true;
+    setWorking(true);
+    setRecoveryError(null);
+    setStatusMessage(null);
+    try {
+      let marker = operation.current;
+      if (!marker) {
+        if (!values) return;
+        marker = {
+          action: 'create',
+          idempotencyKey: crypto.randomUUID(),
+          targetId: null,
+        };
+        store(marker); // Persist identity before the request; never persist form values.
+        await api.create({ ...values, idempotencyKey: marker.idempotencyKey });
+      } else {
+        const feed = await api.list(); // A reload must inspect current state before resuming.
+        await queryClient.invalidateQueries({ queryKey: staffQueryKey });
+        const targetId = marker.targetId;
+        if (targetId && feed.items.some((member) => member.id === targetId)) {
+          completed();
+          return;
+        }
+        if (!marker.targetId) {
+          setRecoveryError(
+            'Chưa xác định được tài khoản của yêu cầu này. Gửi mã yêu cầu cho hỗ trợ để đối soát; chưa tạo lại.',
+          );
+          return;
+        }
+        await api.create({
+          pendingUserId: marker.targetId,
+          idempotencyKey: marker.idempotencyKey,
+        });
+      }
+      completed();
+    } catch (error) {
+      if (
+        error instanceof StaffRecoveryError &&
+        error.outcomeUnknown &&
+        operation.current
+      ) {
+        store({
+          ...operation.current,
+          targetId: error.pendingUserId ?? operation.current.targetId,
+        });
+      } else if (
+        error instanceof StaffRecoveryError &&
+        !operation.current?.targetId
+      ) {
+        store(null); // A definitive rejection before Auth creation may be corrected.
+      }
+      if (values && !operation.current) {
+        setRecoveryError(null);
+        throw error; // Let the mounted form retain its inputs on a correctable rejection.
+      }
+      setRecoveryError(
+        error instanceof Error
+          ? error.message
+          : 'Chưa thể hoàn tất yêu cầu. Vui lòng kiểm tra lại.',
+      );
+    } finally {
+      busy.current = false;
+      setWorking(false);
+    }
+  }
+
+  const refresh = (message?: null) => {
+    setStatusMessage(
+      message === null ? null : 'Đã cập nhật tài khoản nhân viên.',
+    );
     void queryClient.invalidateQueries({ queryKey: staffQueryKey });
   };
 
@@ -56,7 +173,12 @@ export function StaffPage({ api: apiProp }: { api?: StaffApi }) {
         <button
           type="button"
           onClick={() => setShowCreate((value) => !value)}
-          disabled={!capabilityQuery.data?.canCreate}
+          disabled={
+            !capabilityQuery.data?.canCreate ||
+            !!recovery ||
+            !!initialRecovery.error ||
+            working
+          }
           className="min-h-11 rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Thêm nhân viên
@@ -87,15 +209,48 @@ export function StaffPage({ api: apiProp }: { api?: StaffApi }) {
       ) : null}
 
       {showCreate ? (
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div
+          hidden={!!recovery}
+          className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+        >
           <h2 className="mb-5 text-lg font-bold text-slate-950">
             Tạo tài khoản mới
           </h2>
           <StaffForm
+            disabled={working || !!recovery}
             onCancel={() => setShowCreate(false)}
-            onSubmit={(values) => createStaff.mutateAsync(values)}
+            onSubmit={(values) => create(values)}
           />
         </div>
+      ) : null}
+
+      {recovery ? (
+        <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <p role="status">
+            {recovery.targetId
+              ? 'Tài khoản đã tạo, cần hoàn tất hồ sơ.'
+              : 'Chưa xác định được kết quả tạo tài khoản.'}
+          </p>
+          <p className="mt-2 text-sm">Mã yêu cầu: {recovery.idempotencyKey}</p>
+          <button
+            type="button"
+            disabled={working || !capabilityQuery.data?.canCreate}
+            onClick={() => void create()}
+            className="mt-3 min-h-11 rounded-lg border border-amber-700 px-4 disabled:opacity-50"
+          >
+            {working
+              ? 'Đang kiểm tra…'
+              : recovery.targetId
+                ? 'Tiếp tục hoàn tất hồ sơ'
+                : 'Kiểm tra danh sách'}
+          </button>
+        </div>
+      ) : null}
+      {recoveryError &&
+      recoveryError !== 'Tài khoản đã tạo, cần hoàn tất hồ sơ.' ? (
+        <p role="alert" className="mt-4 text-sm text-red-800">
+          {recoveryError}
+        </p>
       ) : null}
 
       {statusMessage ? (
@@ -163,6 +318,7 @@ export function StaffPage({ api: apiProp }: { api?: StaffApi }) {
                 </div>
                 <StaffActions
                   api={api}
+                  actorId={actorId}
                   member={member}
                   permissions={query.data.permissionDefinitions}
                   refresh={refresh}

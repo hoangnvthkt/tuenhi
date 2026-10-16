@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 19, TypeScript, TanStack Query, Supabase/PostgreSQL, Vitest, Playwright.
 
-**Spec:** [docs/superpowers/specs/2026-10-03-tuenhi-audit-remediation-design.md](/Users/admin/tuenhi/docs/superpowers/specs/2026-10-03-tuenhi-audit-remediation-design.md). Trạng thái: phương án đề xuất ngày 03/10/2026, chưa triển khai.
+**Spec:** [docs/superpowers/specs/2026-10-03-tuenhi-audit-remediation-design.md](/Users/admin/tuenhi/docs/superpowers/specs/2026-10-03-tuenhi-audit-remediation-design.md). Trạng thái cập nhật 03/10/2026: Đã triển khai và review A14–A15; toàn bộ nhánh đạt 124 file / 611 test tại commit 9b3dd0b, hai Edge entrypoint qua Deno check. Chưa nghiệm thu Auth thật, chưa phát hành production. Owner xác nhận hiện chỉ có production.
 
 ## Global Constraints
 
@@ -34,10 +34,10 @@
 
 **Interfaces:** `CreateStaffInput` thêm `idempotencyKey:string`, `pendingUserId?:string`; initial-create cần temporaryPassword, resume dùng pendingUserId và không cần lưu/đọc lại mật khẩu. `StaffRecoveryError` chứa code, correlationId, pendingUserId nullable, outcomeUnknown. Tách initial/resume bằng discriminated union trong validator, không cho thiếu cả password lẫn pending ID. Tạo key ở đầu operation trong UI, không ở mỗi lần api.create.
 
-- [ ] Test finalize500 trả pendingID → UI giữ operation/key → retry gọi resume không createUser mới. Test reload marker không chứa password; đọc lại danh sách/trạng thái trước tiếp tục. Test mất response trước biết ID hiện chưa xác định, không tự tạo lại; Owner phải tra cứu/đối soát trước.
-- [ ] Chạy `pnpm exec vitest run src/features/staff`; thêm handler tests mô phỏng createUser/finalize/getUserById. Xác nhận test đỏ ở nơi thông tin recovery bị mất.
-- [ ] Parse details trên cả HTTP error và envelope; hiển thị “Tài khoản đã tạo, cần hoàn tất hồ sơ” và Tiếp tục. Resume server xác minh email/ID/current profile/Owner; không cho thay role hoặc email của operation đang pending một cách âm thầm. Thành công xóa marker; đổi Owner không đọc marker của người trước.
-- [ ] Test lỗi lần2, retry cùng key, email tồn tại thật, stale pendingID và không quyền. Marker chỉ chứa key/targetID/action gắn user, không password hoặc payload form riêng tư. Review/commit `fix(staff): resume partially created employee accounts`.
+- [x] Test finalize500 trả pendingID → UI giữ operation/key → retry gọi resume không createUser mới. Test reload marker không chứa password; đọc lại danh sách/trạng thái trước tiếp tục. Test mất response trước biết ID hiện chưa xác định, không tự tạo lại; Owner phải tra cứu/đối soát trước.
+- [x] Chạy `pnpm exec vitest run src/features/staff`; thêm handler tests mô phỏng createUser/finalize/getUserById. Xác nhận test đỏ ở nơi thông tin recovery bị mất.
+- [x] Parse details trên cả HTTP error và envelope; hiển thị “Tài khoản đã tạo, cần hoàn tất hồ sơ” và Tiếp tục. Resume server xác minh email/ID/current profile/Owner; không cho thay role hoặc email của operation đang pending một cách âm thầm. Thành công xóa marker; đổi Owner không đọc marker của người trước.
+- [x] Test lỗi lần2, retry cùng key, email tồn tại thật, stale pendingID và không quyền. Marker chỉ chứa key/targetID/action gắn user, không password hoặc payload form riêng tư. Review/commit `fix(staff): resume partially created employee accounts`.
 
 ### Task 2: R8b — Mở lại tài khoản báo đúng kết quả — A15
 
@@ -45,10 +45,10 @@
 
 **Interfaces:** `setActive(input & {idempotencyKey:string}): Promise<{authReactivationPending:boolean}>`; profile-only success không là login-ready. UI lưu operation đang pending và gọi lại cùng key/target/reason. Edge giữ trường kết quả additive để client cũ parse được; không trả secret hoặc ban details.
 
-- [ ] Test set_staff_active success nhưng Auth unban failure → API trả pending, UI không toast thành công; retry unban success→toast hoàn tất, operation kết thúc. Test double-click, không quyền, locked lastOwner guard, transport unknown và stale marker.
-- [ ] Chạy `pnpm exec vitest run src/features/staff`; handler test đỏ trước sửa.
-- [ ] Implement pending message/action, giữ key trong operation, không báo “đăng nhập được” chỉ vì profile active. Không xóa ban để sửa một user sai hoặc hạ policy Owner waiver.
-- [ ] Test lại + `pnpm check`; tích hợp create→first-password-change→lock→reactivate trong project test hoặc buổi UAT tài khoản được phép, ghi rõ kiểm tra Auth nào thực sự chạy. Review/commit `fix(staff): surface incomplete authentication reactivation`.
+- [x] Test set_staff_active success nhưng Auth unban failure → API trả pending, UI không toast thành công; retry unban success→toast hoàn tất, operation kết thúc. Test double-click, không quyền, locked lastOwner guard, transport unknown và stale marker.
+- [x] Chạy `pnpm exec vitest run src/features/staff`; handler test đỏ trước sửa.
+- [x] Implement pending message/action, giữ key trong operation, không báo “đăng nhập được” chỉ vì profile active. Không xóa ban để sửa một user sai hoặc hạ policy Owner waiver.
+- [ ] Test lại + `pnpm check` đã đạt; còn tích hợp create→first-password-change→lock→reactivate trong project test hoặc buổi UAT tài khoản được phép, ghi rõ kiểm tra Auth nào thực sự chạy. Review/commit `fix(staff): surface incomplete authentication reactivation`.
 
 ## Release riêng R8
 

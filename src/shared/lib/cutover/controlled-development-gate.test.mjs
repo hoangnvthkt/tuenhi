@@ -294,6 +294,17 @@ test('keeps the gate command allowlist read-only and in release order', () => {
       ],
     },
     {
+      id: 'auditStaffRecoveryAssertions',
+      command: 'supabase',
+      args: [
+        'db',
+        'query',
+        '--linked',
+        '--file',
+        'supabase/tests/staff_recovery_assertions.sql',
+      ],
+    },
+    {
       id: 'customerFeedbackAssertions',
       command: 'pnpm',
       args: ['cloud:verify:feedback'],
