@@ -16,6 +16,45 @@ function minor(value: string) {
   const [whole = '0', fraction = ''] = value.split('.');
   return BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
 }
+
+/** Convert cash handed over into the amount retained after returning change. */
+export function calculateTenderedPayment(
+  total: string,
+  cashTendered: string,
+  bankTransferAmount: string,
+) {
+  for (const value of [total, cashTendered || '0', bankTransferAmount || '0']) {
+    const valid = validateCanonicalNumber(value, {
+      kind: 'money',
+      precision: 20,
+      required: true,
+    });
+    if (!valid.ok) return { ok: false as const, message: valid.message };
+  }
+  const sum = minor(total);
+  const cash = minor(cashTendered || '0');
+  const bank = minor(bankTransferAmount || '0');
+  if (bank > sum)
+    return {
+      ok: false as const,
+      message:
+        'Chuyển khoản vượt tổng hóa đơn. Vui lòng đối soát khoản chuyển dư trước khi xác nhận.',
+    };
+  const received = cash + bank;
+  const change = received > sum ? received - sum : 0n;
+  const allocation = calculatePaymentAllocation(
+    total,
+    moneyFromMinor(cash - change),
+    moneyFromMinor(bank),
+  );
+  if (!allocation.ok) return allocation;
+  return {
+    ...allocation,
+    received: moneyFromMinor(received),
+    change: moneyFromMinor(change),
+  };
+}
+
 export function calculatePaymentAllocation(
   total: string,
   cashAmount: string,

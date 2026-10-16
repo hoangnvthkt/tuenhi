@@ -71,7 +71,7 @@ test('KH01 mixed settlement, debt collection and reasoned adjustment fit a mobil
   page,
 }, testInfo) => {
   await page.goto('/e2e/fixtures/customer-debt.html');
-  await page.getByLabel('Tiền mặt thanh toán', { exact: true }).fill('30000');
+  await page.getByLabel('Tiền mặt khách đưa', { exact: true }).fill('30000');
   await page
     .getByLabel('Chuyển khoản thanh toán', { exact: true })
     .fill('50000');
@@ -139,4 +139,31 @@ test('reference sale layout only shows product suggestions after typing', async 
     path: testInfo.outputPath('sale-reference.png'),
     fullPage: false,
   });
+});
+
+test('mixed cash and transfer returns change on a mobile checkout', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/e2e/fixtures/pos-convenience.html?reference');
+  await page.getByRole('button', { name: 'Thanh toán', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Kết hợp / Ghi nợ', exact: true })
+    .click();
+  await page.getByLabel('Tiền mặt khách đưa', { exact: true }).fill('30000');
+  await page
+    .getByLabel('Chuyển khoản thanh toán', { exact: true })
+    .fill('30000');
+  await expect(page.getByText(/Tiền thừa trả khách:/)).toContainText('5.000 ₫');
+  await expect(page.getByText(/Tiền mặt thực thu:/)).toContainText('25.000 ₫');
+  await expect(page.getByText(/Còn nợ:/)).toContainText('0 ₫');
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath('mixed-payment-change.png'),
+  });
+  await page.getByRole('button', { name: 'Xác nhận', exact: true }).click();
+  await expect(page.getByLabel('Số lần xác nhận')).toHaveText('1');
 });

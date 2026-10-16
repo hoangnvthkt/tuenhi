@@ -235,7 +235,7 @@ it('confirms KH01 with 30000 cash, 50000 transfer and 20000 debt without a proof
       onConfirm={onConfirm}
     />,
   );
-  await user.type(screen.getByLabelText('Tiền mặt thanh toán'), '30000');
+  await user.type(screen.getByLabelText('Tiền mặt khách đưa'), '30000');
   await user.type(screen.getByLabelText('Chuyển khoản thanh toán'), '50000');
   expect(screen.getByText(/Còn nợ:/)).toHaveTextContent('20.000');
   await user.click(screen.getByRole('button', { name: 'Xác nhận' }));
@@ -256,14 +256,82 @@ it('requires a customer only for the unpaid part of a split payment', () => {
   };
   render(<CheckoutDialog {...props} />);
   expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeDisabled();
-  fireEvent.change(screen.getByLabelText('Tiền mặt thanh toán'), {
+  fireEvent.change(screen.getByLabelText('Tiền mặt khách đưa'), {
     target: { value: '100000' },
   });
   expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeEnabled();
   fireEvent.change(screen.getByLabelText('Chuyển khoản thanh toán'), {
     target: { value: '1' },
   });
+  expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeEnabled();
+  expect(screen.getByText(/Tiền thừa trả khách:/)).toHaveTextContent('1 ₫');
+  fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+  expect(props.onConfirm).toHaveBeenCalledWith(undefined, {
+    cashAmount: '99999',
+    bankTransferAmount: '1',
+  });
+});
+
+it.each([
+  ['55000', '30000', '30000', '5.000 ₫', '25000'],
+  ['55000', '30000', '55000', '30.000 ₫', '0'],
+  [
+    '9007199254740993.01',
+    '9007199254740993',
+    '0.02',
+    '0,01 ₫',
+    '9007199254740992.99',
+  ],
+])(
+  'returns cash change for total %s without overstating captured payments',
+  async (total, tendered, bank, change, capturedCash) => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    render(
+      <CheckoutDialog
+        payment="SPLIT"
+        total={total}
+        saving={false}
+        onPaymentChange={vi.fn()}
+        onCancel={vi.fn()}
+        onConfirm={onConfirm}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Tiền mặt khách đưa'), {
+      target: { value: tendered },
+    });
+    fireEvent.change(screen.getByLabelText('Chuyển khoản thanh toán'), {
+      target: { value: bank },
+    });
+    expect(screen.getByText(/Tiền thừa trả khách:/)).toHaveTextContent(change);
+    expect(screen.getByText(/Còn nợ:/)).toHaveTextContent('0 ₫');
+    await user.click(screen.getByRole('button', { name: 'Xác nhận' }));
+    expect(onConfirm).toHaveBeenCalledWith(undefined, {
+      cashAmount: capturedCash,
+      bankTransferAmount: bank,
+    });
+  },
+);
+
+it('blocks bank overpayment instead of silently reducing the received transfer', () => {
+  const onConfirm = vi.fn();
+  render(
+    <CheckoutDialog
+      payment="SPLIT"
+      total="55000"
+      saving={false}
+      onPaymentChange={vi.fn()}
+      onCancel={vi.fn()}
+      onConfirm={onConfirm}
+    />,
+  );
+  fireEvent.change(screen.getByLabelText('Chuyển khoản thanh toán'), {
+    target: { value: '60000' },
+  });
+  expect(
+    screen.getByText(/Chuyển khoản vượt tổng hóa đơn/),
+  ).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeDisabled();
   fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
-  expect(props.onConfirm).not.toHaveBeenCalled();
+  expect(onConfirm).not.toHaveBeenCalled();
 });

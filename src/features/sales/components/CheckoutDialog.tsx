@@ -1,5 +1,5 @@
 import {
-  calculatePaymentAllocation,
+  calculateTenderedPayment,
   type PaymentAllocation,
 } from '@/shared/lib/numeric/payment-allocation';
 import type { PosPaymentMethod } from '../model/pos-types';
@@ -37,7 +37,7 @@ export function CheckoutDialog({
   const isSplit = payment === 'SPLIT';
   const [cashAmount, setCashAmount] = useState('');
   const [bankAmount, setBankAmount] = useState('');
-  const allocation = calculatePaymentAllocation(total, cashAmount, bankAmount);
+  const allocation = calculateTenderedPayment(total, cashAmount, bankAmount);
   const isBankTransfer =
     payment === 'BANK_TRANSFER' ||
     (isSplit &&
@@ -190,7 +190,7 @@ export function CheckoutDialog({
         {isSplit ? (
           <div className="mt-4 space-y-3">
             <label className="block text-sm font-medium">
-              Tiền mặt thanh toán
+              Tiền mặt khách đưa
               <input
                 type="text"
                 inputMode="decimal"
@@ -221,6 +221,16 @@ export function CheckoutDialog({
             >
               {allocation.ok ? (
                 <>
+                  <p>
+                    Tổng tiền khách đưa: {formatCashAmount(allocation.received)}
+                  </p>
+                  <p className="mt-1 font-semibold text-teal-800">
+                    Tiền thừa trả khách: {formatCashAmount(allocation.change)}
+                  </p>
+                  <p className="mt-1">
+                    Tiền mặt thực thu:{' '}
+                    {formatCashAmount(allocation.allocation.cashAmount)}
+                  </p>
                   <p>Đã trả: {formatCashAmount(allocation.paid)}</p>
                   <p className="mt-1 font-semibold">
                     Còn nợ: {formatCashAmount(allocation.debt)}
