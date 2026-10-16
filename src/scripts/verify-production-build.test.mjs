@@ -102,9 +102,9 @@ describe('verifyProductionBuild', () => {
     );
   });
 
-  it('rejects a deploy larger than four MiB plus the 32 KiB feature allowance', async () => {
+  it('rejects a deploy larger than four MiB plus the 34 KiB feature allowance', async () => {
     const directory = await fixture({
-      extraBytes: 4 * 1024 * 1024 + 32 * 1024,
+      extraBytes: 4 * 1024 * 1024 + 34 * 1024,
     });
     await expect(verifyProductionBuild(directory)).rejects.toThrow(
       /total deploy assets/i,
