@@ -67,6 +67,7 @@ export function ProductDetailPage({
   const toast = useToast();
   const { session } = useSession();
   const isOnline = useOnlineStatus();
+  const [statusSaving, setStatusSaving] = useState(false);
   const canManage =
     session?.permissions.includes('catalog.basic.manage') ?? false;
   const canManageSalePrice =
@@ -208,6 +209,65 @@ export function ProductDetailPage({
       contextUrl.value.tab !== 'suppliers',
     placeholderData: keepPreviousData,
   });
+
+  async function toggleProductStatus() {
+    const product = detailQuery.data;
+    if (!product || !canManage || !isOnline || statusSaving) return;
+    const nextIsActive = !product.isActive;
+    if (
+      product.isActive &&
+      !window.confirm(
+        `Ngừng kinh doanh “${product.name}”? Mặt hàng sẽ được ẩn khỏi bán hàng mới. Lịch sử nhập và bán vẫn được giữ, và anh có thể bật bán lại sau này.`,
+      )
+    )
+      return;
+
+    setStatusSaving(true);
+    try {
+      await api.saveProduct({
+        productId: product.id,
+        expectedVersion: product.version,
+        values: {
+          sku: product.sku,
+          barcode: product.barcode ?? '',
+          name: product.name,
+          categoryId: product.categoryId ?? '',
+          unitName: product.unitName,
+          description: product.description ?? '',
+          minStockQty: product.minStockQty,
+          isActive: nextIsActive,
+        },
+        idempotencyKey: crypto.randomUUID(),
+      });
+      await refreshOperationalData(queryClient);
+      toast.show({
+        kind: 'success',
+        title: nextIsActive ? 'Đã bật bán lại' : 'Đã ngừng kinh doanh',
+        message: 'Lịch sử nhập và bán của mặt hàng vẫn được giữ.',
+      });
+    } catch (error) {
+      const refreshed = await detailQuery.refetch();
+      if (refreshed.data?.isActive === nextIsActive) {
+        await refreshOperationalData(queryClient);
+        toast.show({
+          kind: 'success',
+          title: nextIsActive ? 'Đã bật bán lại' : 'Đã ngừng kinh doanh',
+          message: 'Lịch sử nhập và bán của mặt hàng vẫn được giữ.',
+        });
+      } else {
+        toast.show({
+          kind: 'error',
+          title: 'Không thể cập nhật trạng thái mặt hàng',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Vui lòng tải lại mặt hàng và thử lại.',
+        });
+      }
+    } finally {
+      setStatusSaving(false);
+    }
+  }
 
   async function save(request: ProductSaveRequest) {
     const { salePrice, ...productValues } = request.values;
@@ -357,6 +417,21 @@ export function ProductDetailPage({
             <ActionLink to={`/products/${detail.id}/edit`}>
               Sửa sản phẩm
             </ActionLink>
+          ) : null}
+          {canManage ? (
+            <button
+              type="button"
+              onClick={() => void toggleProductStatus()}
+              disabled={!isOnline || statusSaving}
+              aria-busy={statusSaving}
+              className={`min-h-11 rounded-lg border px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${detail.isActive ? 'border-red-200 text-red-700 hover:bg-red-50' : 'border-teal-200 text-teal-800 hover:bg-teal-50'}`}
+            >
+              {statusSaving
+                ? 'Đang cập nhật…'
+                : detail.isActive
+                  ? 'Ngừng kinh doanh'
+                  : 'Bật bán lại'}
+            </button>
           ) : null}
         </EntityActionBar>
       </div>

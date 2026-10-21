@@ -167,7 +167,18 @@ export function CartPanel({
                 )}
               </div>
               <div className="pos-item-content">
-                <p className="pos-item-name">{item.productName}</p>
+                <div className="pos-item-heading">
+                  <p className="pos-item-name">{item.productName}</p>
+                  <button
+                    type="button"
+                    aria-label={`Xóa ${item.productName} khỏi đơn`}
+                    title="Xóa khỏi đơn"
+                    onClick={() => onRemoveLine(item.productId)}
+                    className="pos-item-remove"
+                  >
+                    Xóa
+                  </button>
+                </div>
                 <div className="pos-item-bottom">
                   <p className="pos-item-price">
                     {formatPosMoney(item.unitSalePrice)}
@@ -179,14 +190,20 @@ export function CartPanel({
                   >
                     <button
                       type="button"
-                      aria-label={`Giảm số lượng ${item.productName}`}
-                      disabled={!validQuantity || quantity <= 1n}
+                      aria-label={
+                        quantity <= 1n
+                          ? `Xóa ${item.productName} khỏi đơn`
+                          : `Giảm số lượng ${item.productName}`
+                      }
+                      disabled={!validQuantity || quantity <= 0n}
                       onClick={() =>
-                        onUpdateLine(
-                          item.productId,
-                          'quantity',
-                          (quantity - 1n).toString(),
-                        )
+                        quantity <= 1n
+                          ? onRemoveLine(item.productId)
+                          : onUpdateLine(
+                              item.productId,
+                              'quantity',
+                              (quantity - 1n).toString(),
+                            )
                       }
                     >
                       <Minus size={17} />
@@ -239,13 +256,6 @@ export function CartPanel({
                     precision={20}
                     disabled={!canDiscount}
                   />
-                  <button
-                    type="button"
-                    onClick={() => onRemoveLine(item.productId)}
-                    className="flex min-h-11 items-center gap-1 text-sm text-red-700"
-                  >
-                    Xóa
-                  </button>
                 </div>
               </div>
             </div>
@@ -264,13 +274,6 @@ export function CartPanel({
           aria-expanded={showOptions}
         >
           Tùy chọn đơn hàng
-        </button>
-        <button
-          type="button"
-          onClick={onPrint}
-          disabled={saving || !online || !items.length}
-        >
-          In tạm tính
         </button>
       </div>
       {!online ? (
@@ -306,6 +309,14 @@ export function CartPanel({
             Thanh toán
           </button>
         </div>
+        <button
+          type="button"
+          className="pos-print-action"
+          onClick={onPrint}
+          disabled={saving || !online || !items.length}
+        >
+          In tạm tính
+        </button>
       </div>
     </aside>
   );

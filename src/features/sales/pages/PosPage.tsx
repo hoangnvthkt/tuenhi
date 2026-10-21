@@ -469,10 +469,15 @@ export function PosPage() {
     id: string,
     field: 'quantity' | 'lineDiscountAmount',
     value: string,
-  ) =>
+  ) => {
+    if (field === 'quantity' && value === '0') {
+      setItems((current) => current.filter((item) => item.productId !== id));
+      return;
+    }
     setItems((current) =>
       current.map((x) => (x.productId === id ? { ...x, [field]: value } : x)),
     );
+  };
   const {
     discard,
     checkoutPending,
