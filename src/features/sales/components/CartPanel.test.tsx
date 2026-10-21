@@ -164,7 +164,9 @@ function DiscountCart() {
         )
       }
       onOrderDiscountChange={setOrderDiscount}
-      onRemoveLine={() => {}}
+      onRemoveLine={(id) =>
+        setItems((current) => current.filter((item) => item.productId !== id))
+      }
       onChannelChange={() => {}}
       onCustomerChange={() => {}}
       onNoteChange={() => {}}
@@ -206,19 +208,26 @@ it('treats line discount as the whole row amount, separately from order discount
   expect(screen.getAllByText('108.500 ₫').length).toBeGreaterThan(0);
 });
 
-it('changes quantity with plus/minus and keeps one as the minimum', async () => {
+it('changes quantity and removes the line when requested at quantity one', async () => {
   render(<DiscountCart />);
   const user = userEvent.setup();
   const quantity = screen.getByLabelText('Số lượng');
-  const minus = screen.getByRole('button', {
-    name: 'Giảm số lượng 12B Linh Chi',
-  });
-  expect(minus).toBeDisabled();
   await user.click(
     screen.getByRole('button', { name: 'Tăng số lượng 12B Linh Chi' }),
   );
   expect(quantity).toHaveValue('2');
-  await user.click(minus);
+  await user.click(
+    screen.getByRole('button', { name: 'Giảm số lượng 12B Linh Chi' }),
+  );
   expect(quantity).toHaveValue('1');
-  expect(minus).toBeDisabled();
+
+  const removeButtons = screen.getAllByRole('button', {
+    name: 'Xóa 12B Linh Chi khỏi đơn',
+  });
+  expect(removeButtons).toHaveLength(2);
+  expect(removeButtons[0]).toBeEnabled();
+  expect(removeButtons[1]).toBeEnabled();
+  await user.click(removeButtons[1]);
+  expect(screen.queryByLabelText('Số lượng')).not.toBeInTheDocument();
+  expect(screen.getByText('Chưa có sản phẩm trong giỏ.')).toBeInTheDocument();
 });
