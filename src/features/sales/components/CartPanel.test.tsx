@@ -1,5 +1,5 @@
 import { renderWithQueryClient as render } from '@/shared/testing/render-with-query-client';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -225,9 +225,11 @@ it('changes quantity and removes the line when requested at quantity one', async
     name: 'Xóa 12B Linh Chi khỏi đơn',
   });
   expect(removeButtons).toHaveLength(2);
-  expect(removeButtons[0]).toBeEnabled();
-  expect(removeButtons[1]).toBeEnabled();
-  await user.click(removeButtons[1]);
+  removeButtons.forEach((button) => expect(button).toBeEnabled());
+  const removeFromQuantityControl = within(
+    screen.getByRole('group', { name: 'Số lượng 12B Linh Chi' }),
+  ).getByRole('button', { name: 'Xóa 12B Linh Chi khỏi đơn' });
+  await user.click(removeFromQuantityControl);
   expect(screen.queryByLabelText('Số lượng')).not.toBeInTheDocument();
   expect(screen.getByText('Chưa có sản phẩm trong giỏ.')).toBeInTheDocument();
 });
