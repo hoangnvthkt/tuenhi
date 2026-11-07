@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.5';
+    PostgrestVersion: '14.15';
   };
   api: {
     Tables: {
@@ -477,9 +477,9 @@ export type Database = {
         };
         Insert: {
           amount: number;
-          bank_transfer_amount?: number;
+          bank_transfer_amount: number;
           captured_by: string;
-          cash_amount?: number;
+          cash_amount: number;
           correlation_id: string;
           id?: string;
           method: string;
@@ -2127,6 +2127,19 @@ export type Database = {
       get_sale_draft_print: { Args: { p_sale_id: string }; Returns: Json };
       get_sale_invoice: { Args: { p_sale_id: string }; Returns: Json };
       get_sale_return: { Args: { p_return_id: string }; Returns: Json };
+      get_sale_settlement_report: {
+        Args: {
+          p_cursor_completed_at?: string;
+          p_cursor_id?: string;
+          p_from: string;
+          p_limit?: number;
+          p_method?: string;
+          p_product_id?: string;
+          p_scope?: string;
+          p_to: string;
+        };
+        Returns: Json;
+      };
       get_staff_access_capability: { Args: never; Returns: Json };
       get_stock_count: { Args: { p_count_id: string }; Returns: Json };
       get_store_settings: { Args: never; Returns: Json };
