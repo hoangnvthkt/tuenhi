@@ -1824,6 +1824,14 @@ export type Database = {
         Returns: Json;
       };
       authorize_staff_admin: { Args: never; Returns: Json };
+      cancel_cash_voucher: {
+        Args: {
+          p_idempotency_key: string;
+          p_reason: string;
+          p_voucher_id: string;
+        };
+        Returns: Json;
+      };
       cancel_opening_stock: {
         Args: {
           p_count_id: string;
@@ -1889,6 +1897,16 @@ export type Database = {
         Args: { p_user_ids: string[] };
         Returns: Json;
       };
+      close_cash_shift: {
+        Args: {
+          p_counted_cash: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_note: string;
+          p_shift_id: string;
+        };
+        Returns: Json;
+      };
       collect_customer_debt: {
         Args: {
           p_bank_transfer_amount: string;
@@ -1944,6 +1962,18 @@ export type Database = {
         };
         Returns: Json;
       };
+      create_cash_voucher: {
+        Args: {
+          p_amount: string;
+          p_category: string;
+          p_direction: string;
+          p_fund: string;
+          p_idempotency_key: string;
+          p_memo: string;
+          p_party: string;
+        };
+        Returns: Json;
+      };
       create_import_run: {
         Args: {
           p_file_name: string;
@@ -1995,6 +2025,19 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_cash_book: {
+        Args: {
+          p_cursor_key?: string;
+          p_cursor_occurred_at?: string;
+          p_from?: string;
+          p_fund: string;
+          p_limit?: number;
+          p_scope?: string;
+          p_shift_id?: string;
+          p_to?: string;
+        };
+        Returns: Json;
+      };
       get_customer_debt: { Args: { p_customer_id: string }; Returns: Json };
       get_customer_detail: {
         Args: { p_customer_id: string; p_from?: string; p_to?: string };
@@ -2033,6 +2076,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_my_cash_shift: { Args: never; Returns: Json };
       get_my_command_outcome: {
         Args: { p_command_name: string; p_idempotency_key: string };
         Returns: Json;
@@ -2144,6 +2188,15 @@ export type Database = {
       get_stock_count: { Args: { p_count_id: string }; Returns: Json };
       get_store_settings: { Args: never; Returns: Json };
       get_supplier_detail: { Args: { p_supplier_id: string }; Returns: Json };
+      list_cash_shifts: {
+        Args: {
+          p_cursor_id?: string;
+          p_cursor_opened_at?: string;
+          p_limit?: number;
+          p_scope?: string;
+        };
+        Returns: Json;
+      };
       list_categories: {
         Args: { p_include_inactive?: boolean };
         Returns: Json;
@@ -2348,6 +2401,10 @@ export type Database = {
         Args: { p_notification_id: string };
         Returns: Json;
       };
+      open_cash_shift: {
+        Args: { p_idempotency_key: string; p_opening_cash: string };
+        Returns: Json;
+      };
       post_opening_stock: {
         Args: {
           p_count_id: string;
@@ -2513,6 +2570,15 @@ export type Database = {
           p_idempotency_key: string;
           p_supplier: Json;
           p_supplier_id: string;
+        };
+        Returns: Json;
+      };
+      set_cash_fund_opening: {
+        Args: {
+          p_amount: string;
+          p_as_of: string;
+          p_fund: string;
+          p_idempotency_key: string;
         };
         Returns: Json;
       };
