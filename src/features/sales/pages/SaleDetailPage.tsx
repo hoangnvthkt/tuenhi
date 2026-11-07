@@ -27,6 +27,11 @@ import { getSupabaseClient } from '@/shared/supabase/client';
 import { useSession } from '@/features/auth';
 import { PaymentProofLink } from '@/features/payments';
 import { formatCashAmount } from '../model/cash-change';
+import {
+  cancelConfirmMessage,
+  cancelRefund,
+  cancelRefundLines,
+} from '../model/cancel-refund';
 import type { Invoice } from '../api/sales-schemas';
 const money = formatCashAmount;
 function invoicePaymentLabel(invoice: Invoice) {
@@ -133,14 +138,10 @@ export function SaleDetailPage() {
   // authority for every other eligibility rule when the command runs.
   const canCancel =
     session?.roleTemplate === 'OWNER' && invoice.sale.status === 'COMPLETED';
+  const refund = cancelRefund(invoice);
   async function cancelSale() {
     if (!saleId || !online || busy || cancelReason.trim().length === 0) return;
-    if (
-      !window.confirm(
-        'Xác nhận hủy hóa đơn? Tồn kho và thanh toán sẽ được đảo.',
-      )
-    )
-      return;
+    if (!window.confirm(cancelConfirmMessage(refund))) return;
     setBusy(true);
     try {
       const detail = relationshipQuery.data ?? (await api.detail(saleId));
@@ -477,6 +478,11 @@ export function SaleDetailPage() {
       {canCancel ? (
         <section className="mt-5 space-y-2 rounded-xl border border-red-200 bg-red-50 p-4">
           <h2 className="font-bold text-red-950">Hủy hóa đơn</h2>
+          {cancelRefundLines(refund).map((line) => (
+            <p key={line} className="text-sm font-medium text-red-950">
+              {line}
+            </p>
+          ))}
           <textarea
             value={cancelReason}
             onChange={(event) => setCancelReason(event.target.value)}

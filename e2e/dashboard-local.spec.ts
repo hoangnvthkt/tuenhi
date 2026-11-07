@@ -108,17 +108,21 @@ test('dashboard cash, bank and debt cards open the matching dated invoice list',
     'href',
     '/sales/10000000-0000-4000-8000-000000000001',
   );
-  expect(requests.at(-1)).toMatchObject({
-    p_from: '2026-10-16',
-    p_to: '2026-10-16',
-    p_scope: 'ALL',
-    p_method: 'DEBT',
-  });
+  await expect
+    .poll(() => requests.at(-1))
+    .toMatchObject({
+      p_from: '2026-10-16',
+      p_to: '2026-10-16',
+      p_scope: 'ALL',
+      p_method: 'DEBT',
+    });
   await page.getByRole('link', { name: 'Chuyển khoản', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Chuyển khoản từ các đơn bán' }),
   ).toBeVisible();
-  expect(requests.at(-1)).toMatchObject({ p_method: 'BANK_TRANSFER' });
+  await expect
+    .poll(() => requests.at(-1))
+    .toMatchObject({ p_method: 'BANK_TRANSFER' });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
