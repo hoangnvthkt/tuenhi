@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { Link } from 'react-router';
+import { ViNumberInput } from '@/shared/ui/forms/ViNumberInput';
 import { usePrivateQueryKey, useSession } from '@/features/auth';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { useFinancialCommand } from '@/shared/hooks/use-financial-command';
@@ -389,11 +390,11 @@ export function CustomerDebtPanel({
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-sm font-medium">
                   Tiền mặt thu nợ
-                  <input
-                    inputMode="decimal"
+                  <ViNumberInput
+                    maxFractionDigits={2}
                     value={cash}
-                    onChange={(event) => setCash(event.target.value)}
-                    maxLength={21}
+                    onChange={setCash}
+                    maxLength={27}
                     placeholder="0"
                     disabled={locked}
                     className={inputClass}
@@ -401,11 +402,11 @@ export function CustomerDebtPanel({
                 </label>
                 <label className="text-sm font-medium">
                   Chuyển khoản thu nợ
-                  <input
-                    inputMode="decimal"
+                  <ViNumberInput
+                    maxFractionDigits={2}
                     value={bank}
-                    onChange={(event) => setBank(event.target.value)}
-                    maxLength={21}
+                    onChange={setBank}
+                    maxLength={27}
                     placeholder="0"
                     disabled={locked}
                     className={inputClass}
@@ -421,11 +422,11 @@ export function CustomerDebtPanel({
           ) : (
             <label className="block text-sm font-medium">
               Số nợ mới
-              <input
-                inputMode="decimal"
+              <ViNumberInput
+                maxFractionDigits={2}
                 value={newBalance}
-                onChange={(event) => setNewBalance(event.target.value)}
-                maxLength={21}
+                onChange={setNewBalance}
+                maxLength={27}
                 disabled={locked}
                 className={inputClass}
               />

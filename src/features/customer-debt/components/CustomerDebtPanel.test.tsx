@@ -120,7 +120,7 @@ it('blocks invalid or excessive collections', async () => {
     screen.getByRole('button', { name: 'Ghi nhận thu nợ' }),
   ).toBeDisabled();
   await user.clear(screen.getByLabelText('Tiền mặt thu nợ'));
-  await user.type(screen.getByLabelText('Tiền mặt thu nợ'), '1.001');
+  await user.type(screen.getByLabelText('Tiền mặt thu nợ'), '0,001');
   expect(
     screen.getByRole('button', { name: 'Ghi nhận thu nợ' }),
   ).toBeDisabled();

@@ -234,7 +234,7 @@ describe('Purchase feedback fixes', () => {
     const { inventoryApi } = renderPage(ownerPermissions, true, {
       api: { detail },
     });
-    await screen.findByDisplayValue('12500');
+    await screen.findByDisplayValue('12.500');
     await user.type(screen.getByLabelText('Ghi chú'), 'Đã sửa');
     fireEvent.change(screen.getByLabelText('Số lượng nhận'), {
       target: { value: '5' },
@@ -286,13 +286,13 @@ describe('Purchase feedback fixes', () => {
         lines: [{ lineId: receipt.lines[0]!.id, unitCost: '14000' }],
       });
     renderPage(ownerPermissions, true, { api: { detail, cost } });
-    await screen.findByDisplayValue('12500');
+    await screen.findByDisplayValue('12.500');
     await user.click(screen.getByRole('button', { name: 'Lưu nháp' }));
     await waitFor(() =>
       expect(screen.getByLabelText('Ghi chú')).toHaveValue('Chuẩn hóa'),
     );
     expect(screen.getByLabelText('Số lượng nhận')).toHaveValue('7');
-    expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('14000');
+    expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('14.000');
   });
 
   it('keeps editing locked until the matching slow cost snapshot arrives', async () => {
@@ -313,7 +313,7 @@ describe('Purchase feedback fixes', () => {
         lines: [{ lineId: receipt.lines[0]!.id, unitCost: '12500' }],
       }),
     );
-    expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('12500');
+    expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('12.500');
     expect(screen.getByLabelText('Ghi chú')).toBeEnabled();
   });
 
@@ -323,7 +323,7 @@ describe('Purchase feedback fixes', () => {
     const { inventoryApi } = renderPage(ownerPermissions, true, {
       receipt: { ...receipt, receivedAt: instant },
     });
-    await screen.findByDisplayValue('12500');
+    await screen.findByDisplayValue('12.500');
     expect(screen.getByLabelText('Ngày nhận')).toHaveValue('2026-10-02T15:16');
     await user.click(screen.getByRole('button', { name: 'Lưu nháp' }));
     await waitFor(() =>
@@ -457,7 +457,7 @@ describe('Purchase feedback fixes', () => {
     const { inventoryApi } = renderPage(ownerPermissions, true, {
       api: { detail },
     });
-    await screen.findByDisplayValue('12500');
+    await screen.findByDisplayValue('12.500');
     await user.click(screen.getByRole('button', { name: 'Lưu nháp' }));
     const reloadButton = await screen.findByRole('button', {
       name: 'Tải lại phiếu nhập',
@@ -480,7 +480,7 @@ describe('Purchase feedback fixes', () => {
     const { inventoryApi } = renderPage(ownerPermissions, true, {
       directoryApi: { saveSupplier },
     });
-    await screen.findByDisplayValue('12500');
+    await screen.findByDisplayValue('12.500');
     await user.type(screen.getByLabelText('Ghi chú'), 'Giữ lại ghi chú');
     await user.click(screen.getByRole('button', { name: 'Thêm nhà cung cấp' }));
     const editor = screen.getByRole('region', {
@@ -585,7 +585,7 @@ describe('Purchase feedback fixes', () => {
       await screen.findByRole('heading', { name: 'Lập phiếu nhập' }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Số lượng nhận')).toHaveValue('2');
-    expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('12500');
+    expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('12.500');
     expect(inventoryApi.save).not.toHaveBeenCalled();
     expect(inventoryApi.post).not.toHaveBeenCalled();
   });
@@ -634,7 +634,7 @@ describe('PurchaseDetailPage cost boundary', () => {
     ]);
 
     await waitFor(() =>
-      expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('12500'),
+      expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('12.500'),
     );
     expect(getPurchaseCost).toHaveBeenCalledWith(receipt.id);
   });
@@ -751,7 +751,7 @@ describe('PurchaseDetailPage cost boundary', () => {
     expect(
       await screen.findByText('SP-PREFILL — Sản phẩm prefill'),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('12000');
+    expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('12.000');
     expect(save).not.toHaveBeenCalled();
   });
 });
