@@ -13,6 +13,7 @@ import {
   Users,
   Storefront,
   Gear,
+  Receipt,
 } from '@phosphor-icons/react';
 
 const destinationVisuals = [
@@ -29,6 +30,7 @@ const destinationVisuals = [
   { icon: Storefront, tone: 'violet' },
   { icon: Gear, tone: 'slate' },
   { icon: Truck, tone: 'orange' },
+  { icon: Receipt, tone: 'teal' },
 ];
 
 const destinations = [
@@ -119,6 +121,12 @@ const destinations = [
     title: 'Cần nhập',
     description: 'Hàng thấp tồn và số thiếu tới ngưỡng cảnh báo.',
     permissions: ['inventory.read'],
+  },
+  {
+    to: '/cash-book',
+    title: 'Sổ quỹ',
+    description: 'Thu chi tiền mặt, ngân hàng và kết ca.',
+    permissions: ['cash.book.read', 'cash.shift.manage'],
   },
 ] as const;
 

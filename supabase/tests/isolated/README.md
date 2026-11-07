@@ -77,3 +77,14 @@ the active product count and match the new catalog filters (`RUNNING_LOW`,
 (sale, order discount, cancellation, return) reconciles exactly with the revenue
 report's net revenue as top three plus "Khác", the settlement product filter, and the
 returns-list completion date filter.
+
+## Cash book and shifts (audit wave 3, 07/11/2026)
+
+After applying `20261107044809_cash_book_shifts.sql`, clone the schema into
+`cash_book_test` and run `cash_book.sql` with `psql -X -v ON_ERROR_STOP=1`. The fixture
+rolls back. It checks owner-only fund openings, one open shift per cashier, idempotent
+replays and key reuse, manual vouchers (expense, fund transfer pair, reversal), that the
+cash and bank books reconcile with an independent sum of payments, collections, refunds,
+cancellations and vouchers (running balance included), keyset pagination, that a cashier
+sees only their own money, shift close with the exact expected cash and a required note
+when short, outcome lookup for the new commands, append-only guards and audit events.

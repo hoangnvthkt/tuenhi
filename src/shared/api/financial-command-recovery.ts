@@ -46,6 +46,11 @@ const commandLabels: Record<FinancialCommandName, string> = {
   'purchase.reverse': 'Đảo phiếu nhập',
   'stock.count.post': 'Ghi phiếu kiểm kho',
   'opening.post': 'Ghi phiếu mở sổ',
+  'cash.voucher.create': 'Lập phiếu thu/chi',
+  'cash.voucher.cancel': 'Hủy phiếu thu/chi',
+  'cash.opening.set': 'Nhập số dư đầu quỹ',
+  'cash.shift.open': 'Mở ca',
+  'cash.shift.close': 'Đóng ca',
 };
 
 export function financialCommandActionRoute(
@@ -65,6 +70,9 @@ export function financialCommandActionRoute(
     return `/more/purchases/${entityId}`;
   }
   if (commandName === 'stock.count.post') return `/stock-counts/${entityId}`;
+  if (commandName === 'cash.shift.open' || commandName === 'cash.shift.close')
+    return '/cash-book/shift';
+  if (commandName.startsWith('cash.')) return '/cash-book';
   return `/more/inventory/opening/${entityId}`;
 }
 
