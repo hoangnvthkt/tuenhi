@@ -5,6 +5,7 @@ import {
 import type { PosPaymentMethod } from '../model/pos-types';
 import { useEffect, useRef, useState } from 'react';
 import { calculateCashChange, formatCashAmount } from '../model/cash-change';
+import { ViNumberInput } from '@/shared/ui/forms/ViNumberInput';
 
 export function CheckoutDialog({
   payment,
@@ -155,16 +156,14 @@ export function CheckoutDialog({
           <div className="mt-4 space-y-2">
             <label className="block text-sm font-medium">
               Khách đưa (tùy chọn)
-              <input
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
+              <ViNumberInput
+                maxFractionDigits={2}
                 value={tendered}
-                onChange={(event) => setTendered(event.target.value)}
+                onChange={setTendered}
                 disabled={saving}
                 aria-invalid={cashBlocked}
                 aria-describedby="cash-change-result"
-                maxLength={40}
+                maxLength={27}
                 className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3"
               />
             </label>
@@ -180,9 +179,7 @@ export function CheckoutDialog({
                 </p>
               ) : null}
               {cash.status === 'INVALID' ? (
-                <p className="text-red-800">
-                  Nhập số tiền hợp lệ, dùng dấu chấm cho phần thập phân.
-                </p>
+                <p className="text-red-800">Nhập số tiền hợp lệ.</p>
               ) : null}
             </div>
           </div>
@@ -191,26 +188,24 @@ export function CheckoutDialog({
           <div className="mt-4 space-y-3">
             <label className="block text-sm font-medium">
               Tiền mặt khách đưa
-              <input
-                type="text"
-                inputMode="decimal"
+              <ViNumberInput
+                maxFractionDigits={2}
                 value={cashAmount}
-                onChange={(event) => setCashAmount(event.target.value)}
+                onChange={setCashAmount}
                 disabled={saving}
-                maxLength={21}
+                maxLength={27}
                 placeholder="0"
                 className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"
               />
             </label>
             <label className="block text-sm font-medium">
               Chuyển khoản thanh toán
-              <input
-                type="text"
-                inputMode="decimal"
+              <ViNumberInput
+                maxFractionDigits={2}
                 value={bankAmount}
-                onChange={(event) => setBankAmount(event.target.value)}
+                onChange={setBankAmount}
                 disabled={saving}
-                maxLength={21}
+                maxLength={27}
                 placeholder="0"
                 className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"
               />

@@ -72,7 +72,7 @@ describe('validateCanonicalNumber', () => {
     ).toEqual({
       ok: false,
       code: 'NUMBER_SCALE_EXCEEDED',
-      message: 'Số chữ số sau dấu chấm vượt quá giới hạn cho phép.',
+      message: 'Số chữ số sau dấu phẩy vượt quá giới hạn cho phép.',
     });
   });
 

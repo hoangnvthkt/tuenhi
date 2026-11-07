@@ -1,4 +1,5 @@
 import { useId, useState, type FocusEvent } from 'react';
+import { ViNumberInput } from './ViNumberInput';
 import {
   editingGrammarFor,
   numericErrorMessages,
@@ -51,14 +52,10 @@ export function NumericField({
       >
         {label}
       </label>
-      <input
+      <ViNumberInput
         id={inputId}
         name={name}
-        type="text"
-        inputMode={
-          kind === 'quantity' || kind === 'integer' ? 'numeric' : 'decimal'
-        }
-        autoComplete="off"
+        maxFractionDigits={kind === 'money' ? 2 : 0}
         value={value}
         required={required}
         disabled={disabled}
@@ -68,15 +65,14 @@ export function NumericField({
             .filter(Boolean)
             .join(' ') || undefined
         }
-        onChange={(event) => {
-          const nextValue = event.currentTarget.value;
+        onChange={(nextValue) => {
           if (!editingGrammarFor(kind).test(nextValue)) {
             setLocalError(
               kind === 'quantity'
                 ? quantityIntegerMessage
                 : numericErrorMessages.NUMBER_FORMAT_INVALID,
             );
-            return;
+            return false;
           }
 
           setLocalError(null);

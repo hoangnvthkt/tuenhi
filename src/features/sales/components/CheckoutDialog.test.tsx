@@ -214,7 +214,7 @@ it('shows fractional shortfall and large change without rounding away money', ()
   expect(screen.getByText(/Còn thiếu:/)).toHaveTextContent('0,01');
   view.rerender(<CheckoutDialog {...props} total="0" />);
   fireEvent.change(screen.getByLabelText('Khách đưa (tùy chọn)'), {
-    target: { value: '9007199254740993.01' },
+    target: { value: '9007199254740993,01' },
   });
   expect(screen.getByText(/Tiền thừa:/)).toHaveTextContent(
     '9.007.199.254.740.993,01',
@@ -301,7 +301,8 @@ it.each([
       target: { value: tendered },
     });
     fireEvent.change(screen.getByLabelText('Chuyển khoản thanh toán'), {
-      target: { value: bank },
+      // People type a decimal comma; the dialog still reports canonical amounts.
+      target: { value: bank.replace('.', ',') },
     });
     expect(screen.getByText(/Tiền thừa trả khách:/)).toHaveTextContent(change);
     expect(screen.getByText(/Còn nợ:/)).toHaveTextContent('0 ₫');

@@ -20,8 +20,8 @@ export type NumericErrorCode =
   | 'NUMBER_MUST_BE_NON_NEGATIVE';
 
 export const numericErrorMessages: Record<NumericErrorCode, string> = {
-  NUMBER_FORMAT_INVALID: 'Chỉ nhập chữ số và dấu chấm cho phần thập phân.',
-  NUMBER_SCALE_EXCEEDED: 'Số chữ số sau dấu chấm vượt quá giới hạn cho phép.',
+  NUMBER_FORMAT_INVALID: 'Chỉ nhập chữ số; phần lẻ dùng dấu phẩy.',
+  NUMBER_SCALE_EXCEEDED: 'Số chữ số sau dấu phẩy vượt quá giới hạn cho phép.',
   NUMBER_RANGE_EXCEEDED: 'Giá trị vượt quá giới hạn hệ thống cho phép.',
   NUMBER_REQUIRED: 'Vui lòng nhập giá trị.',
   NUMBER_MUST_BE_POSITIVE: 'Giá trị phải lớn hơn 0.',

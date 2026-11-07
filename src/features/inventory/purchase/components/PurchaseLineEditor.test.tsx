@@ -57,15 +57,15 @@ it('prefills selected product cost and preserves a receipt-specific override whe
   const user = userEvent.setup();
   renderWithQueryClient(<Fixture />);
   await choose('A — Hàng A');
-  expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('30000.50');
+  expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('30.000,5');
   await user.clear(screen.getByLabelText('Đơn giá nhập'));
   await user.type(screen.getByLabelText('Đơn giá nhập'), '29000');
   await choose('A — Hàng A');
-  expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('29000');
+  expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('29.000');
   await choose('B — Hàng B');
   expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('');
   await choose('A — Hàng A');
-  expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('30000.50');
+  expect(screen.getByLabelText('Đơn giá nhập')).toHaveValue('30.000,5');
 });
 it('does not expose a cost editor without cost entry permission', async () => {
   renderWithQueryClient(<Fixture canEnterCost={false} />);

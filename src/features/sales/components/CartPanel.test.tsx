@@ -63,7 +63,7 @@ describe('CartPanel', () => {
     await user.type(quantity, '1000');
     await user.tab();
 
-    expect(quantity).toHaveValue('1000');
+    expect(quantity).toHaveValue('1.000');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -123,7 +123,7 @@ describe('CartPanel', () => {
     await user.type(quantity, '999999999999999999');
     await user.tab();
 
-    expect(quantity).toHaveValue('999999999999999999');
+    expect(quantity).toHaveValue('999.999.999.999.999.999');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
@@ -185,7 +185,7 @@ it.each(['Giảm dòng', 'Giảm toàn đơn'])(
     await user.clear(input);
     await user.type(input, '1000');
     await user.tab();
-    expect(input).toHaveValue('1000');
+    expect(input).toHaveValue('1.000');
     expect(input).toHaveAttribute('aria-invalid', 'false');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getAllByText('54.000 ₫').length).toBeGreaterThan(0);
