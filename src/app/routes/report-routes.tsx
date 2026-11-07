@@ -18,6 +18,21 @@ const SettlementReportPage = lazy(() =>
     default: module.SettlementReportPage,
   })),
 );
+const CashBookPage = lazy(() =>
+  import('@/features/cash-book').then((module) => ({
+    default: module.CashBookPage,
+  })),
+);
+const CashShiftPage = lazy(() =>
+  import('@/features/cash-book').then((module) => ({
+    default: module.CashShiftPage,
+  })),
+);
+const CashVoucherPage = lazy(() =>
+  import('@/features/cash-book').then((module) => ({
+    default: module.CashVoucherPage,
+  })),
+);
 const InventoryValuationPage = lazy(() =>
   import('@/features/inventory').then((module) => ({
     default: module.InventoryValuationPage,
@@ -47,6 +62,22 @@ export const reportRoutes: RouteObject[] = [
     children: [
       { path: 'reports', element: <ReportPage /> },
       { path: 'reports/settlements', element: <SettlementReportPage /> },
+    ],
+  },
+  {
+    element: (
+      <RequireSession permission={['cash.book.read', 'cash.shift.manage']} />
+    ),
+    children: [{ path: 'cash-book', element: <CashBookPage /> }],
+  },
+  {
+    element: <RequireSession permission="cash.shift.manage" />,
+    children: [{ path: 'cash-book/shift', element: <CashShiftPage /> }],
+  },
+  {
+    element: <RequireSession permission="cash.voucher.create" />,
+    children: [
+      { path: 'cash-book/vouchers/new', element: <CashVoucherPage /> },
     ],
   },
   {

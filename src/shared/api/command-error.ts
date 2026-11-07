@@ -7,6 +7,12 @@ export const businessErrorMessages = {
   IDEMPOTENCY_CONFLICT:
     'Mã yêu cầu đã dùng cho nội dung khác. Hãy đối soát giao dịch trước.',
   NO_CHANGES: 'Số dư công nợ chưa thay đổi.',
+  CASH_OPENING_ALREADY_SET: 'Quỹ này đã có số dư đầu.',
+  CASH_SHIFT_ALREADY_OPEN: 'Bạn đang có ca chưa đóng.',
+  CASH_SHIFT_ALREADY_CLOSED: 'Ca đã đóng.',
+  CASH_SHIFT_NOTE_REQUIRED: 'Tiền đếm bị lệch: nhập ghi chú lý do.',
+  CASH_VOUCHER_ALREADY_CANCELLED: 'Phiếu đã được hủy.',
+  NOT_FOUND: 'Không tìm thấy chứng từ.',
 
   AUTH_REQUIRED: 'Vui lòng đăng nhập để tiếp tục.',
   ACCOUNT_INACTIVE: 'Tài khoản đã bị khóa.',
