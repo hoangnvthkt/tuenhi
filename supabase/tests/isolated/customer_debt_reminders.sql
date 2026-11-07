@@ -98,7 +98,9 @@ declare c uuid:='41000000-0000-4000-8000-000000000002'; result jsonb; debt jsonb
 begin
  result:=api.adjust_customer_debt(c,1,'100000','Opening debt',gen_random_uuid());
  if result->>'ok' is distinct from 'true' then raise exception 'MANUAL_FIXTURE_FAILED %',result; end if;
+ perform set_config('app.ledger_maintenance','on',true); -- test-only backdating
  update app_private.customer_debt_entries set occurred_at=now()-interval '10 days' where customer_id=c;
+ perform set_config('app.ledger_maintenance','off',true);
  perform pg_temp.flush_reminders();
  if not exists(select 1 from api.user_notifications where entity_id=c and metadata->>'overdueAmount'='100000.00') then raise exception 'MANUAL_DEBT_AGE_IGNORED'; end if;
  result:=api.adjust_customer_debt(c,(result#>>'{data,version}')::bigint,'150000','New manual debt',gen_random_uuid());
@@ -107,7 +109,9 @@ begin
  result:=api.collect_customer_debt(c,(result#>>'{data,version}')::bigint,'100000','0','Old manual debt paid',gen_random_uuid());
  perform pg_temp.flush_reminders();
  if exists(select 1 from api.user_notifications where entity_type='customer_debt' and entity_id=c) then raise exception 'MANUAL_FIFO_AGE_NOT_CLEARED'; end if;
+ perform set_config('app.ledger_maintenance','on',true); -- test-only backdating
  update app_private.customer_debt_entries set occurred_at=now()-interval '8 days' where customer_id=c and delta=50000;
+ perform set_config('app.ledger_maintenance','off',true);
  perform api.get_my_notifications();
  if not exists(select 1 from api.user_notifications where entity_id=c and metadata->>'overdueAmount'='50000.00') then raise exception 'REMAINING_MANUAL_LOT_NOT_AGED'; end if;
  result:=api.adjust_customer_debt(c,(result#>>'{data,version}')::bigint,'0','Write off debt',gen_random_uuid());
