@@ -55,6 +55,13 @@ export const operationalDashboardSchema = z.object({
     lowStockCount: z.number().int(),
     outOfStockCount: z.number().int(),
     totalOnHandQty: z.string().regex(SIGNED_INTEGER_FINAL),
+    // Disjoint states; they add up to activeProductCount.
+    stockStates: z.object({
+      inStock: z.number().int().nonnegative(),
+      runningLow: z.number().int().nonnegative(),
+      zeroStock: z.number().int().nonnegative(),
+      negativeStock: z.number().int().nonnegative(),
+    }),
   }),
   pending: z.object({
     purchaseReceipts: z.number().int(),
@@ -102,7 +109,26 @@ export const profitPageSchema = z.object({
   nextCursor: z.object({ occurredAt: z.string(), id: z.uuid() }).nullable(),
 });
 
+export const productRevenueSchema = z.object({
+  version: z.literal(1),
+  range: z.object({ from: z.string(), to: z.string() }),
+  scope: z.enum(['OWN', 'ALL']),
+  totalNetRevenue: decimal,
+  items: z
+    .array(
+      z.object({
+        productId: z.uuid(),
+        productName: z.string(),
+        netRevenue: decimal,
+      }),
+    )
+    .max(3),
+  otherNetRevenue: decimal,
+  otherProductCount: z.number().int().nonnegative(),
+});
+
 export type RevenueReport = z.infer<typeof revenueReportSchema>;
+export type ProductRevenue = z.infer<typeof productRevenueSchema>;
 export type OperationalDashboard = z.infer<typeof operationalDashboardSchema>;
 export type OwnerDashboard = z.infer<typeof ownerDashboardSchema>;
 export type ProfitPage = z.infer<typeof profitPageSchema>;

@@ -10,7 +10,7 @@ const summary = {
   netRevenue: '55000',
   averageOrderValue: '55000',
 };
-test('dashboard cash, bank and debt cards open the matching dated invoice list', async ({
+test('dashboard pie slices open the matching dated invoice list', async ({
   context,
   page,
 }, testInfo) => {
@@ -29,6 +29,12 @@ test('dashboard cash, bank and debt cards open the matching dated invoice list',
           lowStockCount: 1099,
           outOfStockCount: 1099,
           totalOnHandQty: '101',
+          stockStates: {
+            inStock: 1,
+            runningLow: 0,
+            zeroStock: 1099,
+            negativeStock: 1,
+          },
         },
         pending: { purchaseReceipts: 0, stockCounts: 0, saleReturns: 0 },
       };
@@ -43,6 +49,22 @@ test('dashboard cash, bank and debt cards open the matching dated invoice list',
         daily: [],
         channels: [],
         paymentMethods: [],
+      };
+    else if (name === 'get_dashboard_product_revenue')
+      data = {
+        version: 1,
+        range: { from: '2026-10-16', to: '2026-10-16' },
+        scope: 'ALL',
+        totalNetRevenue: '55000',
+        items: [
+          {
+            productId: '30000001-0000-4000-8000-000000000001',
+            productName: '12B Akopha Pháp',
+            netRevenue: '55000',
+          },
+        ],
+        otherNetRevenue: '0',
+        otherProductCount: 0,
       };
     else if (name === 'get_owner_dashboard')
       data = {
@@ -91,16 +113,16 @@ test('dashboard cash, bank and debt cards open the matching dated invoice list',
   });
   await page.goto('/e2e/fixtures/dashboard.html');
   await expect(
-    page.getByRole('article', { name: 'Tiền mặt', exact: true }),
-  ).toContainText('25.000 ₫');
+    page.getByRole('link', { name: 'Tiền mặt: 25.000 ₫ (45%)' }),
+  ).toBeVisible();
   await expect(
-    page.getByRole('article', { name: 'Nợ còn lại', exact: true }),
-  ).toContainText('20.000 ₫');
+    page.getByRole('link', { name: 'Hết hàng: 1.099 (100%)' }),
+  ).toHaveAttribute('href', '/products?stock=ZERO_STOCK');
   await page.screenshot({
     path: testInfo.outputPath('dashboard-settlements.png'),
     fullPage: true,
   });
-  await page.getByRole('link', { name: 'Nợ còn lại', exact: true }).click();
+  await page.getByRole('link', { name: 'Còn nợ: 20.000 ₫ (36%)' }).click();
   await expect(
     page.getByRole('heading', { name: 'Nợ còn lại của các đơn bán' }),
   ).toBeVisible();
@@ -123,6 +145,16 @@ test('dashboard cash, bank and debt cards open the matching dated invoice list',
   await expect
     .poll(() => requests.at(-1))
     .toMatchObject({ p_method: 'BANK_TRANSFER' });
+  await page.goto('/e2e/fixtures/dashboard.html');
+  await page
+    .getByRole('link', { name: '12B Akopha Pháp: 55.000 ₫ (100%)' })
+    .click();
+  await expect
+    .poll(() => requests.at(-1))
+    .toMatchObject({
+      p_method: 'ALL',
+      p_product_id: '30000001-0000-4000-8000-000000000001',
+    });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

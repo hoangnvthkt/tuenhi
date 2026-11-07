@@ -12,7 +12,14 @@ export type ProductFormValues = {
 };
 
 export type CatalogStockState =
-  'ALL' | 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
+  | 'ALL'
+  | 'IN_STOCK'
+  | 'LOW_STOCK'
+  | 'OUT_OF_STOCK'
+  // Disjoint states used by the dashboard stock chart.
+  | 'RUNNING_LOW'
+  | 'ZERO_STOCK'
+  | 'NEGATIVE_STOCK';
 
 export type CategoryOption = {
   id: string;

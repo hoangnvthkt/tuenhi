@@ -84,7 +84,12 @@ export function createReturnsApi() {
       );
     },
     async list(
-      filters: { status?: string; search?: string } = {},
+      filters: {
+        status?: string;
+        search?: string;
+        completedFrom?: string;
+        completedTo?: string;
+      } = {},
       cursor?: { updatedAt: string; id: string },
     ) {
       return parseReturnsRpc(

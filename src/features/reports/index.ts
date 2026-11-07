@@ -4,6 +4,7 @@ export {
   createRevenueReportsApi,
   type OperationalDashboard,
   type OwnerDashboard,
+  type ProductRevenue,
   type ProfitPage,
   type RevenueReport,
 } from './api/reports-api';

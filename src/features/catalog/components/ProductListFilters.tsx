@@ -119,6 +119,9 @@ export function ProductListFilters({
               <option value="IN_STOCK">Còn hàng</option>
               <option value="LOW_STOCK">Sắp hết</option>
               <option value="OUT_OF_STOCK">Hết hàng</option>
+              <option value="RUNNING_LOW">Sắp hết (còn hàng)</option>
+              <option value="ZERO_STOCK">Tồn bằng 0</option>
+              <option value="NEGATIVE_STOCK">Âm kho</option>
             </select>
           </div>
           {canManage ? (

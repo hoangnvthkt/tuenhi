@@ -66,3 +66,14 @@ collections no longer rewrite receipts, append-only ledgers (update/delete need
 `app.ledger_maintenance`), whole-dong order-discount splits, audit events for stock
 count/opening commands, and cancelling submitted counts. After a Cloud release run the
 read-only `supabase/tests/ledger_integrity_assertions.sql`.
+
+## Dashboard pie charts (audit wave 2b, 07/11/2026)
+
+After applying `20261107033254_dashboard_pie_drilldowns.sql`, clone the schema into
+`dashboard_pie_test` and run `dashboard_pie.sql` with `psql -X -v ON_ERROR_STOP=1`.
+The fixture rolls back. It checks that the four stock states are disjoint, add up to
+the active product count and match the new catalog filters (`RUNNING_LOW`,
+`ZERO_STOCK`, `NEGATIVE_STOCK`; legacy filters unchanged), that revenue by product
+(sale, order discount, cancellation, return) reconciles exactly with the revenue
+report's net revenue as top three plus "Khác", the settlement product filter, and the
+returns-list completion date filter.

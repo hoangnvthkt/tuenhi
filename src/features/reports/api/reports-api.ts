@@ -7,15 +7,23 @@ import { getSupabaseClient } from '@/shared/supabase/client';
 import {
   operationalDashboardSchema,
   ownerDashboardSchema,
+  productRevenueSchema,
   profitPageSchema,
   revenueReportSchema,
   type OperationalDashboard,
   type OwnerDashboard,
+  type ProductRevenue,
   type ProfitPage,
   type RevenueReport,
 } from './report-schemas';
 
-export type { OperationalDashboard, OwnerDashboard, ProfitPage, RevenueReport };
+export type {
+  OperationalDashboard,
+  OwnerDashboard,
+  ProductRevenue,
+  ProfitPage,
+  RevenueReport,
+};
 
 export class ReportsApiError extends Error {
   constructor(
@@ -71,6 +79,17 @@ export function createRevenueReportsApi() {
         p_to: to,
         p_scope: scope,
       }).then((data) => parse(revenueReportSchema, data));
+    },
+    productRevenue(
+      from: string,
+      to: string,
+      scope: 'OWN' | 'ALL',
+    ): Promise<ProductRevenue> {
+      return rpc('get_dashboard_product_revenue', {
+        p_from: from,
+        p_to: to,
+        p_scope: scope,
+      }).then((data) => parse(productRevenueSchema, data));
     },
   };
 }
