@@ -9,8 +9,11 @@ const money = (value: string) =>
   new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(Number(value));
+    maximumFractionDigits: 2,
+  }).format(
+    // Exact decimal string: no float rounding, keep real fractional dong.
+    value as Intl.StringNumericLiteral,
+  );
 
 const label: Record<string, string> = {
   REQUESTED: 'Chờ kiểm nhận',

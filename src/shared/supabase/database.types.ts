@@ -461,7 +461,9 @@ export type Database = {
       payments: {
         Row: {
           amount: number;
+          bank_transfer_amount: number;
           captured_by: string;
+          cash_amount: number;
           correlation_id: string;
           id: string;
           method: string;
@@ -475,7 +477,9 @@ export type Database = {
         };
         Insert: {
           amount: number;
+          bank_transfer_amount?: number;
           captured_by: string;
+          cash_amount?: number;
           correlation_id: string;
           id?: string;
           method: string;
@@ -489,7 +493,9 @@ export type Database = {
         };
         Update: {
           amount?: number;
+          bank_transfer_amount?: number;
           captured_by?: string;
+          cash_amount?: number;
           correlation_id?: string;
           id?: string;
           method?: string;

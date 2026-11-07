@@ -56,3 +56,13 @@ out-of-stock filters, and concurrent sale/restock/return/cancel commands.
 `checkout_confirmation_guards.sql` now verifies that zero-stock checkout succeeds
 while price/version guards still reject stale drafts. See
 [the accounting policy and local verification runbook](../../../docs/runbooks/negative-inventory.md).
+
+## Ledger integrity (audit wave 1, 07/11/2026)
+
+After applying `20261107013956_ledger_integrity_wave1.sql`, clone the schema into
+`ledger_integrity_test` and run `ledger_integrity.sql` with `psql -X -v ON_ERROR_STOP=1`.
+The fixture rolls back. It checks the cash/bank split on checkout receipts, that debt
+collections no longer rewrite receipts, append-only ledgers (update/delete need
+`app.ledger_maintenance`), whole-dong order-discount splits, audit events for stock
+count/opening commands, and cancelling submitted counts. After a Cloud release run the
+read-only `supabase/tests/ledger_integrity_assertions.sql`.

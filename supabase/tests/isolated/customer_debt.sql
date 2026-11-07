@@ -30,7 +30,10 @@ begin
  collected:=api.collect_customer_debt('40000000-0000-4000-8000-000000000001',(debt#>>'{data,version}')::bigint,'20000','0','Khách trả hết',collect_key);
  if collected->>'ok' is distinct from 'true' or (collected#>>'{data,balance}')::numeric<>0 then raise exception 'Collection failed %',collected; end if;
  if api.collect_customer_debt('40000000-0000-4000-8000-000000000001',(debt#>>'{data,version}')::bigint,'20000','0','Khách trả hết',collect_key) is distinct from collected then raise exception 'Collection replay differs'; end if;
- if (select amount from api.payments where sale_id=sid)<>100000 then raise exception 'Collected sale amount wrong'; end if;
+ -- Checkout receipt keeps its own split; the collection lives in the debt ledger.
+ if (select (amount,cash_amount,bank_transfer_amount) from api.payments where sale_id=sid) is distinct from (80000::numeric(20,2),30000::numeric(20,2),50000::numeric(20,2)) then raise exception 'Checkout receipt changed by collection'; end if;
+ if (select (cash_amount,bank_transfer_amount) from app_private.customer_debt_entries where kind='COLLECTION' and customer_id='40000000-0000-4000-8000-000000000001') is distinct from (20000::numeric(20,2),0::numeric(20,2)) then raise exception 'Collection split wrong'; end if;
+ if api.get_sale_invoice(sid)#>>'{data,totals,capturedAmount}' is distinct from '100000.00' then raise exception 'Collected sale amount wrong'; end if;
  if (api.get_customer_debt('40000000-0000-4000-8000-000000000002')#>>'{data,balance}')::numeric<>0 then raise exception 'Another customer affected'; end if;
 
  saved:=api.save_sale_draft(null,null,'40000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','[{"productId":"30000000-0000-4000-8000-000000000001","quantity":"5","lineDiscountAmount":"0","lineOrder":0}]','0','Second credit sale',gen_random_uuid());
@@ -54,7 +57,7 @@ begin
  if collected#>>'{error,code}' is distinct from 'IDEMPOTENCY_CONFLICT' then raise exception 'Conflicting adjustment accepted'; end if;
  result:=api.adjust_customer_debt('40000000-0000-4000-8000-000000000001',(result#>>'{data,version}')::bigint,'30000','Giảm nợ cũ và miễn một phần nợ đơn',gen_random_uuid());
  if result->>'ok' is distinct from 'true' then raise exception 'Invoice adjustment failed %',result; end if;
- if (select amount from api.payments where sale_id=sid)<>20000 then raise exception 'Write-off counted as cash'; end if;
+ if (api.get_sale_invoice(sid)#>>'{data,totals,capturedAmount}')::numeric<>20000 then raise exception 'Write-off counted as cash'; end if;
  invoice:=api.get_sale_invoice(sid);
  if (invoice#>>'{data,totals,outstandingAmount}')::numeric<>30000 or (invoice#>>'{data,totals,adjustedDebtAmount}')::numeric<>50000 then raise exception 'Invoice debt presentation wrong %',invoice; end if;
  version:=(result#>>'{data,version}')::bigint;
