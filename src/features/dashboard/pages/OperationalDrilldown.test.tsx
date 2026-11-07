@@ -59,3 +59,43 @@ it.each([
     expect(screen.getByRole('combobox')).toHaveValue('');
   },
 );
+
+it('opens returns completed in the dashboard period and can clear the dates', async () => {
+  list.mockReset().mockResolvedValue({ items: [], nextCursor: null });
+  render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <MemoryRouter
+        initialEntries={[
+          '/?status=COMPLETED&period=month&from=2026-10-01&to=2026-10-31',
+        ]}
+      >
+        <ReturnListPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await waitFor(() =>
+    expect(list).toHaveBeenLastCalledWith(
+      {
+        search: '',
+        status: 'COMPLETED',
+        completedFrom: '2026-10-01',
+        completedTo: '2026-10-31',
+      },
+      undefined,
+    ),
+  );
+  expect(
+    screen.getByText('Hoàn tất từ 2026-10-01 đến 2026-10-31'),
+  ).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: 'Bỏ lọc ngày' }));
+  await waitFor(() =>
+    expect(list).toHaveBeenLastCalledWith(
+      { search: '', status: 'COMPLETED' },
+      undefined,
+    ),
+  );
+});

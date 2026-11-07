@@ -5,6 +5,8 @@ import { Link, useSearchParams } from 'react-router';
 import { useState } from 'react';
 import { createReturnsApi } from '../api/returns-api';
 
+const isIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
+
 const money = (value: string) =>
   new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -28,12 +30,28 @@ export function ReturnListPage() {
   const [search, setSearch] = useState('');
   const [params, setParams] = useSearchParams();
   const status = params.get('status') ?? '';
+  // From the dashboard "Trả hàng" card: returns completed in that period.
+  const from = params.get('from') ?? '';
+  const to = params.get('to') ?? '';
+  const period = isIsoDate(from) && isIsoDate(to) ? { from, to } : null;
   const setStatus = (value: string) =>
-    setParams(value ? { status: value } : {});
+    setParams({
+      ...(value ? { status: value } : {}),
+      ...(period ?? {}),
+    });
   const query = useCursorList({
-    queryKey: privateKey(...['sale-returns', search, status]),
+    queryKey: privateKey(...['sale-returns', search, status, from, to]),
     load: (cursor: { updatedAt: string; id: string } | undefined) =>
-      api.list({ search, status }, cursor),
+      api.list(
+        {
+          search,
+          status,
+          ...(period
+            ? { completedFrom: period.from, completedTo: period.to }
+            : {}),
+        },
+        cursor,
+      ),
     id: (item) => item.id,
   });
 
@@ -53,6 +71,20 @@ export function ReturnListPage() {
           Tạo yêu cầu trả
         </Link>
       </div>
+      {period ? (
+        <p className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+          <span className="rounded-lg bg-teal-50 px-3 py-2 font-semibold text-teal-900">
+            Hoàn tất từ {period.from} đến {period.to}
+          </span>
+          <button
+            type="button"
+            onClick={() => setParams(status ? { status } : {})}
+            className="min-h-11 font-semibold text-teal-800 underline"
+          >
+            Bỏ lọc ngày
+          </button>
+        </p>
+      ) : null}
       <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_180px]">
         <input
           value={search}

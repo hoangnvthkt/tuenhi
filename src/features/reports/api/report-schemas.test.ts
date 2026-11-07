@@ -12,6 +12,7 @@ const dashboard = {
     lowStockCount: 1,
     outOfStockCount: 1,
     totalOnHandQty: '-2',
+    stockStates: { inStock: 0, runningLow: 0, zeroStock: 0, negativeStock: 1 },
   },
   pending: { purchaseReceipts: 0, stockCounts: 0, saleReturns: 0 },
 };

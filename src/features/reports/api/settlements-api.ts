@@ -15,6 +15,7 @@ export const settlementReportSchema = z.object({
   version: z.literal(1),
   range: z.object({ from: z.string(), to: z.string() }),
   scope: z.enum(['OWN', 'ALL']),
+  product: z.object({ id: z.uuid(), name: z.string() }).nullable().optional(),
   summary: z.object({
     cashAmount: money,
     bankTransferAmount: money,
@@ -45,6 +46,7 @@ export function createSaleSettlementsApi() {
       scope: 'OWN' | 'ALL',
       method: SettlementMethod = 'ALL',
       cursor?: SettlementCursor,
+      productId?: string | null,
     ): Promise<SettlementReport> {
       const { data, error } = await client.rpc(
         'get_sale_settlement_report' as never,
@@ -56,6 +58,7 @@ export function createSaleSettlementsApi() {
           p_cursor_completed_at: cursor?.completedAt ?? null,
           p_cursor_id: cursor?.id ?? null,
           p_limit: 50,
+          ...(productId ? { p_product_id: productId } : {}),
         } as never,
       );
       if (error) throw new Error('Không thể tải chi tiết thanh toán.');

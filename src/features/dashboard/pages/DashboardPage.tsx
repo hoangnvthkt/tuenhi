@@ -9,14 +9,58 @@ import {
 import { useDashboardData } from '../hooks/use-dashboard-data';
 import { formatReportMoney, formatReportNumber } from '@/features/reports';
 import { ChartBar } from '@phosphor-icons/react';
+import { DonutCard, type DonutPart } from '../components/DonutCard';
+import { sumDecimals } from '../model/donut';
+
+// Validated categorical slots (dataviz palette) and reserved status colours.
+const SERIES = ['#2a78d6', '#eb6834', '#1baf7a'] as const;
+const OTHER = '#94a3b8';
+const STATUS = {
+  good: '#0ca30c',
+  warning: '#fab219',
+  serious: '#ec835a',
+  critical: '#d03b3b',
+} as const;
+// Tiny status glyphs (filled circle + mark) so state is never colour-only.
+const STATUS_MARKS = {
+  good: 'M5 8.2 7 10.2 11 6',
+  warning: 'M8 4.5v4.2M8 11.2v.3',
+  serious: 'M5 8h6',
+  critical: 'M5.5 5.5l5 5M10.5 5.5l-5 5',
+} as const;
+function StatusIcon({ tone }: { tone: keyof typeof STATUS }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      className="size-[18px] shrink-0"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="8" fill={STATUS[tone]} />
+      <path
+        d={STATUS_MARKS[tone]}
+        fill="none"
+        stroke="white"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+const count = (value: number) => formatReportNumber(String(value), 0);
+const chartStatus = (query: { data?: unknown; error: unknown }) =>
+  query.data ? 'ready' : query.error ? 'error' : 'loading';
 
 function Card({
   label,
   value,
+  sub,
   to,
 }: {
   label: string;
-  value: string;
+  /** null while loading: never show a placeholder 0. */
+  value: string | null;
+  sub?: string | null;
   to: string;
 }) {
   return (
@@ -37,9 +81,20 @@ function Card({
             <ChartBar size={20} aria-hidden="true" />
           </span>
         </div>
-        <p className="metric-value text-xl font-bold tabular-nums text-slate-950">
-          {value}
-        </p>
+        {value === null ? (
+          <p
+            role="status"
+            aria-label={`Đang tải ${label.toLowerCase()}`}
+            className="h-7 w-28 animate-pulse rounded bg-slate-200"
+          />
+        ) : (
+          <p className="metric-value text-xl font-bold tabular-nums text-slate-950">
+            {value}
+          </p>
+        )}
+        {sub ? (
+          <p className="mt-1 text-sm tabular-nums text-slate-600">{sub}</p>
+        ) : null}
       </Link>
     </article>
   );
@@ -67,7 +122,7 @@ export function DashboardPage() {
   const canRevenue = canAll || canOwn;
   const canProfit =
     session?.permissions.includes('report.cost_profit.read') ?? false;
-  const { operational, revenue, owner, settlements, refresh } =
+  const { operational, revenue, owner, settlements, productRevenue, refresh } =
     useDashboardData({
       period,
       from,
@@ -102,7 +157,95 @@ export function DashboardPage() {
     settlements.isLoading ||
     (canProfit && owner.isLoading);
   const error =
-    operational.error ?? revenue.error ?? settlements.error ?? owner.error;
+    operational.error ??
+    revenue.error ??
+    settlements.error ??
+    productRevenue.error ??
+    owner.error;
+  const rangeParams = new URLSearchParams({ period, from, to });
+  const productLink = (productId: string) =>
+    `${settlementLink('ALL')}&product=${productId}`;
+  const stock = operational.data?.catalog.stockStates;
+  const stockParts: DonutPart[] = stock
+    ? [
+        {
+          key: 'in',
+          label: 'Đủ hàng',
+          value: String(stock.inStock),
+          display: count(stock.inStock),
+          color: STATUS.good,
+          to: '/products?stock=IN_STOCK',
+          icon: <StatusIcon tone="good" />,
+        },
+        {
+          key: 'low',
+          label: 'Sắp hết',
+          value: String(stock.runningLow),
+          display: count(stock.runningLow),
+          color: STATUS.warning,
+          to: '/products?stock=RUNNING_LOW',
+          icon: <StatusIcon tone="warning" />,
+        },
+        {
+          key: 'negative',
+          label: 'Âm kho',
+          value: String(stock.negativeStock),
+          display: count(stock.negativeStock),
+          color: STATUS.critical,
+          to: '/products?stock=NEGATIVE_STOCK',
+          icon: <StatusIcon tone="critical" />,
+        },
+        {
+          key: 'zero',
+          label: 'Hết hàng',
+          value: String(stock.zeroStock),
+          display: count(stock.zeroStock),
+          color: STATUS.serious,
+          to: '/products?stock=ZERO_STOCK',
+          icon: <StatusIcon tone="serious" />,
+        },
+      ]
+    : [];
+  const pay = settlements.data?.summary;
+  const payParts: DonutPart[] = pay
+    ? [
+        ['CASH', 'Tiền mặt', pay.cashAmount],
+        ['BANK_TRANSFER', 'Chuyển khoản', pay.bankTransferAmount],
+        ['DEBT', 'Còn nợ', pay.outstandingAmount],
+      ].map(([method, label, value], index) => ({
+        key: method!,
+        label: label!,
+        value: value!,
+        display: formatReportMoney(value!),
+        color: SERIES[index]!,
+        to: settlementLink(method!),
+      }))
+    : [];
+  const products = productRevenue.data;
+  const productParts: DonutPart[] = products
+    ? [
+        ...products.items.map((item, index) => ({
+          key: item.productId,
+          label: item.productName,
+          value: item.netRevenue,
+          display: formatReportMoney(item.netRevenue),
+          color: SERIES[index]!,
+          to: productLink(item.productId),
+        })),
+        ...(products.otherProductCount
+          ? [
+              {
+                key: 'other',
+                label: `Khác (${count(products.otherProductCount)} sản phẩm)`,
+                value: products.otherNetRevenue,
+                display: formatReportMoney(products.otherNetRevenue),
+                color: OTHER,
+                to: settlementLink('ALL'),
+              },
+            ]
+          : []),
+      ]
+    : [];
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -110,9 +253,6 @@ export function DashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-950">
             Tổng quan
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Số liệu theo khoảng ngày tại Việt Nam.
-          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {lastUpdatedAt ? (
@@ -203,151 +343,143 @@ export function DashboardPage() {
           {error instanceof Error ? error.message : 'Không thể tải tổng quan.'}
         </p>
       ) : null}
-      {operational.data ? (
-        <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Card
-              to="/products"
-              label="Sản phẩm hoạt động"
-              value={formatReportNumber(
-                String(operational.data.catalog.activeProductCount),
-                0,
-              )}
-            />
-            <Card
-              to="/products?stock=LOW_STOCK"
-              label="Sắp hết hàng"
-              value={formatReportNumber(
-                String(operational.data.catalog.lowStockCount),
-                0,
-              )}
-            />
-            <Card
-              to="/products?stock=OUT_OF_STOCK"
-              label="Hết hàng"
-              value={formatReportNumber(
-                String(operational.data.catalog.outOfStockCount),
-                0,
-              )}
-            />
-            <Card
-              to="/products"
-              label="Tổng tồn tham khảo"
-              value={formatReportNumber(
-                operational.data.catalog.totalOnHandQty,
-              )}
-            />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Card
-              to="/more/purchases?status=AWAITING_COST"
-              label="Phiếu nhập chờ xử lý"
-              value={formatReportNumber(
-                String(operational.data.pending.purchaseReceipts),
-                0,
-              )}
-            />
-            <Card
-              to="/stock-counts?status=COUNTED"
-              label="Kiểm kho chờ xử lý"
-              value={formatReportNumber(
-                String(operational.data.pending.stockCounts),
-                0,
-              )}
-            />
-            <Card
-              to="/returns?status=REQUESTED"
-              label="Trả hàng chờ xử lý"
-              value={formatReportNumber(
-                String(operational.data.pending.saleReturns),
-                0,
-              )}
-            />
-          </div>
-        </>
-      ) : (
-        <div className="h-28 animate-pulse rounded-xl bg-slate-200" />
-      )}
-      {canRevenue && revenue.data ? (
-        <>
-          <h2 className="pt-2 text-xl font-bold text-slate-950">
-            {period === 'today' ? 'Doanh thu trong ngày' : 'Doanh thu trong kỳ'}
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {canRevenue || canProfit ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {canRevenue ? (
             <Card
               to={settlementLink('ALL')}
-              label={canAll ? 'Đơn toàn cửa hàng' : 'Đơn của tôi'}
-              value={formatReportNumber(
-                String(revenue.data.summary.completedOrderCount),
-                0,
-              )}
-            />
-            <Card
-              to={reportLink}
-              label="Doanh thu gộp"
-              value={formatReportMoney(revenue.data.summary.grossSales)}
-            />
-            <Card
-              to={`${reportLink}#returns`}
-              label="Trả hàng"
-              value={formatReportMoney(revenue.data.summary.salesReturns)}
-            />
-            <Card
-              to={reportLink}
               label="Doanh thu thuần"
-              value={formatReportMoney(revenue.data.summary.netRevenue)}
+              value={
+                revenue.data
+                  ? formatReportMoney(revenue.data.summary.netRevenue)
+                  : null
+              }
+              sub={
+                revenue.data
+                  ? `${count(revenue.data.summary.completedOrderCount)} đơn`
+                  : null
+              }
             />
-          </div>
-        </>
-      ) : null}
-      {canRevenue && settlements.data ? (
-        <section aria-label="Thanh toán các đơn trong kỳ" className="space-y-2">
-          <div className="grid gap-3 sm:grid-cols-3">
+          ) : null}
+          {canProfit ? (
             <Card
-              label="Tiền mặt"
-              value={formatReportMoney(settlements.data.summary.cashAmount)}
-              to={settlementLink('CASH')}
+              to={`${reportLink}#profit`}
+              label="Lợi nhuận gộp"
+              value={
+                owner.data ? formatReportMoney(owner.data.grossProfit) : null
+              }
+              sub={
+                owner.data
+                  ? `Giá vốn ${formatReportMoney(owner.data.netCogs)}`
+                  : null
+              }
             />
+          ) : null}
+          {canRevenue ? (
             <Card
-              label="Chuyển khoản"
-              value={formatReportMoney(
-                settlements.data.summary.bankTransferAmount,
-              )}
-              to={settlementLink('BANK_TRANSFER')}
+              to={`/returns?status=COMPLETED&${rangeParams}`}
+              label="Trả hàng"
+              value={
+                revenue.data
+                  ? formatReportMoney(revenue.data.summary.salesReturns)
+                  : null
+              }
             />
+          ) : null}
+          {canProfit ? (
             <Card
-              label="Nợ còn lại"
-              value={formatReportMoney(
-                settlements.data.summary.outstandingAmount,
-              )}
-              to={settlementLink('DEBT')}
+              to="/more/inventory/valuation"
+              label="Giá trị tồn"
+              value={
+                owner.data ? formatReportMoney(owner.data.inventoryValue) : null
+              }
+              sub={
+                operational.data
+                  ? `${formatReportNumber(operational.data.catalog.totalOnHandQty)} đơn vị`
+                  : null
+              }
             />
-          </div>
-          <p className="text-xs text-slate-500">
-            Theo các đơn bán trong khoảng ngày đã chọn, cập nhật tiền khách đã
-            trả và trừ tiền hoàn. Bấm vào từng ô để xem chi tiết.
-          </p>
-        </section>
-      ) : null}
-      {owner.data ? (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Card
-            to={`${reportLink}#profit`}
-            label="Giá vốn thuần"
-            value={formatReportMoney(owner.data.netCogs)}
-          />
-          <Card
-            to={`${reportLink}#profit`}
-            label="Lợi nhuận gộp"
-            value={formatReportMoney(owner.data.grossProfit)}
-          />
-          <Card
-            to="/more/inventory/valuation"
-            label="Giá trị tồn hiện tại"
-            value={formatReportMoney(owner.data.inventoryValue)}
-          />
+          ) : null}
         </div>
       ) : null}
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {canRevenue ? (
+          <DonutCard
+            title="Thu tiền các đơn"
+            centerLabel="Tổng"
+            centerValue={
+              pay
+                ? formatReportMoney(
+                    sumDecimals([
+                      pay.cashAmount,
+                      pay.bankTransferAmount,
+                      pay.outstandingAmount,
+                    ]),
+                  )
+                : ''
+            }
+            parts={payParts}
+            status={chartStatus(settlements)}
+            emptyText="Chưa có đơn trong kỳ."
+          />
+        ) : null}
+        <DonutCard
+          title="Tình trạng hàng"
+          centerLabel="Sản phẩm"
+          centerValue={
+            operational.data
+              ? count(operational.data.catalog.activeProductCount)
+              : ''
+          }
+          parts={stockParts}
+          status={chartStatus(operational)}
+          emptyText="Chưa có sản phẩm."
+        />
+        {canRevenue ? (
+          <DonutCard
+            title="Doanh thu theo sản phẩm"
+            centerLabel="Tổng"
+            centerValue={
+              products ? formatReportMoney(products.totalNetRevenue) : ''
+            }
+            parts={productParts}
+            status={chartStatus(productRevenue)}
+            emptyText="Chưa có doanh thu trong kỳ."
+          />
+        ) : null}
+      </div>
+      <section aria-label="Chờ xử lý" className="space-y-3">
+        <h2 className="text-base font-semibold text-slate-950">Chờ xử lý</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Card
+            to="/more/purchases?status=AWAITING_COST"
+            label="Phiếu nhập chờ xử lý"
+            value={
+              operational.data
+                ? count(operational.data.pending.purchaseReceipts)
+                : null
+            }
+          />
+          <Card
+            to="/stock-counts?status=COUNTED"
+            label="Kiểm kho chờ xử lý"
+            value={
+              operational.data
+                ? count(operational.data.pending.stockCounts)
+                : null
+            }
+          />
+          <Card
+            to="/returns?status=REQUESTED"
+            label="Trả hàng chờ xử lý"
+            value={
+              operational.data
+                ? count(operational.data.pending.saleReturns)
+                : null
+            }
+          />
+        </div>
+      </section>
     </section>
   );
 }

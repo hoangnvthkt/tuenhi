@@ -73,6 +73,7 @@ it('shows a filtered invoice with its current payments and keeps date/scope on m
     'ALL',
     'CASH',
     undefined,
+    null,
   );
   expect(
     screen.getByRole('heading', { name: 'Tiền mặt từ các đơn bán' }),
@@ -91,6 +92,7 @@ it('shows a filtered invoice with its current payments and keeps date/scope on m
     'ALL',
     'DEBT',
     undefined,
+    null,
   );
 });
 
@@ -133,6 +135,55 @@ it('reduces a forged ALL scope to OWN for a staff report', async () => {
     'OWN',
     'DEBT',
     undefined,
+    null,
   );
   access.all = true;
+});
+
+it('narrows invoices to a product from the dashboard chart and keeps it on method navigation', async () => {
+  const productId = '30000001-0000-4000-8000-000000000001';
+  const report = vi.fn().mockResolvedValue({
+    version: 1,
+    range: { from: '2026-10-01', to: '2026-10-31' },
+    scope: 'ALL',
+    product: { id: productId, name: '12B Akopha Pháp' },
+    summary: {
+      cashAmount: '232000',
+      bankTransferAmount: '0',
+      outstandingAmount: '0',
+    },
+    items: [],
+    nextCursor: null,
+  });
+  vi.mocked(createSaleSettlementsApi).mockReturnValue({ report });
+  render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <MemoryRouter
+        initialEntries={[
+          `/reports/settlements?period=month&from=2026-10-01&to=2026-10-31&scope=ALL&method=ALL&product=${productId}`,
+        ]}
+      >
+        <SettlementReportPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  expect(await screen.findByText('Có bán: 12B Akopha Pháp')).toBeVisible();
+  expect(report).toHaveBeenCalledWith(
+    '2026-10-01',
+    '2026-10-31',
+    'ALL',
+    'ALL',
+    undefined,
+    productId,
+  );
+  expect(
+    screen.getByRole('link', { name: 'Tiền mặt' }).getAttribute('href'),
+  ).toContain(`product=${productId}`);
+  expect(
+    screen.getByRole('link', { name: 'Bỏ lọc sản phẩm' }).getAttribute('href'),
+  ).not.toContain('product=');
 });

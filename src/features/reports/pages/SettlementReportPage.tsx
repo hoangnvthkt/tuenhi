@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { z } from 'zod';
 import { Link, useSearchParams } from 'react-router';
 import { usePrivateQueryKey, useSession } from '@/features/auth';
 import { useCursorList } from '@/shared/hooks/use-cursor-list';
@@ -45,14 +46,25 @@ export function SettlementReportPage({
       : 'OWN';
   const parsed = settlementMethodSchema.safeParse(params.get('method'));
   const method = parsed.success ? parsed.data : 'ALL';
+  const requestedProduct = z.uuid().safeParse(params.get('product'));
+  const productId = requestedProduct.success ? requestedProduct.data : null;
   const query = useCursorList({
-    queryKey: privateKey('sale-settlements', from, to, scope, method),
+    queryKey: privateKey(
+      'sale-settlements',
+      from,
+      to,
+      scope,
+      method,
+      productId,
+    ),
     load: (cursor: SettlementCursor | undefined) =>
-      api.report(from, to, scope, method, cursor),
+      api.report(from, to, scope, method, cursor, productId),
     id: (item) => item.id,
   });
   const rangeParams = new URLSearchParams({ period, from, to });
   const summary = query.data?.pages[0]?.summary;
+  const product = query.data?.pages[0]?.product;
+  const productParam = productId ? `&product=${productId}` : '';
   return (
     <section className="space-y-4">
       <Link
@@ -67,6 +79,19 @@ export function SettlementReportPage({
           Từ {from} đến {to} ·{' '}
           {scope === 'ALL' ? 'Toàn cửa hàng' : 'Các đơn của tôi'} · Giờ Việt Nam
         </p>
+        {productId ? (
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <span className="rounded-lg bg-teal-50 px-3 py-2 font-semibold text-teal-900">
+              Có bán: {product?.name ?? '…'}
+            </span>
+            <Link
+              to={`?${rangeParams}&scope=${scope}&method=${method}`}
+              className="inline-flex min-h-11 items-center font-semibold text-teal-800 underline"
+            >
+              Bỏ lọc sản phẩm
+            </Link>
+          </p>
+        ) : null}
         <p className="mt-1 text-sm text-slate-600">
           Số đã thu hiện tại của các đơn bán trong kỳ, bao gồm tiền trả nợ cho
           các đơn này và trừ tiền hoàn. Không cộng đơn bán ngoài kỳ; đơn hủy
@@ -77,7 +102,7 @@ export function SettlementReportPage({
         {Object.entries(methods).map(([key, label]) => (
           <Link
             key={key}
-            to={`?${rangeParams}&scope=${scope}&method=${key}`}
+            to={`?${rangeParams}&scope=${scope}&method=${key}${productParam}`}
             aria-current={method === key ? 'page' : undefined}
             className={`min-h-11 rounded-lg border px-3 py-2 text-sm font-semibold ${method === key ? 'border-teal-700 bg-teal-50 text-teal-900' : 'border-slate-300 bg-white'}`}
           >

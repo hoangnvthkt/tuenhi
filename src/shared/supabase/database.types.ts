@@ -2000,6 +2000,10 @@ export type Database = {
         Args: { p_customer_id: string; p_from?: string; p_to?: string };
         Returns: Json;
       };
+      get_dashboard_product_revenue: {
+        Args: { p_from: string; p_scope?: string; p_to: string };
+        Returns: Json;
+      };
       get_effective_permissions: { Args: { p_user_id: string }; Returns: Json };
       get_import_result: { Args: { p_import_run_id: string }; Returns: Json };
       get_import_validation_result: {

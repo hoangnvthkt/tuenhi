@@ -54,6 +54,12 @@ export function useDashboardData({
     enabled: canAll || canOwn,
     ...refreshOptions,
   });
+  const productRevenue = useQuery({
+    queryKey: privateKey('dashboard-product-revenue', from, to, canAll),
+    queryFn: () => revenueApi.productRevenue(from, to, canAll ? 'ALL' : 'OWN'),
+    enabled: canAll || canOwn,
+    ...refreshOptions,
+  });
   const owner = useQuery({
     queryKey: privateKey(...['dashboard-owner', period, from, to]),
     queryFn: () => ownerApi.owner(from, to),
@@ -66,8 +72,9 @@ export function useDashboardData({
     if (canAll || canOwn) {
       void revenue.refetch();
       void settlements.refetch();
+      void productRevenue.refetch();
     }
     if (canProfit) void owner.refetch();
   };
-  return { operational, revenue, owner, settlements, refresh };
+  return { operational, revenue, owner, settlements, productRevenue, refresh };
 }
