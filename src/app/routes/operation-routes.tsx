@@ -3,6 +3,26 @@ import { lazy } from 'react';
 import type { RouteObject } from 'react-router';
 import { RequireSession } from '@/features/auth';
 
+const SupplierDebtPage = lazy(() =>
+  import('@/features/supplier-debt').then((module) => ({
+    default: module.SupplierDebtPage,
+  })),
+);
+const SupplierPayPage = lazy(() =>
+  import('@/features/supplier-debt').then((module) => ({
+    default: module.SupplierPayPage,
+  })),
+);
+const PurchaseReturnPage = lazy(() =>
+  import('@/features/supplier-debt').then((module) => ({
+    default: module.PurchaseReturnPage,
+  })),
+);
+const WriteOffPage = lazy(() =>
+  import('@/features/supplier-debt').then((module) => ({
+    default: module.WriteOffPage,
+  })),
+);
 const PosPage = lazy(() =>
   import('@/features/sales').then((module) => ({ default: module.PosPage })),
 );
@@ -69,6 +89,32 @@ const ReplenishmentPage = lazy(() =>
 );
 
 export const operationRoutes: RouteObject[] = [
+  {
+    element: <RequireSession permission="supplier.debt.read" />,
+    children: [{ path: 'more/supplier-debts', element: <SupplierDebtPage /> }],
+  },
+  {
+    element: <RequireSession permission="supplier.debt.pay" />,
+    children: [
+      {
+        path: 'more/supplier-debts/:supplierId/pay',
+        element: <SupplierPayPage />,
+      },
+    ],
+  },
+  {
+    element: <RequireSession permission="purchase.return.post" />,
+    children: [
+      {
+        path: 'more/purchases/:receiptId/return',
+        element: <PurchaseReturnPage />,
+      },
+    ],
+  },
+  {
+    element: <RequireSession permission="inventory.writeoff.post" />,
+    children: [{ path: 'more/write-offs', element: <WriteOffPage /> }],
+  },
   {
     element: <RequireSession permission="inventory.read" />,
     children: [

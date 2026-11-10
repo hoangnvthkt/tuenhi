@@ -88,3 +88,15 @@ cash and bank books reconcile with an independent sum of payments, collections, 
 cancellations and vouchers (running balance included), keyset pagination, that a cashier
 sees only their own money, shift close with the exact expected cash and a required note
 when short, outcome lookup for the new commands, append-only guards and audit events.
+
+## Supplier debt, purchase returns and write-offs (audit wave 5, 10/11/2026)
+
+After applying `20261110123829_supplier_debt_returns_writeoffs.sql`, clone the schema into
+`supplier_debt_test` and run `supplier_debt.sql` with `psql -X -v ON_ERROR_STOP=1`. The
+fixture rolls back. It checks that posted receipts with a supplier open payables (none
+without a supplier), the once-only opening debt with a reason, oldest-first payments with
+version checks, replay and key reuse, that reversal is refused once money or goods moved
+and closes an untouched payable, write-offs at the moving average never above stock,
+purchase returns at the receipt cost (debt first, refund with a required method), the cash
+book entries for supplier payments and refunds, stock/cost/debt reconciliation after every
+step, append-only guards, audit events and outcome lookup.

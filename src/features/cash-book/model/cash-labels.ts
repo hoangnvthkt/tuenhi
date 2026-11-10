@@ -18,6 +18,10 @@ export function entryLabel(
       return 'Hoàn tiền trả hàng';
     case 'DEBT_COLLECTION':
       return 'Thu nợ';
+    case 'SUPPLIER_PAYMENT':
+      return 'Trả nợ NCC';
+    case 'SUPPLIER_REFUND':
+      return 'NCC hoàn tiền trả hàng';
   }
   switch (entry.category) {
     case 'OWNER_CONTRIBUTION':
@@ -50,6 +54,10 @@ export function documentLink(entry: CashBookEntry) {
   if (entry.documentType === 'RETURN') return `/returns/${entry.documentId}`;
   if (entry.documentType === 'CUSTOMER')
     return `/more/customers/${entry.documentId}`;
+  if (entry.documentType === 'SUPPLIER')
+    return `/more/supplier-debts?supplier=${entry.documentId}`;
+  if (entry.documentType === 'PURCHASE_RECEIPT')
+    return `/more/purchases/${entry.documentId}`;
   return null;
 }
 

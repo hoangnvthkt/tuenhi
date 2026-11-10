@@ -15,6 +15,10 @@ export const financialCommandNameSchema = z.enum([
   'cash.opening.set',
   'cash.shift.open',
   'cash.shift.close',
+  'supplier.debt.pay',
+  'supplier.debt.opening',
+  'purchase.return.post',
+  'inventory.writeoff.post',
 ]);
 
 export type FinancialCommandName = z.infer<typeof financialCommandNameSchema>;
