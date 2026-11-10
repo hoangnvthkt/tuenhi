@@ -16,6 +16,12 @@ import type { CustomerItem } from '@/features/directories';
 import type { SalesChannelItem } from '@/features/settings';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { formatPosMoney } from '../model/format-money';
+import {
+  isPositiveMoney,
+  lineGrossAmount,
+  lineNetAmount,
+} from '../model/pos-totals';
+import { DiscountDialog } from './DiscountDialog';
 import type { PosCartItem } from '../model/pos-types';
 
 export function CartPanel({
@@ -27,6 +33,7 @@ export function CartPanel({
   orderDiscount,
   note,
   subtotal,
+  itemsTotal,
   discountTotal,
   total,
   canDiscount,
@@ -50,6 +57,7 @@ export function CartPanel({
   orderDiscount: string;
   note: string;
   subtotal: string;
+  itemsTotal: string;
   discountTotal: string;
   total: string;
   canDiscount: boolean;
@@ -70,6 +78,11 @@ export function CartPanel({
   onPrint: () => void;
 }) {
   const [showOptions, setShowOptions] = useState(false);
+  const [discountTarget, setDiscountTarget] = useState<string | null>(null);
+  const discountLine =
+    discountTarget && discountTarget !== 'ORDER'
+      ? items.find((item) => item.productId === discountTarget)
+      : undefined;
   const customer = customers.find((item) => item.id === customerId);
   const quantityCount = items.reduce(
     (sum, item) =>
@@ -112,14 +125,6 @@ export function CartPanel({
               ))}
             </select>
           </label>
-          <NumericField
-            label="Giảm toàn đơn"
-            value={orderDiscount}
-            onChange={onOrderDiscountChange}
-            kind="money"
-            precision={20}
-            disabled={!canDiscount}
-          />
           <textarea
             aria-label="Ghi chú đơn hàng"
             value={note}
@@ -180,9 +185,20 @@ export function CartPanel({
                   </button>
                 </div>
                 <div className="pos-item-bottom">
-                  <p className="pos-item-price">
-                    {formatPosMoney(item.unitSalePrice)}
-                  </p>
+                  {canDiscount ? (
+                    <button
+                      type="button"
+                      className="pos-item-price"
+                      aria-label={`Giảm giá ${item.productName}, đơn giá ${formatPosMoney(item.unitSalePrice)}`}
+                      onClick={() => setDiscountTarget(item.productId)}
+                    >
+                      {formatPosMoney(item.unitSalePrice)}
+                    </button>
+                  ) : (
+                    <p className="pos-item-price">
+                      {formatPosMoney(item.unitSalePrice)}
+                    </p>
+                  )}
                   <div
                     className="pos-quantity"
                     role="group"
@@ -236,6 +252,21 @@ export function CartPanel({
                     </button>
                   </div>
                 </div>
+                {quantity !== 1n || isPositiveMoney(item.lineDiscountAmount) ? (
+                  <p className="pos-line-net">
+                    <span>
+                      {isPositiveMoney(item.lineDiscountAmount) ? (
+                        <span className="pos-line-discount">
+                          Giảm -{formatPosMoney(item.lineDiscountAmount)}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span>
+                      Thành tiền{' '}
+                      <strong>{formatPosMoney(lineNetAmount(item))}</strong>
+                    </span>
+                  </p>
+                ) : null}
                 {item.onHandQty.startsWith('-') ? (
                   <p className="mt-1 text-xs text-amber-800">
                     Tồn {formatViDecimal(item.onHandQty, 0)} {item.unitName}
@@ -245,17 +276,6 @@ export function CartPanel({
                   <p className="text-xs text-slate-500">
                     {item.sku} · {item.unitName}
                   </p>
-                  <NumericField
-                    label="Giảm dòng"
-                    helperText="Số tiền giảm cho cả dòng (đ), không phải phần trăm."
-                    value={item.lineDiscountAmount}
-                    onChange={(value) =>
-                      onUpdateLine(item.productId, 'lineDiscountAmount', value)
-                    }
-                    kind="money"
-                    precision={20}
-                    disabled={!canDiscount}
-                  />
                 </div>
               </div>
             </div>
@@ -289,8 +309,30 @@ export function CartPanel({
               {quantityCount.toString()}
             </span>
           </span>
-          <strong>{formatPosMoney(total)}</strong>
+          <strong>{formatPosMoney(itemsTotal)}</strong>
         </div>
+        <button
+          type="button"
+          className="pos-checkout-row"
+          disabled={!canDiscount || !items.length}
+          onClick={() => setDiscountTarget('ORDER')}
+        >
+          <span>Giảm giá đơn</span>
+          <span>
+            {!canDiscount
+              ? 'Không có quyền'
+              : isPositiveMoney(orderDiscount)
+                ? `-${formatPosMoney(orderDiscount)}`
+                : formatPosMoney('0')}
+            <CaretRight size={16} aria-hidden="true" />
+          </span>
+        </button>
+        {isPositiveMoney(orderDiscount) ? (
+          <p className="pos-checkout-row pos-checkout-due">
+            <span>Khách cần trả</span>
+            <strong>{formatPosMoney(total)}</strong>
+          </p>
+        ) : null}
         <div className="pos-checkout-actions">
           <button
             type="button"
@@ -318,6 +360,29 @@ export function CartPanel({
           In tạm tính
         </button>
       </div>
+      {discountTarget === 'ORDER' ? (
+        <DiscountDialog
+          title="Giảm giá đơn"
+          base={itemsTotal}
+          value={orderDiscount}
+          onCancel={() => setDiscountTarget(null)}
+          onApply={(amount) => {
+            onOrderDiscountChange(amount);
+            setDiscountTarget(null);
+          }}
+        />
+      ) : discountLine ? (
+        <DiscountDialog
+          title={discountLine.productName}
+          base={lineGrossAmount(discountLine)}
+          value={discountLine.lineDiscountAmount}
+          onCancel={() => setDiscountTarget(null)}
+          onApply={(amount) => {
+            onUpdateLine(discountLine.productId, 'lineDiscountAmount', amount);
+            setDiscountTarget(null);
+          }}
+        />
+      ) : null}
     </aside>
   );
 }

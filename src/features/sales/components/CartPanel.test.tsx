@@ -33,6 +33,7 @@ describe('CartPanel', () => {
           orderDiscount="0"
           note=""
           subtotal="150000"
+          itemsTotal="150000"
           discountTotal="0"
           total="150000"
           canDiscount
@@ -93,6 +94,7 @@ describe('CartPanel', () => {
           orderDiscount="0"
           note=""
           subtotal="150000"
+          itemsTotal="150000"
           discountTotal="0"
           total="150000"
           canDiscount
@@ -128,7 +130,7 @@ describe('CartPanel', () => {
   });
 });
 
-function DiscountCart() {
+function DiscountCart({ canDiscount = true }: { canDiscount?: boolean }) {
   const [items, setItems] = useState([
     {
       productId: 'p',
@@ -153,7 +155,7 @@ function DiscountCart() {
       orderDiscount={orderDiscount}
       note=""
       {...calculatePosTotals(items, orderDiscount)}
-      canDiscount
+      canDiscount={canDiscount}
       online
       saving={false}
       onUpdateLine={(id, field, value) =>
@@ -176,36 +178,84 @@ function DiscountCart() {
     />
   );
 }
-it.each(['Giảm dòng', 'Giảm toàn đơn'])(
-  'accepts a 1000 VND discount in %s and computes 54000',
-  async (label) => {
-    const user = userEvent.setup();
-    render(<DiscountCart />);
-    const input = screen.getByLabelText(label);
-    await user.clear(input);
-    await user.type(input, '1000');
-    await user.tab();
-    expect(input).toHaveValue('1.000');
-    expect(input).toHaveAttribute('aria-invalid', 'false');
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getAllByText('54.000 ₫').length).toBeGreaterThan(0);
-  },
-);
-it('treats line discount as the whole row amount, separately from order discount', async () => {
+async function applyDiscount(
+  user: ReturnType<typeof userEvent.setup>,
+  opener: HTMLElement,
+  value: string,
+  percent = false,
+) {
+  await user.click(opener);
+  const dialog = screen.getByRole('dialog', { hidden: true });
+  if (percent)
+    await user.click(
+      within(dialog).getByRole('button', { name: '%', hidden: true }),
+    );
+  const input = within(dialog).getByLabelText('Giảm giá');
+  await user.clear(input);
+  await user.type(input, value);
+  await user.click(
+    within(dialog).getByRole('button', { name: 'Áp dụng', hidden: true }),
+  );
+}
+
+it('applies a 1000 VND line discount from the price and shows the line amount', async () => {
   const user = userEvent.setup();
   render(<DiscountCart />);
-  for (const [label, value] of [
-    ['Số lượng', '2'],
-    ['Giảm dòng', '1000'],
-    ['Giảm toàn đơn', '500'],
-  ]) {
-    const input = screen.getByLabelText(label!);
-    await user.clear(input);
-    await user.type(input, value!);
-    await user.tab();
-  }
-  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-  expect(screen.getAllByText('108.500 ₫').length).toBeGreaterThan(0);
+  await applyDiscount(
+    user,
+    screen.getByRole('button', { name: /^Giảm giá 12B Linh Chi/ }),
+    '1000',
+  );
+  expect(screen.getByText(/Giảm -1\.000/)).toBeInTheDocument();
+  expect(screen.getAllByText('54.000 ₫').length).toBeGreaterThan(0);
+});
+
+it('applies an order discount by percent on the amount after line discounts', async () => {
+  const user = userEvent.setup();
+  render(<DiscountCart />);
+  const quantity = screen.getByLabelText('Số lượng');
+  await user.clear(quantity);
+  await user.type(quantity, '2');
+  await user.tab();
+  await applyDiscount(
+    user,
+    screen.getByRole('button', { name: /^Giảm giá 12B Linh Chi/ }),
+    '10000',
+  );
+  await applyDiscount(
+    user,
+    screen.getByRole('button', { name: /Giảm giá đơn/ }),
+    '10',
+    true,
+  );
+  // 2 × 55.000 − 10.000 = 100.000; 10% đơn = 10.000 → 90.000
+  expect(screen.getByText('-10.000 ₫')).toBeInTheDocument();
+  expect(screen.getAllByText('90.000 ₫').length).toBeGreaterThan(0);
+});
+
+it('blocks a line discount above the line amount', async () => {
+  const user = userEvent.setup();
+  render(<DiscountCart />);
+  await user.click(
+    screen.getByRole('button', { name: /^Giảm giá 12B Linh Chi/ }),
+  );
+  const dialog = screen.getByRole('dialog', { hidden: true });
+  await user.type(within(dialog).getByLabelText('Giảm giá'), '60000');
+  expect(within(dialog).getByRole('alert', { hidden: true })).toHaveTextContent(
+    'Không vượt quá tiền hàng.',
+  );
+  expect(
+    within(dialog).getByRole('button', { name: 'Áp dụng', hidden: true }),
+  ).toBeDisabled();
+});
+
+it('shows discount as denied without the discount permission', () => {
+  render(<DiscountCart canDiscount={false} />);
+  expect(
+    screen.queryByRole('button', { name: /^Giảm giá 12B Linh Chi/ }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Giảm giá đơn/ })).toBeDisabled();
+  expect(screen.getByText('Không có quyền')).toBeInTheDocument();
 });
 
 it('changes quantity and removes the line when requested at quantity one', async () => {
