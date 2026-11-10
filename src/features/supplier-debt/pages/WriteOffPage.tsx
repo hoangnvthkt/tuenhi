@@ -37,6 +37,8 @@ export function WriteOffPage() {
   const [api] = useState(createSupplierDebtApi);
   const [productIds, setProductIds] = useState<string[]>([]);
   const [quantities, setQuantities] = useState<Record<string, string>>({});
+  // Tracked products: '' = earliest expiry first (FEFO), otherwise one lot.
+  const [lotChoice, setLotChoice] = useState<Record<string, string>>({});
   const [reasonCode, setReasonCode] = useState<WriteOffReason>('EXPIRED');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -54,7 +56,12 @@ export function WriteOffPage() {
   const items = (products.data ?? []).map((product) => {
     const quantity = quantities[product.productId] ?? '';
     const valid = /^[1-9]\d*$/.test(quantity);
-    const over = valid && BigInt(quantity) > BigInt(product.onHandQty);
+    const lotId = lotChoice[product.productId] ?? '';
+    const chosenLot = product.lots?.find((lot) => lot.lotId === lotId);
+    const over =
+      valid &&
+      BigInt(quantity) >
+        BigInt(chosenLot ? chosenLot.quantity : product.onHandQty);
     const value =
       valid &&
       !over &&
@@ -67,7 +74,7 @@ export function WriteOffPage() {
             quantity,
           })
         : null;
-    return { product, quantity, valid, over, value };
+    return { product, quantity, valid, over, value, lotId };
   });
   const lines = items.filter((item) => item.valid);
   const total = items.some((item) => item.value !== null)
@@ -91,6 +98,7 @@ export function WriteOffPage() {
             lines: lines.map((item) => ({
               productId: item.product.productId,
               quantity: item.quantity,
+              ...(item.lotId ? { lotId: item.lotId } : {}),
             })),
             reasonCode,
             note: note.trim(),
@@ -108,6 +116,7 @@ export function WriteOffPage() {
       setEntityId(crypto.randomUUID());
       setProductIds([]);
       setQuantities({});
+      setLotChoice({});
       setNote('');
       await invalidateSupplierQueries(queryClient);
     } catch (error) {
@@ -198,6 +207,29 @@ export function WriteOffPage() {
                 </p>
               ) : null}
             </div>
+            {item.product.lots?.length ? (
+              <label className="block text-sm font-semibold text-slate-900">
+                Lô
+                <select
+                  value={item.lotId}
+                  onChange={(event) =>
+                    setLotChoice({
+                      ...lotChoice,
+                      [item.product.productId]: event.target.value,
+                    })
+                  }
+                  className="mt-1 block min-h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base font-normal"
+                >
+                  <option value="">Hết hạn trước</option>
+                  {item.product.lots.map((lot) => (
+                    <option key={lot.lotId} value={lot.lotId}>
+                      {(lot.lotNumber ?? 'Không số lô') +
+                        ` · HSD ${lot.expiryDate.split('-').reverse().join('/')} · còn ${lot.quantity}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             {item.over ? (
               <p role="alert" className="text-sm text-red-800">
                 Vượt tồn kho.

@@ -100,3 +100,15 @@ and closes an untouched payable, write-offs at the moving average never above st
 purchase returns at the receipt cost (debt first, refund with a required method), the cash
 book entries for supplier payments and refunds, stock/cost/debt reconciliation after every
 step, append-only guards, audit events and outcome lookup.
+
+## Lot and expiry tracking (audit wave 4a, 10/11/2026)
+
+After applying `20261110132853_lot_expiry_tracking.sql`, clone the schema into
+`lot_tracking_test` and run `lot_tracking.sql` with `psql -X -v ON_ERROR_STOP=1`. The
+fixture rolls back. It checks that tracking is off by default and needs the store switch,
+assigning older stock to lots without exceeding it, that receipts post only with full lot
+details, sales taking unexpired lots earliest-expiry first (never an expired lot while
+other stock remains), returns and cancellations restoring the same lots, write-offs with a
+chosen lot or expiry order, purchase returns taking that receipt's lots, negative stock
+staying outside lots until the next lot fills it, the expiry list, append-only lot ledger,
+audit events, and that lot balances always equal their movements.

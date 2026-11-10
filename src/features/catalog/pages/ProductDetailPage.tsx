@@ -33,6 +33,7 @@ import {
   type CatalogApi,
 } from '../api/catalog-api';
 import type { ProductSaveRequest } from '../components/ProductForm';
+import { ProductTrackingCard } from '@/features/lots';
 import { ProductDetailView } from '../components/ProductDetailView';
 import { ProductEditor } from '../components/ProductEditor';
 
@@ -468,6 +469,10 @@ export function ProductDetailPage({
             priceHistory={priceHistoryQuery.data}
             priceHistoryError={priceHistoryQuery.isError}
             priceHistoryPending={priceHistoryQuery.isPending}
+          />
+          <ProductTrackingCard
+            productId={detail.id}
+            unitName={detail.unitName}
           />
           {canReadPurchases ? (
             <section className="space-y-3">

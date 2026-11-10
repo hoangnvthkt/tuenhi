@@ -55,6 +55,7 @@ const commandLabels: Record<FinancialCommandName, string> = {
   'supplier.debt.opening': 'Nhập nợ đầu kỳ NCC',
   'purchase.return.post': 'Trả hàng nhập',
   'inventory.writeoff.post': 'Xuất hủy',
+  'lots.assign': 'Gán lô đầu kỳ',
 };
 
 export function financialCommandActionRoute(
@@ -82,6 +83,7 @@ export function financialCommandActionRoute(
   if (commandName === 'purchase.return.post')
     return `/more/purchases/${entityId}/return`;
   if (commandName === 'inventory.writeoff.post') return '/more/write-offs';
+  if (commandName === 'lots.assign') return `/products/${entityId}`;
   return `/more/inventory/opening/${entityId}`;
 }
 

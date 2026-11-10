@@ -33,6 +33,7 @@ const destinationVisuals = [
   { icon: Receipt, tone: 'teal' },
   { icon: Calculator, tone: 'orange' },
   { icon: Archive, tone: 'rose' },
+  { icon: ClipboardText, tone: 'violet' },
 ];
 
 const destinations = [
@@ -141,6 +142,12 @@ const destinations = [
     title: 'Xuất hủy',
     description: 'Hủy hàng hết hạn, hỏng, mất theo giá vốn.',
     permissions: ['inventory.writeoff.post'],
+  },
+  {
+    to: '/more/expiry',
+    title: 'Hạn sử dụng',
+    description: 'Lô đã hết hạn, sắp hết hạn và còn hạn.',
+    permissions: ['inventory.read'],
   },
 ] as const;
 
