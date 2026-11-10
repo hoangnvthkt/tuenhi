@@ -21,6 +21,7 @@ export function DonutCard({
   parts,
   status,
   emptyText,
+  footer,
 }: {
   title: string;
   centerLabel: string;
@@ -28,6 +29,7 @@ export function DonutCard({
   parts: DonutPart[];
   status: 'loading' | 'error' | 'ready';
   emptyText: string;
+  footer?: ReactNode;
 }) {
   const navigate = useNavigate();
   const slices = donutSlices(parts.map((part) => part.value));
@@ -138,6 +140,7 @@ export function DonutCard({
               </li>
             ))}
           </ul>
+          {footer}
         </>
       )}
     </article>

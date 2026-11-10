@@ -24,6 +24,8 @@ export {
   paymentLabel,
 } from './model/report-ui';
 export { ReportPage } from './pages/ReportPage';
+export { DonutCard, type DonutPart } from './components/DonutCard';
+export { sumDecimals } from './model/donut';
 
 export { createSaleSettlementsApi } from './api/settlements-api';
 export { SettlementReportPage } from './pages/SettlementReportPage';

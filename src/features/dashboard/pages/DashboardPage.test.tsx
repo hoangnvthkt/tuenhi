@@ -131,6 +131,7 @@ function renderPage(
     mySummary: api.mySummary,
     revenue: api.revenue,
     productRevenue: api.productRevenue,
+    topProducts: vi.fn(),
   });
   vi.mocked(createOwnerReportsApi).mockReturnValue({
     owner: api.owner,

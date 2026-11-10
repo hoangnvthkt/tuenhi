@@ -1,0 +1,215 @@
+/* Report charts. Plain CSS in the lazy reports chunk: keeps the startup CSS budget. */
+.rpt-card {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 1px 2px #0f172a0d;
+}
+.rpt-title {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.rpt-muted {
+  font-size: 14px;
+  color: #475569;
+}
+.rpt-skeleton {
+  height: 120px;
+  border-radius: 12px;
+  background: #e2e8f0;
+}
+.rpt-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.rpt-kpi-label {
+  font-size: 14px;
+  color: #475569;
+}
+.rpt-kpi-value {
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+.rpt-revenue {
+  color: #1d5fae;
+}
+.rpt-profit {
+  color: #12845c;
+}
+.rpt-grid {
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 1024px) {
+  .rpt-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.rpt-bars {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  height: 200px;
+}
+.rpt-bar {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #475569;
+}
+.rpt-bar:hover .rpt-bar-fill {
+  opacity: 0.8;
+}
+.rpt-bar-fill {
+  width: 100%;
+  max-width: 48px;
+  border-radius: 5px 5px 0 0;
+  background: #2a78d6;
+}
+.rpt-bar-fill[data-empty] {
+  background: #cbd5e1;
+}
+.rpt-bar-value {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+.rpt-bar-label {
+  width: 100%;
+  border-top: 1px solid #cbd5e1;
+  padding-top: 4px;
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rpt-flow,
+.rpt-top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rpt-flow-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 30%) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 14px;
+  color: #0f172a;
+  text-decoration: none;
+}
+.rpt-top-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 14px;
+  color: #0f172a;
+  text-decoration: none;
+}
+.rpt-flow-label a {
+  color: #0f766e;
+  text-decoration: underline;
+}
+.rpt-flow-track {
+  display: flex;
+  height: 18px;
+}
+.rpt-flow-fill {
+  border-radius: 5px;
+  background: #2a78d6;
+}
+.rpt-flow-discounts .rpt-flow-fill,
+.rpt-flow-returns .rpt-flow-fill,
+.rpt-flow-cancellations .rpt-flow-fill {
+  background: #eb6834;
+}
+.rpt-flow-discounts .rpt-flow-amount,
+.rpt-flow-returns .rpt-flow-amount,
+.rpt-flow-cancellations .rpt-flow-amount {
+  color: #b4441a;
+}
+.rpt-flow-net {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 10px;
+  font-weight: 700;
+}
+.rpt-flow-net .rpt-flow-fill {
+  background: #1d5fae;
+}
+.rpt-flow-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rpt-top-row {
+  border-radius: 8px;
+  padding: 4px;
+}
+.rpt-top-row:hover {
+  background: #f8fafc;
+}
+.rpt-top-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rpt-top-row .rpt-flow-track {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  height: 12px;
+}
+.rpt-top-meta {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: #64748b;
+}
+.rpt-top-other {
+  padding: 4px;
+  font-size: 13px;
+  color: #475569;
+}
+@media (max-width: 639px) {
+  .rpt-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .rpt-kpis > :first-child {
+    grid-column: 1 / -1;
+  }
+  .rpt-kpi-value {
+    font-size: 24px;
+  }
+}
+.rpt-details-toggle {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.rpt-details-toggle span {
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f766e;
+}

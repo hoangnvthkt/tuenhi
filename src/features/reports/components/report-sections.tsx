@@ -2,23 +2,6 @@ import { Link } from 'react-router';
 import type { ProfitPage } from '../api/reports-api';
 import { eventLabel, formatReportMoney } from '../model/report-ui';
 
-export function ReportMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-sm text-slate-600">{label}</p>
-      <p className="mt-1 text-xl font-bold tabular-nums text-slate-950">
-        {value}
-      </p>
-    </div>
-  );
-}
-
 export function ReportErrorBox({ error }: { error: unknown }) {
   return (
     <p
@@ -32,46 +15,10 @@ export function ReportErrorBox({ error }: { error: unknown }) {
   );
 }
 
-export function ReportBreakdown({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: string[][];
-}) {
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <h2 className="border-b border-slate-200 p-4 text-base font-bold text-slate-950">
-        {title}
-      </h2>
-      {rows.length === 0 ? (
-        <p className="p-4 text-sm text-slate-600">
-          Chưa có dữ liệu trong kỳ đã chọn.
-        </p>
-      ) : (
-        <div className="divide-y divide-slate-100">
-          {rows.map(([label, value]) => (
-            <div key={label} className="flex justify-between gap-4 p-3 text-sm">
-              <span className="text-slate-700">{label}</span>
-              <strong className="tabular-nums text-slate-950">{value}</strong>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 export function ProfitEventTable({ items }: { items: ProfitPage['items'] }) {
   return (
-    <section
-      id="profit"
-      className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm"
-    >
-      <h2 className="p-4 text-base font-bold text-slate-950">
-        Sự kiện tài chính
-      </h2>
-      <table className="min-w-full text-sm">
+    <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+      <table aria-label="Chi tiết từng đơn" className="min-w-full text-sm">
         <thead className="bg-slate-50 text-left">
           <tr>
             <th className="p-3">Thời điểm</th>

@@ -23,9 +23,6 @@ export function ReportHeader({
         <h1 className="text-2xl font-bold tracking-tight text-slate-950">
           Báo cáo
         </h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Doanh thu được ghi nhận theo ngày phát sinh sự kiện tại Việt Nam.
-        </p>
       </div>
       <div className="flex gap-2">
         <button
@@ -42,7 +39,7 @@ export function ReportHeader({
           disabled={!canExport || exporting}
           className="min-h-11 rounded-lg bg-teal-700 px-3 text-sm font-semibold text-white disabled:opacity-50"
         >
-          {exporting ? 'Đang tạo XLSX…' : 'Xuất XLSX'}
+          {exporting ? 'Đang tạo Excel…' : 'Xuất Excel'}
         </button>
       </div>
     </div>

@@ -112,3 +112,12 @@ other stock remains), returns and cancellations restoring the same lots, write-o
 chosen lot or expiry order, purchase returns taking that receipt's lots, negative stock
 staying outside lots until the next lot fills it, the expiry list, append-only lot ledger,
 audit events, and that lot balances always equal their movements.
+
+## Report top products (10/11/2026)
+
+After applying `20261110145634_report_top_products.sql`, clone the schema into
+`report_top_products_test` and run `report_top_products.sql` with `psql -X -v ON_ERROR_STOP=1`.
+The fixture rolls back. It checks that `get_report_top_products` ranks five products by net
+revenue with net quantity (sold − cancelled − returned) and unit, that top five plus "Khác"
+reconciles with the revenue report's net revenue, empty periods, invalid scope/range, and
+that the ALL scope is gated by `report.all_revenue.read`.
