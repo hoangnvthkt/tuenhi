@@ -797,6 +797,7 @@ export function PosPage() {
           orderDiscount={orderDiscount}
           note={note}
           subtotal={totals.subtotal}
+          itemsTotal={totals.itemsTotal}
           discountTotal={totals.discountTotal}
           total={totals.total}
           canDiscount={canDiscount}

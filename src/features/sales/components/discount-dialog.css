@@ -1,0 +1,104 @@
+/* POS discount UI. Plain CSS in the lazy sales chunk: keeps the startup CSS budget. */
+.pos-page {
+  padding-bottom: 240px;
+}
+.pos-discount-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: #334155;
+}
+.pos-discount-total {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.pos-discount-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 8px;
+  margin-top: 16px;
+}
+.pos-discount-input label {
+  grid-column: 1 / -1;
+  font-size: 14px;
+  font-weight: 500;
+}
+.pos-discount-input input {
+  min-height: 44px;
+  min-width: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 16px;
+  text-align: right;
+}
+.pos-discount-input input[aria-invalid='true'] {
+  border-color: #b91c1c;
+}
+.pos-discount-mode {
+  display: flex;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.pos-discount-mode button {
+  min-width: 52px;
+  min-height: 42px;
+  font-weight: 600;
+  color: #475569;
+}
+.pos-discount-mode button[aria-pressed='true'] {
+  background: var(--pos-blue, #006fee);
+  color: white;
+}
+dialog form button[type='submit']:disabled {
+  opacity: 0.45;
+}
+button.pos-item-price {
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+}
+.pos-line-net {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+.pos-line-net strong {
+  color: #17191c;
+  font-size: 14px;
+}
+.pos-line-net .pos-line-discount {
+  color: #be123c;
+}
+.pos-checkout-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  margin: -8px 0 8px;
+  font-size: 15px;
+  text-align: left;
+}
+.pos-checkout-row > span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pos-checkout-row:disabled {
+  color: #94a3b8;
+}
+.pos-checkout-due {
+  font-weight: 700;
+}
+.pos-checkout-due strong {
+  color: var(--pos-blue, #006fee);
+  font-size: 18px;
+}

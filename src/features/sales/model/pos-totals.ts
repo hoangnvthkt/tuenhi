@@ -47,12 +47,54 @@ export function calculatePosTotals(
     0n,
   );
   const discountMinor = lineDiscountMinor + moneyToMinorUnits(orderDiscount);
+  const itemsMinor = subtotalMinor - lineDiscountMinor;
   return {
     subtotal: minorUnitsToCanonical(subtotalMinor),
     lineDiscount: minorUnitsToCanonical(lineDiscountMinor),
+    itemsTotal: minorUnitsToCanonical(itemsMinor > 0n ? itemsMinor : 0n),
     discountTotal: minorUnitsToCanonical(discountMinor),
     total: minorUnitsToCanonical(
       subtotalMinor > discountMinor ? subtotalMinor - discountMinor : 0n,
     ),
   };
+}
+
+export function lineGrossAmount(
+  line: Omit<PosTotalLine, 'lineDiscountAmount'>,
+) {
+  return minorUnitsToCanonical(
+    quantityToBigInt(line.quantity) * moneyToMinorUnits(line.unitSalePrice),
+  );
+}
+
+export function lineNetAmount(line: PosTotalLine) {
+  const net =
+    quantityToBigInt(line.quantity) * moneyToMinorUnits(line.unitSalePrice) -
+    moneyToMinorUnits(line.lineDiscountAmount);
+  return minorUnitsToCanonical(net > 0n ? net : 0n);
+}
+
+export function isPositiveMoney(value: string) {
+  return moneyToMinorUnits(value) > 0n;
+}
+
+export function exceedsMoney(value: string, maximum: string) {
+  return moneyToMinorUnits(value) > moneyToMinorUnits(maximum);
+}
+
+export function subtractMoney(base: string, amount: string) {
+  const rest = moneyToMinorUnits(base) - moneyToMinorUnits(amount);
+  return minorUnitsToCanonical(rest > 0n ? rest : 0n);
+}
+
+/** Percent (0–100, up to 2 decimals) of base, rounded half-up to whole dong and capped at base. */
+export function discountFromPercent(base: string, percent: string) {
+  if (!MONEY_FINAL.test(percent)) return '0';
+  const baseMinor = moneyToMinorUnits(base);
+  const percentHundredths = moneyToMinorUnits(percent);
+  if (percentHundredths > 10000n) return minorUnitsToCanonical(baseMinor);
+  // base(minor, x100) * percent(x100) / 100% (x100) / 100 (to dong) = / 10^6 dong
+  const dong = (baseMinor * percentHundredths * 2n + 1_000_000n) / 2_000_000n;
+  const amount = dong * 100n;
+  return minorUnitsToCanonical(amount > baseMinor ? baseMinor : amount);
 }
