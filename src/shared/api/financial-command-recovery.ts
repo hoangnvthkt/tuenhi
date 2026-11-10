@@ -51,6 +51,10 @@ const commandLabels: Record<FinancialCommandName, string> = {
   'cash.opening.set': 'Nhập số dư đầu quỹ',
   'cash.shift.open': 'Mở ca',
   'cash.shift.close': 'Đóng ca',
+  'supplier.debt.pay': 'Trả nợ nhà cung cấp',
+  'supplier.debt.opening': 'Nhập nợ đầu kỳ NCC',
+  'purchase.return.post': 'Trả hàng nhập',
+  'inventory.writeoff.post': 'Xuất hủy',
 };
 
 export function financialCommandActionRoute(
@@ -73,6 +77,11 @@ export function financialCommandActionRoute(
   if (commandName === 'cash.shift.open' || commandName === 'cash.shift.close')
     return '/cash-book/shift';
   if (commandName.startsWith('cash.')) return '/cash-book';
+  if (commandName.startsWith('supplier.debt.'))
+    return `/more/supplier-debts?supplier=${entityId}`;
+  if (commandName === 'purchase.return.post')
+    return `/more/purchases/${entityId}/return`;
+  if (commandName === 'inventory.writeoff.post') return '/more/write-offs';
   return `/more/inventory/opening/${entityId}`;
 }
 

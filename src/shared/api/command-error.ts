@@ -13,6 +13,17 @@ export const businessErrorMessages = {
   CASH_SHIFT_NOTE_REQUIRED: 'Tiền đếm bị lệch: nhập ghi chú lý do.',
   CASH_VOUCHER_ALREADY_CANCELLED: 'Phiếu đã được hủy.',
   NOT_FOUND: 'Không tìm thấy chứng từ.',
+  SUPPLIER_PAYMENT_EXCEEDS_BALANCE:
+    'Tiền trả phải lớn hơn 0 và không vượt số đang nợ NCC.',
+  SUPPLIER_OPENING_ALREADY_SET: 'Nhà cung cấp này đã có nợ đầu kỳ.',
+  PURCHASE_REVERSAL_SETTLED:
+    'Phiếu đã trả tiền hoặc trả hàng cho NCC: dùng trả hàng nhập thay vì đảo.',
+  PURCHASE_RETURN_QTY_EXCEEDED:
+    'Số trả vượt số đã nhập còn lại hoặc tồn kho hiện tại.',
+  PURCHASE_RETURN_BLOCKED:
+    'Giá trị tồn không đủ để trả theo giá nhập. Kiểm tra lại giá vốn sản phẩm.',
+  REFUND_METHOD_REQUIRED: 'Chọn cách NCC hoàn tiền.',
+  WRITE_OFF_QTY_EXCEEDED: 'Số hủy vượt tồn kho hiện tại.',
 
   AUTH_REQUIRED: 'Vui lòng đăng nhập để tiếp tục.',
   ACCOUNT_INACTIVE: 'Tài khoản đã bị khóa.',

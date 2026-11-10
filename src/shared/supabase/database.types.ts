@@ -2163,6 +2163,10 @@ export type Database = {
         Args: { p_receipt_id: string };
         Returns: Json;
       };
+      get_purchase_return_options: {
+        Args: { p_receipt_id: string };
+        Returns: Json;
+      };
       get_revenue_report: {
         Args: { p_from: string; p_scope: string; p_to: string };
         Returns: Json;
@@ -2187,7 +2191,13 @@ export type Database = {
       get_staff_access_capability: { Args: never; Returns: Json };
       get_stock_count: { Args: { p_count_id: string }; Returns: Json };
       get_store_settings: { Args: never; Returns: Json };
+      get_supplier_debt: { Args: { p_supplier_id: string }; Returns: Json };
+      get_supplier_debts: { Args: never; Returns: Json };
       get_supplier_detail: { Args: { p_supplier_id: string }; Returns: Json };
+      get_write_off_products: {
+        Args: { p_product_ids: string[] };
+        Returns: Json;
+      };
       list_cash_shifts: {
         Args: {
           p_cursor_id?: string;
@@ -2373,6 +2383,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      list_stock_write_offs: { Args: { p_limit?: number }; Returns: Json };
       list_supplier_products: {
         Args: {
           p_cursor_last_received_at?: string;
@@ -2405,6 +2416,17 @@ export type Database = {
         Args: { p_idempotency_key: string; p_opening_cash: string };
         Returns: Json;
       };
+      pay_supplier_debt: {
+        Args: {
+          p_bank_transfer_amount: string;
+          p_cash_amount: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_note: string;
+          p_supplier_id: string;
+        };
+        Returns: Json;
+      };
       post_opening_stock: {
         Args: {
           p_count_id: string;
@@ -2422,12 +2444,31 @@ export type Database = {
         };
         Returns: Json;
       };
+      post_purchase_return: {
+        Args: {
+          p_idempotency_key: string;
+          p_lines: Json;
+          p_reason: string;
+          p_receipt_id: string;
+          p_refund_method: string;
+        };
+        Returns: Json;
+      };
       post_stock_count: {
         Args: {
           p_count_id: string;
           p_estimated_costs: Json;
           p_expected_version: number;
           p_idempotency_key: string;
+        };
+        Returns: Json;
+      };
+      post_stock_write_off: {
+        Args: {
+          p_idempotency_key: string;
+          p_lines: Json;
+          p_note: string;
+          p_reason_code: string;
         };
         Returns: Json;
       };
@@ -2616,6 +2657,15 @@ export type Database = {
           p_reason: string;
           p_role: string;
           p_user_id: string;
+        };
+        Returns: Json;
+      };
+      set_supplier_opening_debt: {
+        Args: {
+          p_amount: string;
+          p_idempotency_key: string;
+          p_note: string;
+          p_supplier_id: string;
         };
         Returns: Json;
       };

@@ -31,6 +31,8 @@ const destinationVisuals = [
   { icon: Gear, tone: 'slate' },
   { icon: Truck, tone: 'orange' },
   { icon: Receipt, tone: 'teal' },
+  { icon: Calculator, tone: 'orange' },
+  { icon: Archive, tone: 'rose' },
 ];
 
 const destinations = [
@@ -127,6 +129,18 @@ const destinations = [
     title: 'Sổ quỹ',
     description: 'Thu chi tiền mặt, ngân hàng và kết ca.',
     permissions: ['cash.book.read', 'cash.shift.manage'],
+  },
+  {
+    to: '/more/supplier-debts',
+    title: 'Công nợ NCC',
+    description: 'Phải trả, trả nợ và hàng trả nhà cung cấp.',
+    permissions: ['supplier.debt.read'],
+  },
+  {
+    to: '/more/write-offs',
+    title: 'Xuất hủy',
+    description: 'Hủy hàng hết hạn, hỏng, mất theo giá vốn.',
+    permissions: ['inventory.writeoff.post'],
   },
 ] as const;
 

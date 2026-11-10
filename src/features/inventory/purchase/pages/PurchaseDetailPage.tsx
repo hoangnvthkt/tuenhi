@@ -446,6 +446,26 @@ export function PurchaseDetailPage({
           </p>
         ) : null}
       </div>
+      {receipt?.status === 'POSTED' ? (
+        <div className="flex flex-wrap gap-2">
+          {session?.permissions.includes('supplier.debt.pay') && supplierId ? (
+            <Link
+              to={`/more/supplier-debts/${supplierId}/pay`}
+              className="inline-flex min-h-11 items-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white"
+            >
+              Trả NCC
+            </Link>
+          ) : null}
+          {session?.permissions.includes('purchase.return.post') ? (
+            <Link
+              to={`/more/purchases/${receipt.id}/return`}
+              className="inline-flex min-h-11 items-center rounded-lg border border-teal-700 bg-white px-4 text-sm font-semibold text-teal-800"
+            >
+              Trả hàng nhập
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
       {!online ? (
         <p
           role="status"
