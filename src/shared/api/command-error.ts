@@ -24,6 +24,18 @@ export const businessErrorMessages = {
     'Giá trị tồn không đủ để trả theo giá nhập. Kiểm tra lại giá vốn sản phẩm.',
   REFUND_METHOD_REQUIRED: 'Chọn cách NCC hoàn tiền.',
   WRITE_OFF_QTY_EXCEEDED: 'Số hủy vượt tồn kho hiện tại.',
+  WRITE_OFF_LOT_INVALID: 'Lô đã chọn không đủ hàng để hủy.',
+  LOT_TRACKING_DISABLED:
+    'Bật "Quản lý hạn sử dụng và lô" trong Cấu hình cửa hàng trước.',
+  LOT_TRACKING_IN_USE:
+    'Còn sản phẩm đang theo lô/hạn dùng: chuyển chúng về Không trước khi tắt.',
+  LOT_STOCK_REMAINS:
+    'Sản phẩm còn hàng trong lô: bán hoặc xuất hủy hết trước khi tắt.',
+  LOT_DETAILS_INVALID:
+    'Lô phải có hạn dùng, có số lô khi theo lô, và không vượt số lượng nhập.',
+  LOT_DETAILS_REQUIRED:
+    'Nhập đủ lô và hạn dùng cho các sản phẩm theo dõi trước khi ghi sổ.',
+  LOT_ASSIGN_EXCEEDS_STOCK: 'Số gán vượt tồn chưa có lô.',
 
   AUTH_REQUIRED: 'Vui lòng đăng nhập để tiếp tục.',
   ACCOUNT_INACTIVE: 'Tài khoản đã bị khóa.',

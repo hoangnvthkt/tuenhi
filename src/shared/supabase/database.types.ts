@@ -598,6 +598,7 @@ export type Database = {
           sku: string;
           sku_normalized: string;
           specifications: Json;
+          tracking_mode: string;
           unit_name: string;
           updated_at: string;
           updated_by: string;
@@ -617,6 +618,7 @@ export type Database = {
           sku: string;
           sku_normalized: string;
           specifications?: Json;
+          tracking_mode?: string;
           unit_name: string;
           updated_at?: string;
           updated_by: string;
@@ -636,6 +638,7 @@ export type Database = {
           sku?: string;
           sku_normalized?: string;
           specifications?: Json;
+          tracking_mode?: string;
           unit_name?: string;
           updated_at?: string;
           updated_by?: string;
@@ -1813,6 +1816,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      assign_unassigned_lots: {
+        Args: { p_idempotency_key: string; p_lots: Json; p_product_id: string };
+        Returns: Json;
+      };
       attach_product_image: {
         Args: {
           p_idempotency_key: string;
@@ -2057,6 +2064,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_inventory_features: { Args: never; Returns: Json };
       get_inventory_valuation: {
         Args: {
           p_cursor_id?: string;
@@ -2156,6 +2164,10 @@ export type Database = {
       };
       get_project_lifecycle: { Args: never; Returns: Json };
       get_purchase_receipt_cost_detail: {
+        Args: { p_receipt_id: string };
+        Returns: Json;
+      };
+      get_purchase_receipt_lots: {
         Args: { p_receipt_id: string };
         Returns: Json;
       };
@@ -2297,6 +2309,10 @@ export type Database = {
           p_supplier_id?: string;
           p_to?: string;
         };
+        Returns: Json;
+      };
+      list_product_lots: {
+        Args: { p_limit?: number; p_product_id?: string; p_status?: string };
         Returns: Json;
       };
       list_product_suppliers: {
@@ -2623,6 +2639,14 @@ export type Database = {
         };
         Returns: Json;
       };
+      set_inventory_features: {
+        Args: {
+          p_expected_version: number;
+          p_expiry_warning_days: number;
+          p_lot_tracking_enabled: boolean;
+        };
+        Returns: Json;
+      };
       set_product_sale_price: {
         Args: {
           p_change_reason: string;
@@ -2630,6 +2654,14 @@ export type Database = {
           p_product_id: string;
           p_sale_price: string;
         };
+        Returns: Json;
+      };
+      set_product_tracking: {
+        Args: { p_mode: string; p_product_id: string };
+        Returns: Json;
+      };
+      set_purchase_receipt_lots: {
+        Args: { p_lots: Json; p_receipt_id: string };
         Returns: Json;
       };
       set_staff_active: {

@@ -139,6 +139,17 @@ const writeOffProductsSchema = z.object({
         .regex(/^(0|[1-9][0-9]*)(\.[0-9]{1,6})?$/)
         .nullable(),
       inventoryValue: money.nullable(),
+      trackingMode: z.enum(['NONE', 'EXPIRY', 'LOT']).optional(),
+      lots: z
+        .array(
+          z.object({
+            lotId: z.uuid(),
+            lotNumber: z.string().nullable(),
+            expiryDate: z.string(),
+            quantity: qty,
+          }),
+        )
+        .optional(),
     }),
   ),
 });
@@ -282,7 +293,7 @@ export function createSupplierDebtApi() {
       ).items;
     },
     async postWriteOff(input: {
-      lines: { productId: string; quantity: string }[];
+      lines: { productId: string; quantity: string; lotId?: string }[];
       reasonCode: WriteOffReason;
       note: string;
       idempotencyKey: string;

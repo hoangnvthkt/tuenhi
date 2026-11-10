@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { refreshOperationalData } from '@/shared/api/refresh-operational-data';
 import { useToast } from '@/shared/ui/feedback/use-toast';
+import { InventoryFeaturesCard } from '@/features/lots';
 import { createSettingsApi, settingsKeys } from '../api/settings-api';
 import { getSupabaseClient } from '@/shared/supabase/client';
 const imageExtensions: Record<string, string> = {
@@ -238,6 +239,7 @@ export function StoreSettingsPage() {
           </button>
         </fieldset>
       </form>
+      <InventoryFeaturesCard />
     </main>
   );
 }

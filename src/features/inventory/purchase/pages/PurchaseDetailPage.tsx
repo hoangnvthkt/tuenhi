@@ -33,6 +33,7 @@ import { PurchasePrefillIntent } from '../components/PurchasePrefillIntent';
 import { PurchaseSupplierPicker } from '../components/PurchaseSupplierPicker';
 import type { PurchaseDraftLine } from '../model/purchase-draft';
 import { toLocalDateTime } from '../model/local-datetime';
+import { PurchaseLotsSection } from '@/features/lots';
 import { validatePurchaseDraftLines } from '../model/purchase-draft-validation';
 import {
   formatMoney,
@@ -563,6 +564,16 @@ export function PurchaseDetailPage({
         >
           Lưu nháp các thay đổi trước khi ghi sổ.
         </p>
+      ) : null}
+      {receipt ? (
+        <PurchaseLotsSection
+          receiptId={receipt.id}
+          version={receipt.version}
+          editable={
+            ['DRAFT', 'AWAITING_COST'].includes(receipt.status) &&
+            Boolean(canDraft || canPost)
+          }
+        />
       ) : null}
       <PurchaseActions
         api={api}

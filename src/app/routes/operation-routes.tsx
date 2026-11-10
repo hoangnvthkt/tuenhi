@@ -3,6 +3,11 @@ import { lazy } from 'react';
 import type { RouteObject } from 'react-router';
 import { RequireSession } from '@/features/auth';
 
+const ExpiryPage = lazy(() =>
+  import('@/features/lots').then((module) => ({
+    default: module.ExpiryPage,
+  })),
+);
 const SupplierDebtPage = lazy(() =>
   import('@/features/supplier-debt').then((module) => ({
     default: module.SupplierDebtPage,
@@ -89,6 +94,10 @@ const ReplenishmentPage = lazy(() =>
 );
 
 export const operationRoutes: RouteObject[] = [
+  {
+    element: <RequireSession permission="inventory.read" />,
+    children: [{ path: 'more/expiry', element: <ExpiryPage /> }],
+  },
   {
     element: <RequireSession permission="supplier.debt.read" />,
     children: [{ path: 'more/supplier-debts', element: <SupplierDebtPage /> }],

@@ -6,6 +6,7 @@ export default defineConfig({
     'dashboard-local.spec.ts',
     'cash-book-local.spec.ts',
     'supplier-debt-local.spec.ts',
+    'lots-local.spec.ts',
   ],
   fullyParallel: true,
   use: { baseURL: 'http://127.0.0.1:5179', trace: 'retain-on-failure' },
