@@ -7,10 +7,14 @@ import {
   type ReportPeriod,
 } from '@/features/reports';
 import { useDashboardData } from '../hooks/use-dashboard-data';
-import { formatReportMoney, formatReportNumber } from '@/features/reports';
+import {
+  DonutCard,
+  formatReportMoney,
+  formatReportNumber,
+  sumDecimals,
+  type DonutPart,
+} from '@/features/reports';
 import { ChartBar } from '@phosphor-icons/react';
-import { DonutCard, type DonutPart } from '../components/DonutCard';
-import { sumDecimals } from '../model/donut';
 
 // Validated categorical slots (dataviz palette) and reserved status colours.
 const SERIES = ['#2a78d6', '#eb6834', '#1baf7a'] as const;

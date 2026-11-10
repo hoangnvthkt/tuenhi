@@ -127,6 +127,27 @@ export const productRevenueSchema = z.object({
   otherProductCount: z.number().int().nonnegative(),
 });
 
+export const topProductsSchema = z.object({
+  version: z.literal(1),
+  range: z.object({ from: z.string(), to: z.string() }),
+  scope: z.enum(['OWN', 'ALL']),
+  totalNetRevenue: decimal,
+  items: z
+    .array(
+      z.object({
+        productId: z.uuid(),
+        productName: z.string(),
+        unitName: z.string(),
+        netRevenue: decimal,
+        quantity: z.string().regex(SIGNED_INTEGER_FINAL),
+      }),
+    )
+    .max(5),
+  otherNetRevenue: decimal,
+  otherProductCount: z.number().int().nonnegative(),
+});
+
+export type TopProducts = z.infer<typeof topProductsSchema>;
 export type RevenueReport = z.infer<typeof revenueReportSchema>;
 export type ProductRevenue = z.infer<typeof productRevenueSchema>;
 export type OperationalDashboard = z.infer<typeof operationalDashboardSchema>;

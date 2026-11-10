@@ -32,6 +32,11 @@ export function useReportData({
     queryFn: () => revenueApi.revenue(from, to, scope),
     ...queryOptions,
   });
+  const topProducts = useQuery({
+    queryKey: privateKey(...['report-top-products', from, to, scope]),
+    queryFn: () => revenueApi.topProducts(from, to, scope),
+    ...queryOptions,
+  });
   const owner = useQuery({
     queryKey: privateKey(...['owner-dashboard', from, to]),
     queryFn: () => ownerApi.owner(from, to),
@@ -66,5 +71,5 @@ export function useReportData({
       ).values(),
     ],
   };
-  return { report, owner, profit, ownerApi };
+  return { report, topProducts, owner, profit, ownerApi };
 }

@@ -288,7 +288,7 @@ test('nhân viên trả hàng, kiểm kho; owner ghi sổ và hủy hóa đơn',
     page.getByRole('heading', { name: 'Lợi nhuận gộp' }),
   ).toBeVisible();
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Xuất XLSX' }).click();
+  await page.getByRole('button', { name: 'Xuất Excel' }).click();
   expect((await download).suggestedFilename()).toMatch(/bao-cao-.*\.xlsx/);
 
   await page.goto('/more/inventory/valuation');

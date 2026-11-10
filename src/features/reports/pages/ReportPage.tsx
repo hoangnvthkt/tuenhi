@@ -8,12 +8,18 @@ import {
 } from '../export/report-workbook';
 import {
   ProfitEventTable,
-  ReportBreakdown,
   ReportErrorBox,
-  ReportMetric,
 } from '../components/report-sections';
+import {
+  ReportKpis,
+  RevenueByDayChart,
+  RevenueFlowCard,
+  TopProductsCard,
+} from '../components/report-charts';
 import { ReportFilters, ReportHeader } from '../components/report-controls';
 import { useReportData } from '../hooks/use-report-data';
+import { DonutCard } from '../components/DonutCard';
+import { sumDecimals } from '../model/donut';
 import {
   isIsoDate,
   presetReportRange,
@@ -24,6 +30,16 @@ import {
   formatReportNumber,
   paymentLabel,
 } from '../model/report-ui';
+
+// Validated categorical slots (dataviz palette), same as the dashboard.
+const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#94a3b8'] as const;
+const PROFIT = '#12845c';
+const COST = '#94a3b8';
+const PAYMENT_FILTER: Record<string, string> = {
+  CASH: 'CASH',
+  BANK_TRANSFER: 'BANK_TRANSFER',
+  CREDIT: 'DEBT',
+};
 
 export function ReportPage() {
   const { session } = useSession();
@@ -46,7 +62,7 @@ export function ReportPage() {
   const from = isIsoDate(requestedFrom) ? requestedFrom : fallback.from;
   const to = isIsoDate(requestedTo) ? requestedTo : fallback.to;
   const scope = canAll && params.get('scope') !== 'OWN' ? 'ALL' : 'OWN';
-  const { report, owner, profit, ownerApi } = useReportData({
+  const { report, topProducts, owner, profit, ownerApi } = useReportData({
     from,
     to,
     scope,
@@ -54,6 +70,12 @@ export function ReportPage() {
     online,
   });
   const location = useLocation();
+  // Opened by a #profit link; a manual toggle wins until the next navigation.
+  const [toggled, setToggled] = useState<{ key: string; open: boolean }>();
+  const showDetails =
+    toggled?.key === location.key ? toggled.open : location.hash === '#profit';
+  const settlementLink = (method: string) =>
+    `/reports/settlements?${new URLSearchParams({ period, from, to, scope })}&method=${method}`;
   const scrolledLocation = useRef('');
   useEffect(() => {
     if (!['#returns', '#profit'].includes(location.hash)) return;
@@ -73,6 +95,7 @@ export function ReportPage() {
   };
   const refresh = () => {
     void report.refetch();
+    void topProducts.refetch();
     if (canProfit) {
       void owner.refetch();
       void profit.refetch();
@@ -165,99 +188,156 @@ export function ReportPage() {
       ) : null}
       {report.data ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <ReportMetric
-              label="Đơn hoàn tất"
-              value={formatReportNumber(
-                String(report.data.summary.completedOrderCount),
-                0,
-              )}
+          <ReportKpis
+            items={[
+              {
+                label: 'Doanh thu',
+                value: formatReportMoney(report.data.summary.netRevenue),
+                tone: 'revenue',
+              },
+              {
+                label: 'Số đơn',
+                value: formatReportNumber(
+                  String(report.data.summary.completedOrderCount),
+                  0,
+                ),
+              },
+              ...(canProfit && owner.data
+                ? [
+                    {
+                      label: 'Tiền lời',
+                      value: formatReportMoney(owner.data.grossProfit),
+                      tone: 'profit' as const,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+          <RevenueByDayChart
+            daily={report.data.daily}
+            from={from}
+            to={to}
+            linkFor={(dayFrom, dayTo) =>
+              `/reports/settlements?${new URLSearchParams({ period: 'custom', from: dayFrom, to: dayTo, scope })}&method=ALL`
+            }
+          />
+          <div className="rpt-grid">
+            <RevenueFlowCard
+              summary={report.data.summary}
+              returnsLink={`/returns?status=COMPLETED&${new URLSearchParams({ period, from, to })}`}
             />
-            <ReportMetric
-              label="Doanh thu gộp"
-              value={formatReportMoney(report.data.summary.grossSales)}
-            />
-            <ReportMetric
-              label="Doanh thu thuần"
-              value={formatReportMoney(report.data.summary.netRevenue)}
-            />
-            <ReportMetric
-              label="Giá trị đơn TB"
-              value={
-                report.data.summary.averageOrderValue
-                  ? formatReportMoney(report.data.summary.averageOrderValue)
-                  : '—'
+            <TopProductsCard
+              status={
+                topProducts.isLoading
+                  ? 'loading'
+                  : topProducts.error
+                    ? 'error'
+                    : 'ready'
+              }
+              data={topProducts.data}
+              linkFor={(productId) =>
+                `${settlementLink('ALL')}&product=${productId}`
               }
             />
           </div>
-          <div id="returns" className="grid gap-3 sm:grid-cols-3">
-            <ReportMetric
-              label="Giảm dòng"
-              value={formatReportMoney(report.data.summary.lineDiscounts)}
+          <div className="rpt-grid">
+            <DonutCard
+              title="Khách trả bằng"
+              centerLabel="Tổng"
+              centerValue={formatReportMoney(
+                sumDecimals(
+                  report.data.paymentMethods.map((item) => item.netRevenue),
+                ),
+              )}
+              parts={report.data.paymentMethods.map((item, index) => ({
+                key: item.method,
+                label: paymentLabel(item.method),
+                value: item.netRevenue,
+                display: formatReportMoney(item.netRevenue),
+                color: SERIES[index % SERIES.length]!,
+                to: settlementLink(PAYMENT_FILTER[item.method] ?? 'ALL'),
+              }))}
+              status="ready"
+              emptyText="Chưa có doanh thu trong kỳ."
             />
-            <ReportMetric
-              label="Trả hàng"
-              value={formatReportMoney(report.data.summary.salesReturns)}
-            />
-            <ReportMetric
-              label="Hủy hóa đơn"
-              value={formatReportMoney(report.data.summary.cancellations)}
-            />
+            {canProfit && owner.data ? (
+              <DonutCard
+                title="Lời lãi"
+                centerLabel="Lời"
+                centerValue={
+                  owner.data.grossMarginPct
+                    ? `${formatReportNumber(owner.data.grossMarginPct, 0)}%`
+                    : '—'
+                }
+                parts={[
+                  {
+                    key: 'profit',
+                    label: 'Tiền lời',
+                    value: owner.data.grossProfit,
+                    display: formatReportMoney(owner.data.grossProfit),
+                    color: PROFIT,
+                    to: '#profit',
+                  },
+                  {
+                    key: 'cogs',
+                    label: 'Tiền vốn',
+                    value: owner.data.netCogs,
+                    display: formatReportMoney(owner.data.netCogs),
+                    color: COST,
+                    to: '#profit',
+                  },
+                ]}
+                status="ready"
+                emptyText="Chưa có doanh thu trong kỳ."
+                footer={
+                  <p className="flex justify-between gap-4 p-3 text-sm">
+                    <span className="text-slate-700">
+                      Hàng trong kho (giá vốn)
+                    </span>
+                    <strong className="tabular-nums text-slate-950">
+                      {formatReportMoney(owner.data.inventoryValue)}
+                    </strong>
+                  </p>
+                }
+              />
+            ) : null}
+            {report.data.channels.length > 1 ? (
+              <DonutCard
+                title="Kênh bán"
+                centerLabel="Tổng"
+                centerValue={formatReportMoney(report.data.summary.netRevenue)}
+                parts={report.data.channels.map((item, index) => ({
+                  key: item.code,
+                  label: item.name,
+                  value: item.netRevenue,
+                  display: formatReportMoney(item.netRevenue),
+                  color: SERIES[index % SERIES.length]!,
+                  to: settlementLink('ALL'),
+                }))}
+                status="ready"
+                emptyText="Chưa có doanh thu trong kỳ."
+              />
+            ) : null}
           </div>
-          <div className="grid gap-5 lg:grid-cols-2">
-            <ReportBreakdown
-              title="Theo kênh bán"
-              rows={report.data.channels.map((item) => [
-                item.name,
-                formatReportMoney(item.netRevenue),
-              ])}
-            />
-            <ReportBreakdown
-              title="Theo phương thức thanh toán"
-              rows={report.data.paymentMethods.map((item) => [
-                paymentLabel(item.method),
-                formatReportMoney(item.netRevenue),
-              ])}
-            />
-          </div>
-          <ReportBreakdown
-            title="Theo ngày"
-            rows={report.data.daily.map((item) => [
-              item.day,
-              formatReportMoney(item.netRevenue),
-            ])}
-          />
         </>
       ) : null}
-      {canProfit && owner.data ? (
-        <>
-          <h2 className="pt-2 text-xl font-bold text-slate-950">
-            Lợi nhuận gộp
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <ReportMetric
-              label="Giá vốn thuần"
-              value={formatReportMoney(owner.data.netCogs)}
-            />
-            <ReportMetric
-              label="Lợi nhuận gộp"
-              value={formatReportMoney(owner.data.grossProfit)}
-            />
-            <ReportMetric
-              label="Tỷ suất lợi nhuận"
-              value={
-                owner.data.grossMarginPct
-                  ? `${formatReportNumber(owner.data.grossMarginPct, 2)}%`
-                  : '—'
-              }
-            />
-            <ReportMetric
-              label="Giá trị tồn hiện tại"
-              value={formatReportMoney(owner.data.inventoryValue)}
-            />
-          </div>
-          {profit.data ? (
-            <>
+      {canProfit && profit.data ? (
+        <div id="profit" className="rpt-card">
+          <button
+            type="button"
+            className="rpt-details-toggle"
+            aria-expanded={showDetails}
+            onClick={() =>
+              setToggled({ key: location.key, open: !showDetails })
+            }
+          >
+            Chi tiết từng đơn (
+            {formatReportNumber(String(profit.items.length), 0)}
+            {profit.hasNextPage ? '+' : ''})
+            <span>{showDetails ? 'Thu gọn' : 'Xem'}</span>
+          </button>
+          {showDetails ? (
+            <div className="mt-3 space-y-3">
               <ProfitEventTable items={profit.items} />
               {profit.hasNextPage ? (
                 <button
@@ -269,9 +349,9 @@ export function ReportPage() {
                   {profit.isFetching ? 'Đang tải…' : 'Tải thêm sự kiện'}
                 </button>
               ) : null}
-            </>
+            </div>
           ) : null}
-        </>
+        </div>
       ) : null}
     </section>
   );

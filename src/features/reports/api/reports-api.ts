@@ -10,11 +10,13 @@ import {
   productRevenueSchema,
   profitPageSchema,
   revenueReportSchema,
+  topProductsSchema,
   type OperationalDashboard,
   type OwnerDashboard,
   type ProductRevenue,
   type ProfitPage,
   type RevenueReport,
+  type TopProducts,
 } from './report-schemas';
 
 export type {
@@ -23,6 +25,7 @@ export type {
   ProductRevenue,
   ProfitPage,
   RevenueReport,
+  TopProducts,
 };
 
 export class ReportsApiError extends Error {
@@ -90,6 +93,17 @@ export function createRevenueReportsApi() {
         p_to: to,
         p_scope: scope,
       }).then((data) => parse(productRevenueSchema, data));
+    },
+    topProducts(
+      from: string,
+      to: string,
+      scope: 'OWN' | 'ALL',
+    ): Promise<TopProducts> {
+      return rpc('get_report_top_products', {
+        p_from: from,
+        p_to: to,
+        p_scope: scope,
+      }).then((data) => parse(topProductsSchema, data));
     },
   };
 }

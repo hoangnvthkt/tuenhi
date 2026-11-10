@@ -2179,6 +2179,10 @@ export type Database = {
         Args: { p_receipt_id: string };
         Returns: Json;
       };
+      get_report_top_products: {
+        Args: { p_from: string; p_scope?: string; p_to: string };
+        Returns: Json;
+      };
       get_revenue_report: {
         Args: { p_from: string; p_scope: string; p_to: string };
         Returns: Json;
