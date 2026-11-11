@@ -50,6 +50,7 @@ export function usePosCommands({
   setDraft,
   setItems,
   setPayment,
+  onStartNew,
 }: {
   api: SalesApi;
   online: boolean;
@@ -66,6 +67,7 @@ export function usePosCommands({
   setDraft: Dispatch<SetStateAction<Sale | null>>;
   setItems: Dispatch<SetStateAction<PosCartItem[]>>;
   setPayment: Dispatch<SetStateAction<PosPaymentMethod | null>>;
+  onStartNew: () => void;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -147,7 +149,7 @@ export function usePosCommands({
     }
   };
 
-  const save = async () => {
+  const save = async ({ startNew = false } = {}) => {
     try {
       if (checkoutPending || readPending()) return null;
     } catch {
@@ -192,27 +194,38 @@ export function usePosCommands({
         note,
         idempotencyKey: crypto.randomUUID(),
       });
-      setDraft(result.sale);
-      setItems(
-        result.sale.lines.map((line) => ({
-          ...line,
-          primaryImagePath: items.find(
-            (item) => item.productId === line.productId,
-          )?.primaryImagePath,
-          onHandQty:
-            items.find((item) => item.productId === line.productId)
-              ?.onHandQty ?? '0',
-        })),
-      );
-      if (!saleId) {
+      if (startNew) {
+        // Held order goes to the drafts box; the cart is ready for a new sale.
         clearLocalCart();
-        navigate(`/pos/${result.sale.id}`, { replace: true });
+        if (saleId) navigate('/pos', { replace: true });
+        else onStartNew();
+      } else {
+        setDraft(result.sale);
+        setItems(
+          result.sale.lines.map((line) => ({
+            ...line,
+            primaryImagePath: items.find(
+              (item) => item.productId === line.productId,
+            )?.primaryImagePath,
+            onHandQty:
+              items.find((item) => item.productId === line.productId)
+                ?.onHandQty ?? '0',
+          })),
+        );
+        if (!saleId) {
+          clearLocalCart();
+          navigate(`/pos/${result.sale.id}`, { replace: true });
+        }
       }
-      await refreshOperationalData(queryClient);
+      // Holding an order must free the till at once; the list refreshes behind it.
+      if (startNew) void refreshOperationalData(queryClient);
+      else await refreshOperationalData(queryClient);
       toast.show({
         kind: 'success',
         title: 'Đã lưu tạm',
-        message: 'Giỏ hàng đã được lưu an toàn trên máy chủ.',
+        message: startNew
+          ? 'Đơn đã vào danh sách đơn tạm.'
+          : 'Giỏ hàng đã được lưu an toàn trên máy chủ.',
       });
       return result.sale;
     } catch (error) {

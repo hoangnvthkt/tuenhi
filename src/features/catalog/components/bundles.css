@@ -1,0 +1,59 @@
+/* Product bundles. Plain CSS in the lazy catalog chunk: keeps the startup CSS budget. */
+.bundle-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #f1f5f9;
+  padding: 12px 0;
+}
+.bundle-row:first-child {
+  border-top: 0;
+}
+.bundle-off {
+  border-radius: 6px;
+  background: #e2e8f0;
+  padding: 2px 8px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+}
+.bundle-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 44px;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid #f1f5f9;
+  padding: 8px 0;
+  font-size: 14px;
+}
+.bundle-line label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+.bundle-line small {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+}
+.bundle-line-warn {
+  color: #b45309;
+}
+.bundle-remove {
+  min-height: 44px;
+  color: #be123c;
+  font-size: 13px;
+}
+.bundle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.bundle-field {
+  margin-bottom: 12px;
+}

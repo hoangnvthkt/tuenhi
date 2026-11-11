@@ -68,7 +68,7 @@ export function Demo() {
                 <X size={23} />
               </button>
               <h1 className="flex-1">Bán hàng</h1>
-              <button type="button" className="pos-close" aria-label="Đơn nháp">
+              <button type="button" className="pos-close" aria-label="Đơn tạm">
                 <Files size={24} />
               </button>
             </div>

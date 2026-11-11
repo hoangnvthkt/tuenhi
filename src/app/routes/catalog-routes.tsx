@@ -13,6 +13,11 @@ const ProductDetailPage = lazy(() =>
     default: module.ProductDetailPage,
   })),
 );
+const ProductBundlesPage = lazy(() =>
+  import('@/features/catalog').then((module) => ({
+    default: module.ProductBundlesPage,
+  })),
+);
 const CategoryManagerPage = lazy(() =>
   import('@/features/catalog').then((module) => ({
     default: module.CategoryManagerPage,
@@ -32,6 +37,7 @@ export const catalogRoutes: RouteObject[] = [
     children: [
       { path: 'products/new', element: <ProductDetailPage mode="create" /> },
       { path: 'products/categories', element: <CategoryManagerPage /> },
+      { path: 'products/bundles', element: <ProductBundlesPage /> },
       {
         path: 'products/:productId/edit',
         element: <ProductDetailPage mode="edit" />,

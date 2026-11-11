@@ -1,5 +1,7 @@
 export { CategoryManagerPage } from './pages/CategoryManagerPage';
 export { ProductDetailPage } from './pages/ProductDetailPage';
+export { ProductBundlesPage } from './pages/ProductBundlesPage';
+export type { ProductBundle } from './api/catalog-api';
 export { ProductListPage } from './pages/ProductListPage';
 export { CatalogRealtimeBridge } from './components/CatalogRealtimeBridge';
 export {

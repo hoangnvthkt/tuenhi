@@ -121,3 +121,11 @@ The fixture rolls back. It checks that `get_report_top_products` ranks five prod
 revenue with net quantity (sold − cancelled − returned) and unit, that top five plus "Khác"
 reconciles with the revenue report's net revenue, empty periods, invalid scope/range, and
 that the ALL scope is gated by `report.all_revenue.read`.
+
+## Product bundles (11/11/2026)
+
+After applying `20261111023820_product_bundles.sql`, clone the schema into
+`product_bundles_test` and run `product_bundles.sql` with `psql -X -v ON_ERROR_STOP=1`.
+The fixture rolls back. It checks idempotent save with an audit event, live per-item prices
+(no bundle price), expected-version conflicts, invalid lines, duplicate active names,
+discontinued items, hiding inactive bundles, and the `catalog.basic.manage` gate.
