@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   saveDraft: vi.fn(),
   draftPrint: vi.fn(),
   detail: vi.fn(),
+  list: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
   complete: vi.fn(),
   customerDetail: vi.fn(),
   listCustomers: vi.fn(),
@@ -233,7 +234,7 @@ describe('POS provisional printing', () => {
     ).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Đóng' }));
     expect(
-      await screen.findByRole('button', { name: 'Bỏ nháp' }),
+      await screen.findByRole('button', { name: 'Bỏ đơn tạm' }),
     ).toBeEnabled();
   });
 

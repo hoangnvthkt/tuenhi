@@ -9,7 +9,11 @@ import { PosDraftStatus } from '../components/PosDraftStatus';
 import { isDraftDirty } from '../model/draft-save-state';
 import { useQuery } from '@tanstack/react-query';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
-import { createCatalogApi, type ProductCatalogItem } from '@/features/catalog';
+import {
+  createCatalogApi,
+  type ProductBundle,
+  type ProductCatalogItem,
+} from '@/features/catalog';
 import { createDirectoryApi, type CustomerItem } from '@/features/directories';
 import {
   createCustomerExplorerApi,
@@ -21,6 +25,9 @@ import { createSalesApi } from '../api/sales-api';
 import type { Sale } from '../api/sales-schemas';
 import { DraftPrintDialog } from '../components/DraftPrintDialog';
 import { CartPanel } from '../components/CartPanel';
+import { PosBundlePicker } from '../components/PosBundlePicker';
+import { PosDraftsPanel } from '../components/PosDraftsPanel';
+import { addBundleToCart } from '../model/pos-bundle';
 import { CheckoutDialog } from '../components/CheckoutDialog';
 import { ProductPicker } from '../components/ProductPicker';
 import { PrefilledProductIntent } from '../components/PrefilledProductIntent';
@@ -103,6 +110,8 @@ export function PosPage() {
     string | null
   >(null);
   const [tabId] = useState(getPosTabId);
+  const [draftsOpen, setDraftsOpen] = useState(false);
+  const [bundleWarning, setBundleWarning] = useState<string | null>(null);
   const revisionRef = useRef(0);
   const customerSelectionRevisionRef = useRef(0);
   const customerIntentRevisionRef = useRef(0);
@@ -111,6 +120,7 @@ export function PosPage() {
     () => (saleId ? { kind: 'DRAFT', saleId } : { kind: 'NEW' }),
     [saleId],
   );
+  const writerIdentityRef = useRef(identity);
   const focusProductId = searchParams.get('focusProduct');
   const linkedCustomerId = searchParams.get('customerId');
   const clearFocusProduct = useCallback(() => {
@@ -226,6 +236,15 @@ export function PosPage() {
     queryFn: () =>
       catalogApi.list({ search: debouncedSearch.trim(), limit: 30 }),
     enabled: Boolean(search.trim()) && Boolean(debouncedSearch.trim()),
+  });
+  const drafts = useQuery({
+    queryKey: privateKey(...['sales', 'pos-drafts']),
+    queryFn: () => salesApi.list({ status: 'DRAFT' }),
+    enabled: online,
+  });
+  const bundles = useQuery({
+    queryKey: privateKey('catalog', 'bundles', false),
+    queryFn: () => catalogApi.listBundles(),
   });
   const channels = useQuery({
     queryKey: privateKey(...['pos-channels']),
@@ -357,6 +376,11 @@ export function PosPage() {
   }, [detail.data, identity, restoreSnapshot, session?.userId]);
 
   useEffect(() => {
+    // The commit that changes identity still holds the previous cart's state.
+    if (writerIdentityRef.current !== identity) {
+      writerIdentityRef.current = identity;
+      return;
+    }
     const userId = session?.userId;
     if (!userId || !workspaceReady || !canEdit) return;
     const nextRevision = revisionRef.current + 1;
@@ -465,6 +489,15 @@ export function PosPage() {
       ];
     });
   };
+  const addBundle = (bundle: ProductBundle) => {
+    const { items: next, skipped } = addBundleToCart(items, bundle.lines);
+    setItems(next);
+    setBundleWarning(
+      skipped.length
+        ? `Đã bỏ qua: ${skipped.join(', ')} (ngừng kinh doanh hoặc chưa có giá).`
+        : null,
+    );
+  };
   const update = (
     id: string,
     field: 'quantity' | 'lineDiscountAmount',
@@ -505,6 +538,14 @@ export function PosPage() {
     setDraft,
     setItems,
     setPayment,
+    onStartNew: () => {
+      setDraft(null);
+      setItems([]);
+      setCustomerId('');
+      setOrderDiscount('0');
+      setNote('');
+      setStaleCartWarning(false);
+    },
   });
   useEffect(() => {
     if (
@@ -605,21 +646,24 @@ export function PosPage() {
           <h1 className="text-2xl font-semibold text-slate-950">Bán hàng</h1>
           <p className="sr-only">Tìm hàng, lập giỏ và thanh toán.</p>
         </div>
-        <Link
-          to="/sales?status=DRAFT"
-          aria-label="Đơn nháp"
-          className="pos-close"
+        <button
+          type="button"
+          aria-label="Đơn tạm"
+          className="pos-close pos-drafts-toggle"
+          onClick={() => setDraftsOpen(true)}
         >
           <Files size={24} aria-hidden="true" />
-          <span className="sr-only">Đơn nháp</span>
-        </Link>
+          {drafts.data?.items.length ? (
+            <span className="pos-drafts-badge">{drafts.data.items.length}</span>
+          ) : null}
+        </button>
         {draft ? (
           <button
             onClick={discard}
             className="min-h-11 rounded-lg border border-red-200 px-3 text-sm font-medium text-red-700"
             disabled={!online || saving || !canEdit || checkoutPending}
           >
-            Bỏ nháp
+            Bỏ đơn tạm
           </button>
         ) : null}
       </div>
@@ -775,6 +819,19 @@ export function PosPage() {
               if (focusedProduct?.id === product.id) clearFocusProduct();
             }}
           />
+          <PosBundlePicker
+            status={
+              bundles.isLoading
+                ? 'loading'
+                : bundles.isError
+                  ? 'error'
+                  : 'ready'
+            }
+            bundles={bundles.data ?? []}
+            onRetry={() => void bundles.refetch()}
+            warning={bundleWarning}
+            onPick={addBundle}
+          />
           {search.trim() && catalog.isError ? (
             <p role="alert" className="px-4 py-2 text-sm text-red-700">
               Không thể tìm hàng.{' '}
@@ -819,13 +876,24 @@ export function PosPage() {
           onPrint={() => void preparePrint()}
           onSave={() => {
             setFailedSaveFingerprint(null);
-            void save().then((result) => {
+            void save({ startNew: true }).then((result) => {
               if (!result) setFailedSaveFingerprint(saveFingerprint);
             });
           }}
           onCheckout={() => setPayment('CASH')}
         />
       </fieldset>
+      <PosDraftsPanel
+        status={
+          drafts.isLoading ? 'loading' : drafts.isError ? 'error' : 'ready'
+        }
+        items={drafts.data?.items ?? []}
+        hasMore={Boolean(drafts.data?.nextCursor)}
+        currentSaleId={saleId}
+        open={draftsOpen}
+        onRetry={() => void drafts.refetch()}
+        onClose={() => setDraftsOpen(false)}
+      />
       {provisionalDocument ? (
         <DraftPrintDialog document={provisionalDocument} onClose={closePrint} />
       ) : null}

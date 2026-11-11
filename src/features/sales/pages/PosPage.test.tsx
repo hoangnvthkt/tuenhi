@@ -1,7 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PosPage } from './PosPage';
 import { acquirePosEditorLease } from '../model/pos-storage';
@@ -14,6 +20,9 @@ const mocks = vi.hoisted(() => ({
   catalogDetail: vi.fn(),
   customerDetail: vi.fn(),
   listCustomers: vi.fn().mockResolvedValue({ items: [] }),
+  listBundles: vi.fn(),
+  salesList: vi.fn(),
+  salesDetail: vi.fn(),
 }));
 
 const channels = [
@@ -54,6 +63,7 @@ vi.mock('@/features/catalog/api/catalog-api', async (original) => ({
   createCatalogApi: () => ({
     list: mocks.catalogList,
     detail: mocks.catalogDetail,
+    listBundles: mocks.listBundles,
   }),
 }));
 
@@ -76,7 +86,7 @@ vi.mock('@/features/settings', () => ({
 }));
 
 vi.mock('../api/sales-api', () => ({
-  createSalesApi: () => ({ detail: vi.fn() }),
+  createSalesApi: () => ({ detail: mocks.salesDetail, list: mocks.salesList }),
 }));
 
 vi.mock('../hooks/use-pos-commands', () => ({
@@ -111,6 +121,9 @@ function renderPage(entry = '/pos') {
 describe('PosPage', () => {
   beforeEach(() => {
     mocks.checkoutPending = false;
+    mocks.salesList.mockResolvedValue({ items: [], nextCursor: null });
+    mocks.listBundles.mockResolvedValue([]);
+    mocks.salesDetail.mockReturnValue(new Promise(() => {}));
     localStorage.clear();
     sessionStorage.clear();
     mocks.catalogList.mockResolvedValue({ items: [] });
@@ -600,6 +613,124 @@ describe('PosPage', () => {
       await screen.findByText('Khách hàng trong liên kết đã ngừng hoạt động.'),
     ).toBeInTheDocument();
   });
+});
+
+it('adds a whole bundle to the cart with each item price when picked', async () => {
+  mocks.listBundles.mockResolvedValue([
+    {
+      id: '40000000-0000-4000-8000-000000000001',
+      name: 'Gói cảm cúm',
+      isActive: true,
+      version: 1,
+      lines: [
+        {
+          productId: '30000000-0000-4000-8000-000000000001',
+          productName: 'Panadol',
+          sku: 'P1',
+          unitName: 'Hộp',
+          quantity: '2',
+          isActive: true,
+          currentSalePrice: '15000',
+          onHandQty: '5',
+          primaryImagePath: null,
+        },
+        {
+          productId: '30000000-0000-4000-8000-000000000002',
+          productName: 'Thuốc ngừng',
+          sku: 'P2',
+          unitName: 'Hộp',
+          quantity: '1',
+          isActive: false,
+          currentSalePrice: '9000',
+          onHandQty: '0',
+          primaryImagePath: null,
+        },
+      ],
+    },
+  ]);
+  renderPage();
+  fireEvent.click(await screen.findByRole('button', { name: /Gói cảm cúm/ }));
+  expect(await screen.findByText('Panadol')).toBeInTheDocument();
+  expect(screen.getByText('15.000 ₫')).toBeInTheDocument();
+  expect(screen.getByLabelText('Số lượng')).toHaveValue('2');
+  expect(screen.getByText(/Đã bỏ qua: Thuốc ngừng/)).toBeInTheDocument();
+});
+
+it('lists held orders in the drafts box and links to each one', async () => {
+  mocks.salesList.mockResolvedValue({
+    items: [
+      {
+        id: '20000000-0000-4000-8000-000000000001',
+        saleNumber: null,
+        status: 'DRAFT',
+        customerName: null,
+        channelName: 'Tại quầy',
+        netTotal: '56000',
+        createdByName: 'An',
+        completedAt: null,
+        sortAt: '2026-11-11T03:00:00Z',
+        version: 1,
+      },
+    ],
+    nextCursor: null,
+  });
+  renderPage();
+  const box = await screen.findByLabelText('Đơn tạm', {
+    selector: 'aside',
+  });
+  const row = await within(box).findByRole('link', {
+    name: /Khách lẻ/,
+    hidden: true,
+  });
+  expect(row).toHaveAttribute(
+    'href',
+    '/pos/20000000-0000-4000-8000-000000000001',
+  );
+  expect(row).toHaveTextContent('56.000');
+  expect(mocks.salesList).toHaveBeenCalledWith({ status: 'DRAFT' });
+});
+
+it('does not write the new cart under the held order when opening it', async () => {
+  const draftId = '20000000-0000-4000-8000-000000000001';
+  mocks.salesList.mockResolvedValue({
+    items: [
+      {
+        id: draftId,
+        saleNumber: null,
+        status: 'DRAFT',
+        customerName: 'Chị Lan',
+        channelName: 'Tại quầy',
+        netTotal: '56000',
+        createdByName: 'An',
+        completedAt: null,
+        sortAt: '2026-11-11T03:00:00Z',
+        version: 1,
+      },
+    ],
+    nextCursor: null,
+  });
+  render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <MemoryRouter initialEntries={['/pos']}>
+        <Routes>
+          <Route path="/pos" element={<PosPage />} />
+          <Route path="/pos/:saleId" element={<PosPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(
+    await screen.findByRole('link', { name: /Chị Lan/, hidden: true }),
+  );
+  await waitFor(() => expect(mocks.salesDetail).toHaveBeenCalled());
+  const keys = Object.keys(localStorage).filter((key) => key.includes(draftId));
+  expect(
+    keys.filter((key) => (localStorage.getItem(key) ?? '').includes('items')),
+  ).toEqual([]);
 });
 
 it('locks checkout controls and provides recovery without requiring a new proof', async () => {

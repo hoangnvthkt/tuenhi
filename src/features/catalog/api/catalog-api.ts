@@ -101,6 +101,30 @@ const mutationEnvelopeSchema = envelopeSchema(
   z.record(z.string(), z.unknown()),
 );
 
+const productBundleSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  isActive: z.boolean(),
+  version: z.number().int(),
+  lines: z.array(
+    z.object({
+      productId: z.uuid(),
+      productName: z.string(),
+      sku: z.string(),
+      unitName: z.string(),
+      quantity: z.string().regex(INTEGER_FINAL),
+      isActive: z.boolean(),
+      currentSalePrice: z.string().nullable(),
+      onHandQty: z.string().regex(SIGNED_INTEGER_FINAL),
+      primaryImagePath: z.string().nullable(),
+    }),
+  ),
+});
+export type ProductBundle = z.infer<typeof productBundleSchema>;
+const productBundlesEnvelopeSchema = envelopeSchema(
+  z.object({ items: z.array(productBundleSchema) }),
+);
+
 export class CatalogApiError extends Error {
   constructor(
     readonly code: string,
@@ -174,6 +198,15 @@ export interface CatalogApi {
     categoryId?: string;
     name: string;
     isActive: boolean;
+    idempotencyKey: string;
+  }): Promise<void>;
+  listBundles(includeInactive?: boolean): Promise<ProductBundle[]>;
+  saveBundle(input: {
+    bundleId?: string;
+    expectedVersion?: number;
+    name: string;
+    isActive: boolean;
+    lines: { productId: string; quantity: string }[];
     idempotencyKey: string;
   }): Promise<void>;
 }
@@ -282,6 +315,33 @@ export function createCatalogApi(): CatalogApi {
         p_is_active: input.isActive,
         p_idempotency_key: input.idempotencyKey,
       });
+      if (error) throw transportFailure();
+      parseMutationEnvelope(data);
+    },
+    async listBundles(includeInactive = false) {
+      const { data, error } = await client.rpc(
+        'list_product_bundles' as never,
+        {
+          p_include_inactive: includeInactive,
+        } as never,
+      );
+      if (error) throw transportFailure();
+      const parsed = productBundlesEnvelopeSchema.safeParse(data);
+      if (!parsed.success) throw new Error('Phản hồi gói hàng không hợp lệ.');
+      return unwrap(parsed.data).items;
+    },
+    async saveBundle(input) {
+      const { data, error } = await client.rpc(
+        'save_product_bundle' as never,
+        {
+          p_bundle_id: rpcNullable(input.bundleId),
+          p_expected_version: rpcNullable(input.expectedVersion),
+          p_name: input.name,
+          p_is_active: input.isActive,
+          p_lines: input.lines,
+          p_idempotency_key: input.idempotencyKey,
+        } as never,
+      );
       if (error) throw transportFailure();
       parseMutationEnvelope(data);
     },

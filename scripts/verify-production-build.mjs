@@ -7,10 +7,10 @@ const limits = {
   initialJavaScriptGzipBytes: 220 * 1024,
   initialCssGzipBytes: 12 * 1024,
   // Customer debt, mixed payments, settlement drilldowns, draft printing, the
-  // dashboard pie charts, the cash book, supplier debt/write-off, lot/expiry
-  // and report chart modules add lazy payloads. Keep startup budgets fixed;
-  // allow 160 KiB of growth in total deploy assets.
-  totalAssetBytes: 4 * 1024 * 1024 + 160 * 1024,
+  // dashboard pie charts, the cash book, supplier debt/write-off, lot/expiry,
+  // report chart and product bundle modules add lazy payloads. Keep startup
+  // budgets fixed; allow 176 KiB of growth in total deploy assets.
+  totalAssetBytes: 4 * 1024 * 1024 + 176 * 1024,
 };
 
 async function walk(directory) {

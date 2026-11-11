@@ -2315,6 +2315,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      list_product_bundles: {
+        Args: { p_include_inactive?: boolean };
+        Returns: Json;
+      };
       list_product_lots: {
         Args: { p_limit?: number; p_product_id?: string; p_status?: string };
         Returns: Json;
@@ -2568,6 +2572,17 @@ export type Database = {
           p_idempotency_key: string;
           p_product: Json;
           p_product_id: string;
+        };
+        Returns: Json;
+      };
+      save_product_bundle: {
+        Args: {
+          p_bundle_id: string;
+          p_expected_version: number;
+          p_idempotency_key: string;
+          p_is_active: boolean;
+          p_lines: Json;
+          p_name: string;
         };
         Returns: Json;
       };

@@ -14,7 +14,7 @@ const money = (v: string) =>
     v as Intl.StringNumericLiteral,
   );
 const statusLabels: Record<string, string> = {
-  DRAFT: 'Nháp',
+  DRAFT: 'Lưu tạm',
   COMPLETED: 'Hoàn tất',
   PARTIALLY_RETURNED: 'Trả một phần',
   RETURNED: 'Đã trả hết',
@@ -107,7 +107,7 @@ export function SalesListPage() {
             className="min-h-11 w-full rounded-lg border border-slate-300 px-3"
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="DRAFT">Nháp</option>
+            <option value="DRAFT">Lưu tạm</option>
             <option value="COMPLETED">Hoàn tất</option>
             <option value="PARTIALLY_RETURNED">Trả một phần</option>
             <option value="RETURNED">Đã trả hết</option>
@@ -131,7 +131,8 @@ export function SalesListPage() {
           >
             <div>
               <p className="font-medium">
-                {item.saleNumber ?? `Nháp ${item.id.slice(0, 8).toUpperCase()}`}
+                {item.saleNumber ??
+                  `Đơn tạm ${item.id.slice(0, 8).toUpperCase()}`}
               </p>
               <p className="text-sm text-slate-600">
                 {item.customerName ?? 'Khách lẻ'} · {item.channelName} ·{' '}

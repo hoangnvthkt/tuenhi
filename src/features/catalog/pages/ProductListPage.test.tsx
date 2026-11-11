@@ -26,6 +26,8 @@ function createApi(overrides: Partial<CatalogApi> = {}): CatalogApi {
     saveProduct: vi.fn(),
     setSalePrice: vi.fn(),
     saveCategory: vi.fn(),
+    listBundles: vi.fn(),
+    saveBundle: vi.fn(),
     ...overrides,
   };
 }

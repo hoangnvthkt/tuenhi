@@ -35,7 +35,7 @@ export function PosDraftStatus({
     >
       <span className="font-medium">{label}</span>
       {draftId ? (
-        <span> · Nháp {draftId.slice(0, 8).toUpperCase()}</span>
+        <span> · Đơn tạm {draftId.slice(0, 8).toUpperCase()}</span>
       ) : null}
       {updatedAt && Number.isFinite(Date.parse(updatedAt)) ? (
         <span>

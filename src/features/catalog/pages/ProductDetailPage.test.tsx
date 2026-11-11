@@ -46,6 +46,8 @@ function createApi(overrides: Partial<CatalogApi> = {}): CatalogApi {
     }),
     setSalePrice: vi.fn().mockResolvedValue(undefined),
     saveCategory: vi.fn(),
+    listBundles: vi.fn(),
+    saveBundle: vi.fn(),
     ...overrides,
   };
 }

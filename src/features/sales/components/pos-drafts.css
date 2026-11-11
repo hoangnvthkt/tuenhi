@@ -1,0 +1,197 @@
+/* POS held orders. Plain CSS in the lazy sales chunk: keeps the startup CSS budget. */
+.pos-drafts {
+  position: fixed;
+  inset-block: 0;
+  right: 0;
+  z-index: 50;
+  display: none;
+  flex-direction: column;
+  width: min(320px, 86vw);
+  overflow-y: auto;
+  border-left: 1px solid #e2e8f0;
+  background: #fff;
+  padding: 14px;
+}
+.pos-drafts-open {
+  display: flex;
+}
+.pos-drafts-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: #0f172a66;
+}
+.pos-drafts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.pos-drafts-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+}
+.pos-drafts-count {
+  min-width: 24px;
+  border-radius: 100px;
+  background: #e0ecff;
+  padding: 1px 7px;
+  color: #1d5fae;
+  font-size: 13px;
+  text-align: center;
+}
+.pos-drafts-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+}
+.pos-drafts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pos-drafts-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+}
+.pos-drafts-row:hover {
+  background: #f8fafc;
+}
+.pos-drafts-row[aria-current='page'] {
+  border-color: #006fee;
+  background: #eff6ff;
+}
+.pos-drafts-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pos-drafts-meta {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pos-drafts-note {
+  padding: 8px 0;
+  color: #475569;
+  font-size: 14px;
+}
+.pos-drafts-note button,
+.pos-drafts-more {
+  color: #0f766e;
+  text-decoration: underline;
+}
+.pos-drafts-more {
+  margin-top: 10px;
+  font-size: 14px;
+}
+.pos-drafts-skeleton {
+  height: 64px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: #e2e8f0;
+}
+.pos-drafts-toggle {
+  position: relative;
+}
+.pos-drafts-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 18px;
+  border-radius: 100px;
+  background: #006fee;
+  padding: 0 4px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+/* Wide enough: an always-visible box on the right of the screen. */
+@media (min-width: 720px) {
+  .pos-drafts {
+    display: flex;
+    width: 240px;
+  }
+  .pos-drafts-close,
+  .pos-drafts-backdrop,
+  .pos-drafts-toggle {
+    display: none;
+  }
+}
+@media (min-width: 720px) and (max-width: 1279px) {
+  .pos-active .pos-page {
+    margin-right: 240px;
+  }
+  .pos-checkout-bar {
+    right: 240px;
+  }
+}
+@media (min-width: 1280px) {
+  .pos-drafts {
+    top: 92px;
+    right: 16px;
+    bottom: 16px;
+    width: min(300px, calc((100vw - 760px) / 2 - 32px));
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+  }
+}
+.pos-bundles {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 14px 2px;
+}
+.pos-bundles button {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  border: 1px solid #70a8cc;
+  border-radius: 100px;
+  background: #fff;
+  padding: 0 14px;
+  color: #146c94;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pos-bundles button span {
+  min-width: 20px;
+  border-radius: 100px;
+  background: #e0ecff;
+  padding: 0 5px;
+  font-size: 12px;
+  text-align: center;
+}
+.pos-bundles-note {
+  padding: 8px 14px;
+  color: #475569;
+  font-size: 14px;
+}
+.pos-bundles-note button {
+  color: #0f766e;
+  text-decoration: underline;
+}
+.pos-bundles-skeleton {
+  height: 44px;
+  margin: 10px 14px 2px;
+  border-radius: 100px;
+  background: #e2e8f0;
+}

@@ -125,6 +125,7 @@ describe('usePosCommands', () => {
           setDraft: vi.fn(),
           setItems,
           setPayment: vi.fn(),
+          onStartNew: vi.fn(),
         }),
       { wrapper },
     );
@@ -194,6 +195,7 @@ describe('usePosCommands', () => {
           setDraft: vi.fn(),
           setItems: vi.fn(),
           setPayment: vi.fn(),
+          onStartNew: vi.fn(),
         }),
       { wrapper },
     );
@@ -259,6 +261,7 @@ describe('usePosCommands', () => {
           setDraft: vi.fn(),
           setItems: vi.fn(),
           setPayment: vi.fn(),
+          onStartNew: vi.fn(),
         }),
       { wrapper },
     );
@@ -331,6 +334,7 @@ describe('usePosCommands', () => {
           setDraft: vi.fn(),
           setItems: vi.fn(),
           setPayment: vi.fn(),
+          onStartNew: vi.fn(),
         }),
       { wrapper },
     );
@@ -405,6 +409,7 @@ describe('usePosCommands', () => {
           setDraft: vi.fn(),
           setItems: vi.fn(),
           setPayment: vi.fn(),
+          onStartNew: vi.fn(),
         }),
       { wrapper },
     );
@@ -447,6 +452,7 @@ describe('usePosCommands', () => {
           setDraft: vi.fn(),
           setItems: vi.fn(),
           setPayment: vi.fn(),
+          onStartNew: vi.fn(),
         }),
       { wrapper },
     );
@@ -491,6 +497,7 @@ function renderCheckout(api: SalesApi) {
         setDraft,
         setItems,
         setPayment,
+        onStartNew: vi.fn(),
       });
       return { ...commands, items, payment, setPayment, setItems };
     },
@@ -674,4 +681,42 @@ it('only looks up a pending checkout after reload without inventing its payment 
   expect(saveDraft).not.toHaveBeenCalled();
   expect(result.current.checkoutPending).toBe(true);
   expect(readPendingFinancialCommands()[0]?.idempotencyKey).toBe(key);
+});
+
+it('holds an order and starts a new cart instead of staying on the draft', async () => {
+  const saveDraft = vi
+    .fn()
+    .mockResolvedValue({ sale: draft, priceRefreshed: false });
+  const setDraft = vi.fn();
+  const setItems = vi.fn();
+  const onStartNew = vi.fn();
+  const { result } = renderHook(
+    () =>
+      usePosCommands({
+        api: { saveDraft } as unknown as SalesApi,
+        online: true,
+        userId,
+        items: draft.lines.map((line) => ({ ...line, onHandQty: '1' })),
+        draft: null,
+        customerId: '',
+        channelId: draft.salesChannelId,
+        orderDiscount: '0',
+        note: '',
+        canDiscount: true,
+        payment: null,
+        setDraft,
+        setItems,
+        setPayment: vi.fn(),
+        onStartNew,
+      }),
+    { wrapper },
+  );
+
+  await act(() => result.current.save({ startNew: true }));
+
+  expect(saveDraft).toHaveBeenCalledOnce();
+  expect(onStartNew).toHaveBeenCalledOnce();
+  expect(setDraft).not.toHaveBeenCalled();
+  expect(setItems).not.toHaveBeenCalled();
+  expect(screen.getByText('Đơn đã vào danh sách đơn tạm.')).toBeVisible();
 });

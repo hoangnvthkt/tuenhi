@@ -146,6 +146,7 @@ export function ProductListPage({ api: apiProp }: { api?: CatalogApi }) {
                 </summary>
                 <div className="catalog-menu">
                   <Link to="/products/categories">Quản lý nhóm hàng</Link>
+                  <Link to="/products/bundles">Gói hàng</Link>
                   <Link to="/products/new">Thêm sản phẩm</Link>
                 </div>
               </details>
