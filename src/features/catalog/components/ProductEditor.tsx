@@ -30,6 +30,7 @@ export function ProductEditor({
   isOnline,
   mode,
   onSave,
+  suggestSku,
 }: {
   canManageSalePrice: boolean;
   canManageDefaultCost: boolean;
@@ -38,6 +39,7 @@ export function ProductEditor({
   isOnline: boolean;
   mode: 'create' | 'edit';
   onSave: (request: ProductSaveRequest) => Promise<string>;
+  suggestSku?: () => Promise<string>;
 }) {
   const navigate = useNavigate();
   const [baseline, setBaseline] = useState(detail);
@@ -156,6 +158,7 @@ export function ProductEditor({
           isOnline={isOnline}
           onSave={save}
           onDirtyChange={onDirtyChange}
+          suggestSku={mode === 'create' ? suggestSku : undefined}
         />
       </div>
     </section>

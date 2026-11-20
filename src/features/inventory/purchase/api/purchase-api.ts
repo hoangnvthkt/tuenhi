@@ -14,11 +14,15 @@ import {
 export function createPurchaseApi() {
   const rpc = createInventoryRpc();
   return {
-    list(status?: string, cursor?: { updatedAt: string; id: string }) {
+    list(
+      status?: string,
+      cursor?: { updatedAt: string; id: string },
+      period?: { from: string; to: string },
+    ) {
       return rpc(
         'list_purchase_receipts',
         {
-          p_filters: status ? { status } : {},
+          p_filters: { ...(status ? { status } : {}), ...period },
           p_cursor_updated_at: cursor?.updatedAt ?? null,
           p_cursor_id: cursor?.id ?? null,
           p_limit: 100,

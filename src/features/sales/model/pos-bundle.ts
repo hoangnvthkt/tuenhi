@@ -1,5 +1,6 @@
 import { INTEGER_FINAL } from '@/shared/lib/numeric/canonical-number';
 import type { PosCartItem } from './pos-types';
+import { withLineQuantity } from './pos-totals';
 
 type BundleLine = {
   productId: string;
@@ -28,10 +29,10 @@ export function addBundleToCart(cart: PosCartItem[], lines: BundleLine[]) {
       const current = INTEGER_FINAL.test(found.quantity)
         ? BigInt(found.quantity)
         : 0n;
-      items[index] = {
-        ...found,
-        quantity: (current + BigInt(line.quantity)).toString(),
-      };
+      items[index] = withLineQuantity(
+        found,
+        (current + BigInt(line.quantity)).toString(),
+      );
     } else {
       items.push({
         productId: line.productId,

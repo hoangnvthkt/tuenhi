@@ -2744,6 +2744,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      suggest_next_product_sku: { Args: never; Returns: Json };
       transition_project_lifecycle: {
         Args: { p_cutover_at?: string; p_target_mode: string };
         Returns: Json;

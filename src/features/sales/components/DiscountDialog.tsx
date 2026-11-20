@@ -5,22 +5,29 @@ import { formatPosMoney } from '../model/format-money';
 import {
   discountFromPercent,
   exceedsMoney,
+  lineNetAmount,
   subtractMoney,
 } from '../model/pos-totals';
 import './discount-dialog.css';
 
 type Mode = 'AMOUNT' | 'PERCENT';
 
-/** Discount in dong or percent of `base`; always applies a dong amount. */
+/** Discount in dong or percent of `base`; always applies a dong amount. With `quantity`, `base` is one unit and the line total is shown. */
 export function DiscountDialog({
   title,
   base,
+  baseLabel = 'Tiền hàng',
+  resultLabel = 'Còn lại',
+  quantity,
   value,
   onApply,
   onCancel,
 }: {
   title: string;
   base: string;
+  baseLabel?: string;
+  resultLabel?: string;
+  quantity?: string;
   value: string;
   onApply: (amount: string) => void;
   onCancel: () => void;
@@ -51,7 +58,7 @@ export function DiscountDialog({
     : mode === 'PERCENT' && exceedsMoney(raw, '100')
       ? 'Tối đa 100%.'
       : mode === 'AMOUNT' && exceedsMoney(raw, base)
-        ? 'Không vượt quá tiền hàng.'
+        ? `Không vượt quá ${baseLabel.toLowerCase()}.`
         : null;
   const apply = () => {
     if (!error) onApply(amount);
@@ -78,7 +85,7 @@ export function DiscountDialog({
           {title}
         </h2>
         <p className="pos-discount-row">
-          <span>Tiền hàng</span>
+          <span>{baseLabel}</span>
           <span>{formatPosMoney(base)}</span>
         </p>
         <div className="pos-discount-input">
@@ -130,12 +137,28 @@ export function DiscountDialog({
             <span>-{formatPosMoney(amount)}</span>
           </p>
         ) : null}
-        <p className="pos-discount-row pos-discount-total">
-          <span>Còn lại</span>
+        <p
+          className={`pos-discount-row ${quantity ? '' : 'pos-discount-total'}`}
+        >
+          <span>{resultLabel}</span>
           <span>
             {formatPosMoney(error ? base : subtractMoney(base, amount))}
           </span>
         </p>
+        {quantity ? (
+          <p className="pos-discount-row pos-discount-total">
+            <span>Thành tiền × {quantity}</span>
+            <span>
+              {formatPosMoney(
+                lineNetAmount({
+                  quantity,
+                  unitSalePrice: error ? base : subtractMoney(base, amount),
+                  lineDiscountAmount: '0',
+                }),
+              )}
+            </span>
+          </p>
+        ) : null}
         <div className="mt-5 flex gap-2">
           <button
             type="button"

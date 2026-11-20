@@ -13,6 +13,42 @@ const categories = [
 ];
 
 describe('ProductForm', () => {
+  it('prefills the suggested next SKU and keeps it editable', async () => {
+    const user = userEvent.setup();
+    render(
+      <ProductForm
+        categories={categories}
+        canManageSalePrice={false}
+        isOnline
+        onSave={vi.fn()}
+        suggestSku={() => Promise.resolve('SP528016')}
+      />,
+    );
+    const sku = screen.getByLabelText('SKU');
+    await waitFor(() => expect(sku).toHaveValue('SP528016'));
+    await user.clear(sku);
+    await user.type(sku, 'SP-RIENG');
+    expect(sku).toHaveValue('SP-RIENG');
+  });
+
+  it('does not overwrite a SKU typed before the suggestion arrives', async () => {
+    const user = userEvent.setup();
+    let resolve: (sku: string) => void = () => undefined;
+    render(
+      <ProductForm
+        categories={categories}
+        canManageSalePrice={false}
+        isOnline
+        onSave={vi.fn()}
+        suggestSku={() => new Promise((done) => (resolve = done))}
+      />,
+    );
+    await user.type(screen.getByLabelText('SKU'), 'ABC');
+    resolve('SP528016');
+    await Promise.resolve();
+    expect(screen.getByLabelText('SKU')).toHaveValue('ABC');
+  });
+
   it('submits canonical values with stable idempotency keys', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(undefined);

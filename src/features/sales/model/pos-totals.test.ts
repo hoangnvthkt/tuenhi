@@ -3,6 +3,8 @@ import {
   calculatePosTotals,
   discountFromPercent,
   lineNetAmount,
+  withLineQuantity,
+  withUnitDiscount,
 } from './pos-totals';
 
 describe('calculatePosTotals', () => {
@@ -44,5 +46,39 @@ describe('calculatePosTotals', () => {
         lineDiscountAmount: '1000',
       }),
     ).toBe('111000');
+  });
+});
+
+describe('per-unit line discount', () => {
+  const line = {
+    quantity: '1',
+    unitSalePrice: '10000',
+    lineDiscountAmount: '0',
+  };
+
+  it('multiplies one unit discount by the quantity', () => {
+    const discounted = withUnitDiscount(line, '2000');
+    expect(withLineQuantity(discounted, '10')).toMatchObject({
+      lineDiscountAmount: '20000',
+      unitDiscountAmount: '2000',
+    });
+    expect(lineNetAmount(withLineQuantity(discounted, '10'))).toBe('80000');
+  });
+
+  it('keeps the unit discount while the quantity is being retyped', () => {
+    const typing = withLineQuantity(withUnitDiscount(line, '2000'), '');
+    expect(typing.lineDiscountAmount).toBe('0');
+    expect(withLineQuantity(typing, '3').lineDiscountAmount).toBe('6000');
+  });
+
+  it('derives the unit discount of a saved line and leaves uneven totals alone', () => {
+    const saved = {
+      quantity: '2',
+      unitSalePrice: '10000',
+      lineDiscountAmount: '4000',
+    };
+    expect(withLineQuantity(saved, '5').lineDiscountAmount).toBe('10000');
+    const uneven = { ...saved, quantity: '3', lineDiscountAmount: '1000' };
+    expect(withLineQuantity(uneven, '5').lineDiscountAmount).toBe('1000');
   });
 });

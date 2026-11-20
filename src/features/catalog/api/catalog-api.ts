@@ -121,6 +121,7 @@ const productBundleSchema = z.object({
   ),
 });
 export type ProductBundle = z.infer<typeof productBundleSchema>;
+const nextSkuEnvelopeSchema = envelopeSchema(z.object({ sku: z.string() }));
 const productBundlesEnvelopeSchema = envelopeSchema(
   z.object({ items: z.array(productBundleSchema) }),
 );
@@ -200,6 +201,7 @@ export interface CatalogApi {
     isActive: boolean;
     idempotencyKey: string;
   }): Promise<void>;
+  suggestNextSku?(): Promise<string>;
   listBundles(includeInactive?: boolean): Promise<ProductBundle[]>;
   saveBundle(input: {
     bundleId?: string;
@@ -317,6 +319,13 @@ export function createCatalogApi(): CatalogApi {
       });
       if (error) throw transportFailure();
       parseMutationEnvelope(data);
+    },
+    async suggestNextSku() {
+      const { data, error } = await client.rpc('suggest_next_product_sku');
+      if (error) throw transportFailure();
+      const parsed = nextSkuEnvelopeSchema.safeParse(data);
+      if (!parsed.success) throw new Error('Phản hồi SKU không hợp lệ.');
+      return unwrap(parsed.data).sku;
     },
     async listBundles(includeInactive = false) {
       const { data, error } = await client.rpc(

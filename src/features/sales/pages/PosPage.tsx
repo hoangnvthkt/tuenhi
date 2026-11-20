@@ -47,7 +47,11 @@ import {
   type PosCartIdentity,
   type PosCartSnapshotV2,
 } from '../model/pos-storage';
-import { calculatePosTotals } from '../model/pos-totals';
+import {
+  calculatePosTotals,
+  withLineQuantity,
+  withUnitDiscount,
+} from '../model/pos-totals';
 import { usePosCommands } from '../hooks/use-pos-commands';
 import {
   INTEGER_FINAL,
@@ -464,12 +468,12 @@ export function PosPage() {
       if (found)
         return current.map((x) =>
           x.productId === product.id
-            ? {
-                ...x,
-                quantity: INTEGER_FINAL.test(x.quantity)
+            ? withLineQuantity(
+                x,
+                INTEGER_FINAL.test(x.quantity)
                   ? incrementCanonicalInteger(x.quantity)
                   : '1',
-              }
+              )
             : x,
         );
       return [
@@ -500,7 +504,7 @@ export function PosPage() {
   };
   const update = (
     id: string,
-    field: 'quantity' | 'lineDiscountAmount',
+    field: 'quantity' | 'unitDiscountAmount',
     value: string,
   ) => {
     if (field === 'quantity' && value === '0') {
@@ -508,7 +512,13 @@ export function PosPage() {
       return;
     }
     setItems((current) =>
-      current.map((x) => (x.productId === id ? { ...x, [field]: value } : x)),
+      current.map((x) =>
+        x.productId !== id
+          ? x
+          : field === 'quantity'
+            ? withLineQuantity(x, value)
+            : withUnitDiscount(x, value),
+      ),
     );
   };
   const {

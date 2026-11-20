@@ -363,6 +363,7 @@ export function ProductDetailPage({
         isOnline={isOnline}
         mode={mode}
         onSave={save}
+        suggestSku={canManage ? api.suggestNextSku : undefined}
       />
     );
   }
