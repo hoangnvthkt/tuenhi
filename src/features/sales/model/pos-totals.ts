@@ -74,6 +74,42 @@ export function lineNetAmount(line: PosTotalLine) {
   return minorUnitsToCanonical(net > 0n ? net : 0n);
 }
 
+/** Discount of one unit when the line discount splits evenly over the quantity, else null. */
+export function unitDiscountOf(line: PosTotalLine): string | null {
+  const quantity = quantityToBigInt(line.quantity);
+  const total = moneyToMinorUnits(line.lineDiscountAmount);
+  if (quantity <= 0n || total % quantity !== 0n) return null;
+  return minorUnitsToCanonical(total / quantity);
+}
+
+type DiscountedLine = PosTotalLine & { unitDiscountAmount?: string };
+
+/** Sets a per-unit discount; the line discount is that amount times the quantity. */
+export function withUnitDiscount<T extends DiscountedLine>(
+  line: T,
+  unitDiscount: string,
+): T {
+  return {
+    ...line,
+    unitDiscountAmount: unitDiscount,
+    lineDiscountAmount: minorUnitsToCanonical(
+      moneyToMinorUnits(unitDiscount) * quantityToBigInt(line.quantity),
+    ),
+  };
+}
+
+/** Changes quantity and rescales a per-unit discount with it. */
+export function withLineQuantity<T extends DiscountedLine>(
+  line: T,
+  quantity: string,
+): T {
+  const unit = line.unitDiscountAmount ?? unitDiscountOf(line);
+  const next = { ...line, quantity };
+  return unit !== null && isPositiveMoney(unit)
+    ? withUnitDiscount(next, unit)
+    : next;
+}
+
 export function isPositiveMoney(value: string) {
   return moneyToMinorUnits(value) > 0n;
 }

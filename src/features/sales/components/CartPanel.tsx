@@ -18,11 +18,15 @@ import { NumericField } from '@/shared/ui/forms/NumericField';
 import { formatPosMoney } from '../model/format-money';
 import {
   isPositiveMoney,
-  lineGrossAmount,
   lineNetAmount,
+  unitDiscountOf,
 } from '../model/pos-totals';
 import { DiscountDialog } from './DiscountDialog';
 import type { PosCartItem } from '../model/pos-types';
+
+function unitDiscount(item: PosCartItem) {
+  return item.unitDiscountAmount ?? unitDiscountOf(item);
+}
 
 export function CartPanel({
   items,
@@ -65,7 +69,7 @@ export function CartPanel({
   saving: boolean;
   onUpdateLine: (
     id: string,
-    field: 'quantity' | 'lineDiscountAmount',
+    field: 'quantity' | 'unitDiscountAmount',
     value: string,
   ) => void;
   onRemoveLine: (id: string) => void;
@@ -257,7 +261,9 @@ export function CartPanel({
                     <span>
                       {isPositiveMoney(item.lineDiscountAmount) ? (
                         <span className="pos-line-discount">
-                          Giảm -{formatPosMoney(item.lineDiscountAmount)}
+                          {unitDiscount(item) === null
+                            ? `Giảm -${formatPosMoney(item.lineDiscountAmount)}`
+                            : `Giảm -${formatPosMoney(unitDiscount(item)!)}/${item.unitName}`}
                         </span>
                       ) : null}
                     </span>
@@ -374,11 +380,14 @@ export function CartPanel({
       ) : discountLine ? (
         <DiscountDialog
           title={discountLine.productName}
-          base={lineGrossAmount(discountLine)}
-          value={discountLine.lineDiscountAmount}
+          base={discountLine.unitSalePrice}
+          baseLabel={`Đơn giá / ${discountLine.unitName}`}
+          resultLabel="Giá sau giảm"
+          quantity={discountLine.quantity}
+          value={unitDiscount(discountLine) ?? '0'}
           onCancel={() => setDiscountTarget(null)}
           onApply={(amount) => {
-            onUpdateLine(discountLine.productId, 'lineDiscountAmount', amount);
+            onUpdateLine(discountLine.productId, 'unitDiscountAmount', amount);
             setDiscountTarget(null);
           }}
         />

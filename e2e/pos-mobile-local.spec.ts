@@ -52,19 +52,38 @@ test('20-line cart keeps checkout visible at the bottom and modal contains keybo
   await expect(page.getByLabel('Số lần xác nhận')).toHaveText('0');
 });
 
-test('valid cash discounts do not show a numeric range error after blur', async ({
+test('valid per-unit and order discounts apply without a numeric error', async ({
   page,
 }) => {
-  await page.getByRole('button', { name: 'Bảng giá chung' }).click();
-  const lineDiscount = page.getByLabel('Giảm dòng', { exact: true }).first();
+  await page.getByRole('button', { name: /^Giảm giá Sản phẩm 1,/ }).click();
+  let dialog = page.getByRole('dialog');
+  const lineDiscount = dialog.getByLabel('Giảm giá', { exact: true });
   await lineDiscount.fill('1000');
   await lineDiscount.press('Tab');
   await expect(lineDiscount).toHaveAttribute('aria-invalid', 'false');
-  const orderDiscount = page.getByLabel('Giảm toàn đơn', { exact: true });
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Áp dụng' }).click();
+  await expect(page.getByText('Giảm -1.000 ₫/hộp')).toBeVisible();
+
+  const group = page.getByRole('group', {
+    name: 'Số lượng Sản phẩm 1',
+    exact: true,
+  });
+  await group
+    .getByRole('button', { name: 'Tăng số lượng Sản phẩm 1', exact: true })
+    .click();
+  // 2 × (13.700 − 1.000) = 25.400
+  await expect(page.getByText('25.400 ₫')).toBeVisible();
+
+  await page.getByRole('button', { name: /Giảm giá đơn/ }).click();
+  dialog = page.getByRole('dialog');
+  const orderDiscount = dialog.getByLabel('Giảm giá', { exact: true });
   await orderDiscount.fill('5000');
   await orderDiscount.press('Tab');
   await expect(orderDiscount).toHaveAttribute('aria-invalid', 'false');
   await expect(page.getByRole('alert')).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Áp dụng' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
 test('KH01 mixed settlement, debt collection and reasoned adjustment fit a mobile screen', async ({

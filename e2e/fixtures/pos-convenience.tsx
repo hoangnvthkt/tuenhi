@@ -1,7 +1,11 @@
 import { createRoot } from 'react-dom/client';
 import { ProductPicker } from '../../src/features/sales/components/ProductPicker';
 import { X, Files } from '@phosphor-icons/react';
-import { calculatePosTotals } from '../../src/features/sales/model/pos-totals';
+import {
+  calculatePosTotals,
+  withLineQuantity,
+  withUnitDiscount,
+} from '../../src/features/sales/model/pos-totals';
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CartPanel } from '../../src/features/sales/components/CartPanel';
@@ -109,7 +113,11 @@ export function Demo() {
               onUpdateLine={(id, field, value) =>
                 setItems(
                   items.map((i) =>
-                    i.productId === id ? { ...i, [field]: value } : i,
+                    i.productId !== id
+                      ? i
+                      : field === 'quantity'
+                        ? withLineQuantity(i, value)
+                        : withUnitDiscount(i, value),
                   ),
                 )
               }

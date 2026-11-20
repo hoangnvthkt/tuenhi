@@ -3,7 +3,11 @@ import { screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { calculatePosTotals } from '../model/pos-totals';
+import {
+  calculatePosTotals,
+  withLineQuantity,
+  withUnitDiscount,
+} from '../model/pos-totals';
 import { CartPanel } from './CartPanel';
 
 describe('CartPanel', () => {
@@ -161,7 +165,11 @@ function DiscountCart({ canDiscount = true }: { canDiscount?: boolean }) {
       onUpdateLine={(id, field, value) =>
         setItems((current) =>
           current.map((item) =>
-            item.productId === id ? { ...item, [field]: value } : item,
+            item.productId !== id
+              ? item
+              : field === 'quantity'
+                ? withLineQuantity(item, value)
+                : withUnitDiscount(item, value),
           ),
         )
       }
@@ -206,8 +214,29 @@ it('applies a 1000 VND line discount from the price and shows the line amount', 
     screen.getByRole('button', { name: /^Giảm giá 12B Linh Chi/ }),
     '1000',
   );
-  expect(screen.getByText(/Giảm -1\.000/)).toBeInTheDocument();
+  expect(screen.getByText('Giảm -1.000 ₫/Hộp')).toBeInTheDocument();
   expect(screen.getAllByText('54.000 ₫').length).toBeGreaterThan(0);
+});
+
+it('discounts one unit and multiplies it by the quantity', async () => {
+  const user = userEvent.setup();
+  render(<DiscountCart />);
+  await applyDiscount(
+    user,
+    screen.getByRole('button', { name: /^Giảm giá 12B Linh Chi/ }),
+    '2000',
+  );
+  const quantity = screen.getByLabelText('Số lượng');
+  await user.clear(quantity);
+  await user.type(quantity, '10');
+  await user.tab();
+  // 10 × (55.000 − 2.000) = 530.000
+  expect(screen.getByText('Giảm -2.000 ₫/Hộp')).toBeInTheDocument();
+  expect(screen.getAllByText('530.000 ₫').length).toBeGreaterThan(0);
+  await user.click(
+    screen.getByRole('button', { name: 'Giảm số lượng 12B Linh Chi' }),
+  );
+  expect(screen.getAllByText('477.000 ₫').length).toBeGreaterThan(0);
 });
 
 it('applies an order discount by percent on the amount after line discounts', async () => {
@@ -220,7 +249,7 @@ it('applies an order discount by percent on the amount after line discounts', as
   await applyDiscount(
     user,
     screen.getByRole('button', { name: /^Giảm giá 12B Linh Chi/ }),
-    '10000',
+    '5000',
   );
   await applyDiscount(
     user,
@@ -228,12 +257,12 @@ it('applies an order discount by percent on the amount after line discounts', as
     '10',
     true,
   );
-  // 2 × 55.000 − 10.000 = 100.000; 10% đơn = 10.000 → 90.000
+  // 2 × (55.000 − 5.000) = 100.000; 10% đơn = 10.000 → 90.000
   expect(screen.getByText('-10.000 ₫')).toBeInTheDocument();
   expect(screen.getAllByText('90.000 ₫').length).toBeGreaterThan(0);
 });
 
-it('blocks a line discount above the line amount', async () => {
+it('blocks a unit discount above the unit price', async () => {
   const user = userEvent.setup();
   render(<DiscountCart />);
   await user.click(
@@ -242,7 +271,7 @@ it('blocks a line discount above the line amount', async () => {
   const dialog = screen.getByRole('dialog', { hidden: true });
   await user.type(within(dialog).getByLabelText('Giảm giá'), '60000');
   expect(within(dialog).getByRole('alert', { hidden: true })).toHaveTextContent(
-    'Không vượt quá tiền hàng.',
+    'Không vượt quá đơn giá / hộp.',
   );
   expect(
     within(dialog).getByRole('button', { name: 'Áp dụng', hidden: true }),

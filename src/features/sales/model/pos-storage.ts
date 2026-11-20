@@ -36,6 +36,7 @@ const cartItemSchema = z.object({
   lineOrder: z.number().int().nonnegative(),
   onHandQty: z.string().regex(SIGNED_INTEGER_FINAL).max(19),
   primaryImagePath: z.string().max(500).nullable().optional(),
+  unitDiscountAmount: z.string().regex(MONEY_FINAL).max(24).optional(),
 });
 
 const emptyOrUuid = z.union([z.literal(''), z.uuid()]);

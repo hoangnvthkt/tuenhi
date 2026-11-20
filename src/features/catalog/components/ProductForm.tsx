@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { NumericField } from '@/shared/ui/forms/NumericField';
 import { CatalogApiError } from '../api/catalog-api';
 import type { CategoryOption, ProductFormValues } from '../model/catalog-types';
@@ -46,6 +46,7 @@ export function ProductForm({
   onSave,
   onDirtyChange,
   submitLabel = 'Lưu sản phẩm',
+  suggestSku,
 }: {
   initialValues?: ProductFormValues;
   categories: CategoryOption[];
@@ -55,6 +56,7 @@ export function ProductForm({
   onSave: (request: ProductSaveRequest) => Promise<void>;
   submitLabel?: string;
   onDirtyChange?: (dirty: boolean) => void;
+  suggestSku?: () => Promise<string>;
 }) {
   const [values, setValues] = useState(initialValues);
   const [fieldErrors, setFieldErrors] = useState<
@@ -68,6 +70,21 @@ export function ProductForm({
     productIdempotencyKey: string;
     priceIdempotencyKey: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (!suggestSku) return;
+    let active = true;
+    suggestSku().then(
+      (sku) => {
+        if (active)
+          setValues((current) => (current.sku ? current : { ...current, sku }));
+      },
+      () => undefined,
+    );
+    return () => {
+      active = false;
+    };
+  }, [suggestSku]);
 
   function update<K extends keyof ProductFormValues>(
     field: K,
