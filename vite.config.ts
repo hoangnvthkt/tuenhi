@@ -1,11 +1,34 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
 import { documentLibraryChunkName } from './scripts/document-library-chunks.mjs';
 
-export default defineConfig({
+// Each production build carries an id; /version.json tells open apps a newer one is live.
+const buildId = (
+  process.env.VERCEL_GIT_COMMIT_SHA ??
+  process.env.GITHUB_SHA ??
+  `local-${Date.now().toString(36)}`
+).slice(0, 12);
+
+const versionFile: Plugin = {
+  name: 'tuenhi-version-file',
+  apply: 'build',
+  generateBundle() {
+    this.emitFile({
+      type: 'asset',
+      fileName: 'version.json',
+      source: JSON.stringify({ buildId }),
+    });
+  },
+};
+
+export default defineConfig(({ command }) => ({
+  define:
+    command === 'build'
+      ? { 'import.meta.env.VITE_BUILD_ID': JSON.stringify(buildId) }
+      : {},
   build: {
     rolldownOptions: {
       output: {
@@ -19,6 +42,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    versionFile,
     react(),
     tailwindcss(),
     VitePWA({
@@ -71,4 +95,4 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));

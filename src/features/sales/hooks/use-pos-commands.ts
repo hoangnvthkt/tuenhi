@@ -30,6 +30,7 @@ import type { DraftPrint, Sale } from '../api/sales-schemas';
 import type { PosCartItem, PosPaymentMethod } from '../model/pos-types';
 import {
   posCartStorageKey,
+  readPosCartSnapshot,
   removePosCartSnapshot,
   type PosCartIdentity,
 } from '../model/pos-storage';
@@ -149,6 +150,18 @@ export function usePosCommands({
     }
   };
 
+  /** After a held or completed order: a blank cart, walk-in customer, no leftovers. */
+  const startFreshCart = (finishedSaleId: string) => {
+    if (userId) {
+      removePosCartSnapshot(userId, { kind: 'DRAFT', saleId: finishedSaleId });
+      // A new cart without lines only carries leftovers (customer, discount, note).
+      if (readPosCartSnapshot(userId, { kind: 'NEW' })?.items.length === 0)
+        removePosCartSnapshot(userId, { kind: 'NEW' });
+    }
+    onStartNew();
+    navigate('/pos', { replace: true });
+  };
+
   const save = async ({ startNew = false } = {}) => {
     try {
       if (checkoutPending || readPending()) return null;
@@ -197,8 +210,7 @@ export function usePosCommands({
       if (startNew) {
         // Held order goes to the drafts box; the cart is ready for a new sale.
         clearLocalCart();
-        if (saleId) navigate('/pos', { replace: true });
-        else onStartNew();
+        startFreshCart(result.sale.id);
       } else {
         setDraft(result.sale);
         setItems(
@@ -406,8 +418,10 @@ export function usePosCommands({
         kind: 'success',
         title: 'Thanh toán thành công',
         message: `Đã hoàn tất hóa đơn ${completed.saleNumber}.`,
+        actionRoute: `/sales/${completed.saleId}`,
+        actionLabel: 'Xem hóa đơn',
       });
-      navigate(`/sales/${completed.saleId}`);
+      startFreshCart(completed.saleId);
     } catch (error) {
       if (error instanceof FinancialOutcomeUnknownError)
         setAwaitingOutcome(true);
@@ -477,8 +491,10 @@ export function usePosCommands({
         kind: 'success',
         title: 'Đã xác định kết quả thanh toán',
         message: `Đã hoàn tất hóa đơn ${completed.saleNumber}.`,
+        actionRoute: `/sales/${completed.saleId}`,
+        actionLabel: 'Xem hóa đơn',
       });
-      navigate(`/sales/${completed.saleId}`);
+      startFreshCart(completed.saleId);
     } catch (error) {
       if (error instanceof FinancialBusinessError) {
         const path = originalAttempt.current?.proofPath;

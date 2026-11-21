@@ -1,6 +1,6 @@
 import { act, renderHook, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import { useState, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -12,6 +12,7 @@ import {
 import { ToastProvider } from '@/shared/ui/feedback/ToastProvider';
 import type { SalesApi } from '../api/sales-api';
 import type { Sale } from '../api/sales-schemas';
+import { posCartSnapshotStorageKey } from '../model/pos-storage';
 import type { PosCartItem } from '../model/pos-types';
 import { usePosCommands } from './use-pos-commands';
 
@@ -719,4 +720,167 @@ it('holds an order and starts a new cart instead of staying on the draft', async
   expect(setDraft).not.toHaveBeenCalled();
   expect(setItems).not.toHaveBeenCalled();
   expect(screen.getByText('Đơn đã vào danh sách đơn tạm.')).toBeVisible();
+});
+
+it('returns to a blank walk-in cart after payment and drops leftover customer data', async () => {
+  const customerId = '60000000-0000-4000-8000-000000000001';
+  const leftover = {
+    version: 2,
+    userId,
+    identity: { kind: 'NEW' },
+    serverVersion: null,
+    revision: 3,
+    updatedAt: '2026-11-20T00:00:00.000Z',
+    lastWriterTabId: '80000000-0000-4000-8000-000000000001',
+    items: [],
+    channelId: '',
+    customerId,
+    orderDiscount: '0',
+    note: '',
+  };
+  localStorage.setItem(
+    posCartSnapshotStorageKey(userId, { kind: 'NEW' }),
+    JSON.stringify(leftover),
+  );
+  const saveDraft = vi
+    .fn()
+    .mockResolvedValue({ sale: draft, priceRefreshed: false });
+  const complete = vi.fn().mockResolvedValue({
+    saleId,
+    saleNumber: 'HD000009',
+    status: 'COMPLETED',
+    version: 3,
+  });
+  mocks.runFinancialCommand.mockImplementation(
+    async ({ invoke }: { invoke: (key: string) => Promise<unknown> }) =>
+      invoke('30000000-0000-4000-8000-000000000009'),
+  );
+  const onStartNew = vi.fn();
+  const { result } = renderHook(
+    () => ({
+      commands: usePosCommands({
+        api: { saveDraft, complete } as unknown as SalesApi,
+        online: true,
+        userId,
+        saleId,
+        draft,
+        items: [
+          {
+            productId: '50000000-0000-4000-8000-000000000001',
+            productName: 'Sản phẩm thử',
+            sku: 'SP001',
+            unitName: 'cái',
+            quantity: '1',
+            unitSalePrice: '100000',
+            lineDiscountAmount: '0',
+            lineOrder: 0,
+            onHandQty: '10',
+          },
+        ],
+        customerId: '',
+        channelId: draft.salesChannelId,
+        orderDiscount: '0',
+        note: '',
+        canDiscount: true,
+        payment: 'CASH',
+        setDraft: vi.fn(),
+        setItems: vi.fn(),
+        setPayment: vi.fn(),
+        onStartNew,
+      }),
+      location: useLocation(),
+    }),
+    {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={[`/pos/${saleId}`]}>
+          <QueryClientProvider client={new QueryClient()}>
+            <ToastProvider>{children}</ToastProvider>
+          </QueryClientProvider>
+        </MemoryRouter>
+      ),
+    },
+  );
+  await act(() => result.current.commands.pay());
+
+  expect(onStartNew).toHaveBeenCalledOnce();
+  expect(result.current.location.pathname).toBe('/pos');
+  expect(
+    localStorage.getItem(posCartSnapshotStorageKey(userId, { kind: 'NEW' })),
+  ).toBeNull();
+  expect(screen.getByRole('link', { name: 'Xem hóa đơn' })).toHaveAttribute(
+    'href',
+    `/sales/${saleId}`,
+  );
+});
+
+it('keeps a parked new cart that still has lines after holding another order', async () => {
+  const parked = {
+    version: 2,
+    userId,
+    identity: { kind: 'NEW' },
+    serverVersion: null,
+    revision: 1,
+    updatedAt: '2026-11-20T00:00:00.000Z',
+    lastWriterTabId: '80000000-0000-4000-8000-000000000001',
+    items: [
+      {
+        productId: '50000000-0000-4000-8000-000000000001',
+        productName: 'Sản phẩm thử',
+        sku: 'SP001',
+        unitName: 'cái',
+        quantity: '1',
+        unitSalePrice: '100000',
+        lineDiscountAmount: '0',
+        lineOrder: 0,
+        onHandQty: '1',
+      },
+    ],
+    channelId: '',
+    customerId: '',
+    orderDiscount: '0',
+    note: '',
+  };
+  const key = posCartSnapshotStorageKey(userId, { kind: 'NEW' });
+  localStorage.setItem(key, JSON.stringify(parked));
+  const saveDraft = vi
+    .fn()
+    .mockResolvedValue({ sale: draft, priceRefreshed: false });
+  const onStartNew = vi.fn();
+  const { result } = renderHook(
+    () =>
+      usePosCommands({
+        api: { saveDraft } as unknown as SalesApi,
+        online: true,
+        userId,
+        saleId,
+        draft,
+        items: [
+          {
+            productId: '50000000-0000-4000-8000-000000000001',
+            productName: 'Sản phẩm thử',
+            sku: 'SP001',
+            unitName: 'cái',
+            quantity: '1',
+            unitSalePrice: '100000',
+            lineDiscountAmount: '0',
+            lineOrder: 0,
+            onHandQty: '10',
+          },
+        ],
+        customerId: '',
+        channelId: draft.salesChannelId,
+        orderDiscount: '0',
+        note: '',
+        canDiscount: true,
+        payment: null,
+        setDraft: vi.fn(),
+        setItems: vi.fn(),
+        setPayment: vi.fn(),
+        onStartNew,
+      }),
+    { wrapper },
+  );
+  await act(() => result.current.save({ startNew: true }));
+  expect(onStartNew).toHaveBeenCalledOnce();
+  expect(localStorage.getItem(key)).not.toBeNull();
 });

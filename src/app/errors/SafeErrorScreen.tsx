@@ -1,3 +1,5 @@
+import { reloadFresh } from '../bootstrap/fresh-reload';
+
 export function SafeErrorScreen({
   title = 'Ứng dụng gặp sự cố khi hiển thị trang',
 }: {
@@ -16,7 +18,7 @@ export function SafeErrorScreen({
         </p>
         <button
           type="button"
-          onClick={() => window.location.reload()}
+          onClick={() => void reloadFresh()}
           className="mt-5 min-h-11 rounded-lg bg-teal-700 px-5 text-sm font-semibold text-white"
         >
           Tải lại ứng dụng

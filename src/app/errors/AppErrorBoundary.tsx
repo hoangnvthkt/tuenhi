@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react';
+import { recoverAssetLoadOnce } from '../bootstrap/fresh-reload';
 import { SafeErrorScreen } from './SafeErrorScreen';
 
 export class AppErrorBoundary extends Component<
@@ -11,8 +12,10 @@ export class AppErrorBoundary extends Component<
     return { failed: true };
   }
 
-  componentDidCatch() {
+  componentDidCatch(error: unknown) {
     // Deliberately local-only: this phase does not send error telemetry.
+    // A file missing after a deployment reloads once from the network.
+    recoverAssetLoadOnce(error);
   }
 
   render() {
