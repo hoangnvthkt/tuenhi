@@ -35,10 +35,12 @@ function failure(
 afterEach(() => cleanups.splice(0).forEach((cleanup) => cleanup()));
 
 describe('asset recovery', () => {
-  it('recovers a missing sales module by reloading the current deep link once', () => {
+  it('recovers a missing sales module by reloading the current deep link once', async () => {
     const target = browser();
     expect(failure(target).defaultPrevented).toBe(true);
-    expect(target.location.reload).toHaveBeenCalledOnce();
+    await vi.waitFor(() =>
+      expect(target.location.reload).toHaveBeenCalledOnce(),
+    );
     expect(target.location.href).toBe(
       'https://example.invalid/pos?focusProduct=product-1',
     );
@@ -49,10 +51,14 @@ describe('asset recovery', () => {
     'Importing a module script failed.',
     'error loading dynamically imported module',
     'Unable to preload CSS for /assets/inventory-old.css',
-  ])('recovers the browser load failure %s', (message) => {
+    "'text/html' is not a valid JavaScript MIME type.",
+    'Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "text/html".',
+  ])('recovers the browser load failure %s', async (message) => {
     const target = browser();
     expect(failure(target, message).defaultPrevented).toBe(true);
-    expect(target.location.reload).toHaveBeenCalledOnce();
+    await vi.waitFor(() =>
+      expect(target.location.reload).toHaveBeenCalledOnce(),
+    );
   });
   it('does not reload again when the same build still fails after navigation', () => {
     const storage = new Map<string, string>();
@@ -61,20 +67,24 @@ describe('asset recovery', () => {
     expect(failure(reloaded).defaultPrevented).toBe(false);
     expect(reloaded.location.reload).not.toHaveBeenCalled();
   });
-  it('allows a newer build to recover independently', () => {
+  it('allows a newer build to recover independently', async () => {
     const storage = new Map([['tuenhi:asset-recovery', 'previous-build']]);
     const target = browser(storage);
     failure(target);
-    expect(target.location.reload).toHaveBeenCalledOnce();
+    await vi.waitFor(() =>
+      expect(target.location.reload).toHaveBeenCalledOnce(),
+    );
   });
-  it('leaves offline failures available for manual retry without consuming recovery', () => {
+  it('leaves offline failures available for manual retry without consuming recovery', async () => {
     const target = browser();
     target.navigator.onLine = false;
     expect(failure(target).defaultPrevented).toBe(false);
     expect(target.location.reload).not.toHaveBeenCalled();
     target.navigator.onLine = true;
     failure(target);
-    expect(target.location.reload).toHaveBeenCalledOnce();
+    await vi.waitFor(() =>
+      expect(target.location.reload).toHaveBeenCalledOnce(),
+    );
   });
   it('keeps ordinary module evaluation errors visible instead of hiding bugs with reloads', () => {
     const target = browser();

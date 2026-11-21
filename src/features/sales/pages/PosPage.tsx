@@ -551,6 +551,7 @@ export function PosPage() {
     onStartNew: () => {
       setDraft(null);
       setItems([]);
+      setChannelId('');
       setCustomerId('');
       setOrderDiscount('0');
       setNote('');

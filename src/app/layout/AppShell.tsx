@@ -4,6 +4,7 @@ import { useSession } from '@/features/auth';
 import { NotificationCenter } from '@/features/notifications';
 import { useOnlineStatus } from '@/shared/hooks/use-online-status';
 import { PendingFinancialCommandRecoveryBanner } from '@/shared/ui/feedback/PendingFinancialCommandRecoveryBanner';
+import { AppUpdateBanner } from './AppUpdateBanner';
 import { navigationItems } from './navigation-items';
 
 const roleLabels = {
@@ -146,6 +147,8 @@ export function AppShell() {
           </div>
         </div>
       </header>
+
+      <AppUpdateBanner pathname={pathname} />
 
       {!isOnline ? (
         <div

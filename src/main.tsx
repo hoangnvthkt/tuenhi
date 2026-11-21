@@ -3,8 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
 import './styles/index.css';
 import { installAssetRecovery } from './app/bootstrap/asset-recovery';
+import { startUpdateWatcher } from './app/bootstrap/app-update';
 
 installAssetRecovery();
+if (import.meta.env.PROD) startUpdateWatcher();
 
 const rootElement = document.getElementById('root');
 
